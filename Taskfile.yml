@@ -1,0 +1,36 @@
+# Task runner for alcohol.neon (mirrors the `pls`/Task convention used across AtomiCloud repos).
+# Install: brew install go-task/tap/go-task xcodegen
+version: "3"
+
+vars:
+  PROJECT: AlcoholNeon
+  SCHEME: AlcoholNeon
+  SIMULATOR: "platform=iOS Simulator,name=iPhone 15"
+
+tasks:
+  default:
+    cmds:
+      - task -l
+    silent: true
+
+  generate:
+    desc: Generate the .xcodeproj from project.yml (run after pulling or editing project.yml)
+    cmds:
+      - xcodegen generate
+
+  open:
+    desc: Generate and open in Xcode
+    deps: [generate]
+    cmds:
+      - open {{.PROJECT}}.xcodeproj
+
+  build:
+    desc: Build the app for the simulator
+    deps: [generate]
+    cmds:
+      - xcodebuild -project {{.PROJECT}}.xcodeproj -scheme {{.SCHEME}} -destination '{{.SIMULATOR}}' build
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -rf DerivedData build {{.PROJECT}}.xcodeproj

@@ -1,7 +1,8 @@
 # CLAUDE.md
 
-Guidance for Claude Code when working in **alcohol.neon** — the native iOS app for
-LazyTax. Companion repos: **alcohol.zinc** (.NET backend), **alcohol.argon** (Next.js web).
+Guidance for Claude Code when working in **alcohol.neon** — the native iOS app for the
+AtomiCloud *alcohol* product. Companion repos: **alcohol.zinc** (.NET backend),
+**alcohol.argon** (Next.js web).
 
 ## Stack — use this, not conventional defaults
 

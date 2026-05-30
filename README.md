@@ -1,6 +1,6 @@
 # alcohol.neon
 
-Native **iOS app** for **LazyTax** (the AtomiCloud *alcohol* product): stake money on
+Native **iOS app** for the AtomiCloud *alcohol* product: stake money on
 your habits — miss one and the stake goes to charity. Companion to:
 
 - **alcohol.zinc** — .NET 8 backend (habit + penalty/charity engine)

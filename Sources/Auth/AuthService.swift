@@ -45,7 +45,10 @@ final class AuthService: ObservableObject {
       endpoint: config.logtoEndpoint,
       appId: config.logtoAppId,
       scopes: config.scopes,
-      resources: [config.zincResource],
+      // Empty unless a zinc resource is configured. Requesting a resource the Logto
+      // tenant doesn't have registered makes the authorize request error (blank
+      // bounce-back), so resource-less tenants set NEON_ZINC_RESOURCE="".
+      resources: config.apiResources,
       usingPersistStorage: true
     )
     self.client = LogtoClient(useConfig: logtoConfig)
@@ -53,7 +56,11 @@ final class AuthService: ObservableObject {
   }
 
   func signIn() async {
-    status = .loading
+    // IMPORTANT: do NOT swap the root view (e.g. to `.loading`) while Logto's web
+    // sheet is presented. The sheet is presented over the current SwiftUI view tree;
+    // replacing that view tears the sheet down before the redirect returns, which
+    // surfaces as `.authFailed`. Keep the presenting view (SignInView) mounted —
+    // mirror Logto's quickstart, which uses one stable view + local state.
     do {
       try await client.signInWithBrowser(redirectUri: config.redirectURI)
       status = client.isAuthenticated ? .authenticated : .unauthenticated

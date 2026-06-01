@@ -4,6 +4,8 @@ import '../auth/auth_service.dart';
 import '../core/problem.dart';
 import '../data/charity_repository.dart';
 import '../data/config_repository.dart';
+import '../data/execution_repository.dart';
+import '../data/habit_repository.dart';
 import '../data/user_repository.dart';
 import '../generated/zinc/models/configuration_principal_res.dart';
 import '../networking/api_client.dart';
@@ -19,13 +21,17 @@ class SessionController extends ChangeNotifier {
   final UserRepository users;
   final ConfigRepository configs;
   final CharityRepository charities;
+  final HabitRepository habits;
+  final ExecutionRepository executions;
 
   SessionController(AuthService auth) : this._(auth, auth.makeApiClient());
 
   SessionController._(this.auth, ApiClient api)
       : users = UserRepository(api),
         configs = ConfigRepository(api),
-        charities = CharityRepository(api);
+        charities = CharityRepository(api),
+        habits = HabitRepository(api),
+        executions = ExecutionRepository(api);
 
   SessionPhase _phase = SessionPhase.idle;
   Problem? _error;
@@ -61,8 +67,24 @@ class SessionController extends ChangeNotifier {
           detail: 'No id/access token available after sign-in. Try signing in again.'));
     }
 
-    final created = await users.create(idToken: idToken, accessToken: accessToken);
-    if (created case Err(:final problem)) return _fail(problem);
+    // Ensure the zinc user exists. We check with GET /User/Me/All first rather than
+    // blindly POSTing: POST /User is create-only (INSERT on the JWT sub) and throws a
+    // server-side UniqueConstraintException + error log on every returning sign-in.
+    // So: 200 ⇒ already provisioned; 404 ⇒ first sign-in, create now.
+    final me = await users.me();
+    if (me case Err(:final problem)) {
+      if (problem.status == 404) {
+        final created =
+            await users.create(idToken: idToken, accessToken: accessToken);
+        // Tolerate a 409 in case of a concurrent first-sign-in race.
+        if (created case Err(problem: final p)
+            when p.status != 409 && !p.title.toLowerCase().contains('conflict')) {
+          return _fail(p);
+        }
+      } else {
+        return _fail(problem);
+      }
+    }
 
     final cfg = await configs.mine();
     switch (cfg) {

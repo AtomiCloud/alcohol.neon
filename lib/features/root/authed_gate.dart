@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../auth/auth_service.dart';
 import '../../session/session_controller.dart';
-import '../home/home_view.dart';
+import '../dashboard/dashboard_view.dart';
 import '../onboarding/onboarding_view.dart';
 
 /// Shown once the user is authenticated. Runs the session bootstrap and routes to
@@ -35,7 +35,7 @@ class _AuthedGateState extends State<AuthedGate> {
       case SessionPhase.needsOnboarding:
         return const OnboardingView();
       case SessionPhase.ready:
-        return const HomeView();
+        return const DashboardView();
       case SessionPhase.error:
         return _BootstrapError(session: session);
     }

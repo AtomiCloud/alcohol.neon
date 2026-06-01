@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../auth/auth_service.dart';
 import '../../session/session_controller.dart';
 import '../home/home_view.dart';
 import '../onboarding/onboarding_view.dart';
@@ -65,6 +66,13 @@ class _BootstrapError extends StatelessWidget {
               FilledButton(
                 onPressed: session.bootstrap,
                 child: const Text('Try again'),
+              ),
+              const SizedBox(height: 4),
+              // Escape hatch when the failure is auth-related (e.g. an expired
+              // token that "Try again" can't recover) — re-authenticate.
+              TextButton(
+                onPressed: () => context.read<AuthService>().signOut(),
+                child: const Text('Sign out'),
               ),
             ],
           ),

@@ -49,8 +49,12 @@ class SessionController extends ChangeNotifier {
     final claims = await auth.claims();
     _userId = claims?.sub;
 
-    final idToken = await auth.idToken();
+    // Fetch the access token first: if it's expired the SDK refreshes via the
+    // refresh token, which also re-stores a fresh id_token. Reading idToken after
+    // that means a mid-session expiry self-heals instead of sending a stale token
+    // to POST /User (zinc validates the id_token's lifetime).
     final accessToken = await auth.zincAccessToken();
+    final idToken = await auth.idToken();
     if (idToken == null || accessToken == null) {
       return _fail(Problem.local('Could not read sign-in tokens',
           type: 'neon:auth',

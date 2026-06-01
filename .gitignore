@@ -43,3 +43,17 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Secrets — never commit credentials. Config is via --dart-define + the public
+# Logto app id; real secrets (API keys, Airwallex, etc.) belong in Infisical/CI.
+*.env
+.env*
+*.dev.vars
+.dev.vars
+secrets.*
+*.secret
+*.pem
+*.p12
+*.key
+*.keystore
+*.jks

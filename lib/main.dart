@@ -4,11 +4,19 @@ import 'package:provider/provider.dart';
 import 'auth/auth_service.dart';
 import 'config/app_config.dart';
 import 'features/root/root_view.dart';
+import 'session/session_controller.dart';
 
 void main() {
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => AuthService(AppConfig.current),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthService(AppConfig.current)),
+        // Built once from AuthService; owns the zinc repositories + bootstrap state.
+        ChangeNotifierProxyProvider<AuthService, SessionController>(
+          create: (ctx) => SessionController(ctx.read<AuthService>()),
+          update: (ctx, auth, previous) => previous ?? SessionController(auth),
+        ),
+      ],
       child: const AlcoholNeonApp(),
     ),
   );

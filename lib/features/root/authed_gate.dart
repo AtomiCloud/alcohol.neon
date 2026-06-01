@@ -1,0 +1,75 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../session/session_controller.dart';
+import '../home/home_view.dart';
+import '../onboarding/onboarding_view.dart';
+
+/// Shown once the user is authenticated. Runs the session bootstrap and routes to
+/// onboarding or home based on its outcome.
+class AuthedGate extends StatefulWidget {
+  const AuthedGate({super.key});
+
+  @override
+  State<AuthedGate> createState() => _AuthedGateState();
+}
+
+class _AuthedGateState extends State<AuthedGate> {
+  @override
+  void initState() {
+    super.initState();
+    // Kick off after the first frame so the provider is safely readable.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<SessionController>().bootstrap();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final session = context.watch<SessionController>();
+    switch (session.phase) {
+      case SessionPhase.idle:
+      case SessionPhase.bootstrapping:
+        return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      case SessionPhase.needsOnboarding:
+        return const OnboardingView();
+      case SessionPhase.ready:
+        return const HomeView();
+      case SessionPhase.error:
+        return _BootstrapError(session: session);
+    }
+  }
+}
+
+class _BootstrapError extends StatelessWidget {
+  final SessionController session;
+  const _BootstrapError({required this.session});
+
+  @override
+  Widget build(BuildContext context) {
+    final problem = session.error;
+    return Scaffold(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(problem?.title ?? 'Something went wrong',
+                  style: Theme.of(context).textTheme.titleMedium),
+              if (problem?.detail != null) ...[
+                const SizedBox(height: 8),
+                Text(problem!.detail!, textAlign: TextAlign.center),
+              ],
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: session.bootstrap,
+                child: const Text('Try again'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

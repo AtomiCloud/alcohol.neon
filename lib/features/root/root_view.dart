@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../auth/auth_service.dart';
 import '../auth/sign_in_view.dart';
-import '../home/home_view.dart';
+import 'authed_gate.dart';
 
 /// Switches between signed-in and signed-out experiences based on auth state.
 class RootView extends StatelessWidget {
@@ -18,7 +18,7 @@ class RootView extends StatelessWidget {
       case AuthStatus.unauthenticated:
         return const SignInView();
       case AuthStatus.authenticated:
-        return const HomeView();
+        return const AuthedGate();
       case AuthStatus.failed:
         return const _AuthFailedView();
     }

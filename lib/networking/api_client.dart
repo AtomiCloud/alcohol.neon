@@ -23,6 +23,70 @@ class ApiClient {
     T Function(dynamic json) decode, {
     bool requiresAuth = true,
     Map<String, dynamic>? query,
+  }) =>
+      _send('GET', path, null, decode, requiresAuth: requiresAuth, query: query);
+
+  Future<Result<T>> post<T>(
+    String path,
+    Object? body,
+    T Function(dynamic json) decode, {
+    bool requiresAuth = true,
+  }) =>
+      _send('POST', path, body, decode, requiresAuth: requiresAuth);
+
+  Future<Result<T>> put<T>(
+    String path,
+    Object? body,
+    T Function(dynamic json) decode, {
+    bool requiresAuth = true,
+  }) =>
+      _send('PUT', path, body, decode, requiresAuth: requiresAuth);
+
+  Future<Result<T>> patch<T>(
+    String path,
+    Object? body,
+    T Function(dynamic json) decode, {
+    bool requiresAuth = true,
+  }) =>
+      _send('PATCH', path, body, decode, requiresAuth: requiresAuth);
+
+  /// DELETE — most zinc deletes return no body, so this resolves to `Result<void>`
+  /// (success carries no value). Handled separately since there's nothing to decode.
+  Future<Result<void>> delete(
+    String path, {
+    Object? body,
+    bool requiresAuth = true,
+  }) async {
+    final headers = await _headers(requiresAuth: requiresAuth);
+    if (headers == null) return const Err(Problem.unauthenticated);
+    final encoded = body == null ? null : jsonEncode(body);
+    if (encoded != null) headers['Content-Type'] = 'application/json';
+
+    http.Response res;
+    try {
+      res = await _client.delete(baseUrl.resolve(path),
+          headers: headers, body: encoded);
+    } catch (e) {
+      return Err(Problem.network(e));
+    }
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      try {
+        return Err(Problem.fromJson(jsonDecode(res.body) as Map<String, dynamic>));
+      } catch (_) {
+        return Err(Problem.local('Request failed',
+            status: res.statusCode, detail: res.body.isEmpty ? null : res.body));
+      }
+    }
+    return const Ok(null);
+  }
+
+  Future<Result<T>> _send<T>(
+    String method,
+    String path,
+    Object? body,
+    T Function(dynamic json) decode, {
+    bool requiresAuth = true,
+    Map<String, dynamic>? query,
   }) async {
     var uri = baseUrl.resolve(path);
     if (query != null && query.isNotEmpty) {
@@ -35,31 +99,19 @@ class ApiClient {
 
     final headers = await _headers(requiresAuth: requiresAuth);
     if (headers == null) return const Err(Problem.unauthenticated);
+    final encoded = body == null ? null : jsonEncode(body);
+    if (encoded != null) headers['Content-Type'] = 'application/json';
 
     http.Response res;
     try {
-      res = await _client.get(uri, headers: headers);
-    } catch (e) {
-      return Err(Problem.network(e));
-    }
-    return _handle(res, decode);
-  }
-
-  Future<Result<T>> post<T>(
-    String path,
-    Object? body,
-    T Function(dynamic json) decode, {
-    bool requiresAuth = true,
-  }) async {
-    final uri = baseUrl.resolve(path);
-    final headers = await _headers(requiresAuth: requiresAuth);
-    if (headers == null) return const Err(Problem.unauthenticated);
-    if (body != null) headers['Content-Type'] = 'application/json';
-
-    http.Response res;
-    try {
-      res = await _client.post(uri,
-          headers: headers, body: body == null ? null : jsonEncode(body));
+      res = switch (method) {
+        'GET' => await _client.get(uri, headers: headers),
+        'POST' => await _client.post(uri, headers: headers, body: encoded),
+        'PUT' => await _client.put(uri, headers: headers, body: encoded),
+        'PATCH' => await _client.patch(uri, headers: headers, body: encoded),
+        'DELETE' => await _client.delete(uri, headers: headers, body: encoded),
+        _ => throw ArgumentError('Unsupported method: $method'),
+      };
     } catch (e) {
       return Err(Problem.network(e));
     }

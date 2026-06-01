@@ -22,15 +22,19 @@ class ApiClient {
     String path,
     T Function(dynamic json) decode, {
     bool requiresAuth = true,
+    Map<String, dynamic>? query,
   }) async {
-    final uri = baseUrl.resolve(path);
-    final headers = <String, String>{'Accept': 'application/json'};
-
-    if (requiresAuth) {
-      final token = await tokenProvider();
-      if (token == null) return const Err(Problem.unauthenticated);
-      headers['Authorization'] = 'Bearer $token';
+    var uri = baseUrl.resolve(path);
+    if (query != null && query.isNotEmpty) {
+      uri = uri.replace(queryParameters: {
+        ...uri.queryParameters,
+        for (final e in query.entries)
+          if (e.value != null) e.key: '${e.value}',
+      });
     }
+
+    final headers = await _headers(requiresAuth: requiresAuth);
+    if (headers == null) return const Err(Problem.unauthenticated);
 
     http.Response res;
     try {
@@ -38,9 +42,46 @@ class ApiClient {
     } catch (e) {
       return Err(Problem.network(e));
     }
+    return _handle(res, decode);
+  }
 
+  Future<Result<T>> post<T>(
+    String path,
+    Object? body,
+    T Function(dynamic json) decode, {
+    bool requiresAuth = true,
+  }) async {
+    final uri = baseUrl.resolve(path);
+    final headers = await _headers(requiresAuth: requiresAuth);
+    if (headers == null) return const Err(Problem.unauthenticated);
+    if (body != null) headers['Content-Type'] = 'application/json';
+
+    http.Response res;
+    try {
+      res = await _client.post(uri,
+          headers: headers, body: body == null ? null : jsonEncode(body));
+    } catch (e) {
+      return Err(Problem.network(e));
+    }
+    return _handle(res, decode);
+  }
+
+  /// Builds request headers, injecting a Bearer token when [requiresAuth].
+  /// Returns null if a token is required but unavailable (caller maps to a Problem).
+  Future<Map<String, String>?> _headers({required bool requiresAuth}) async {
+    final headers = <String, String>{'Accept': 'application/json'};
+    if (requiresAuth) {
+      final token = await tokenProvider();
+      if (token == null) return null;
+      headers['Authorization'] = 'Bearer $token';
+    }
+    return headers;
+  }
+
+  /// Maps an HTTP response into `Result<T>`: non-2xx → `Err(Problem)` (preferring
+  /// the server's RFC 7807 body), 2xx → decode, decode failure → `Err`.
+  Result<T> _handle<T>(http.Response res, T Function(dynamic json) decode) {
     if (res.statusCode < 200 || res.statusCode >= 300) {
-      // Prefer the server's RFC 7807 body; fall back to a synthetic Problem.
       try {
         return Err(Problem.fromJson(jsonDecode(res.body) as Map<String, dynamic>));
       } catch (_) {
@@ -48,7 +89,6 @@ class ApiClient {
             status: res.statusCode, detail: res.body.isEmpty ? null : res.body));
       }
     }
-
     try {
       final json = res.body.isEmpty ? null : jsonDecode(res.body);
       return Ok(decode(json));

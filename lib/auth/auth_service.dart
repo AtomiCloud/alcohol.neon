@@ -80,6 +80,10 @@ class AuthService extends ChangeNotifier {
     return UserClaims(sub: c.subject, name: c.name, email: c.email);
   }
 
+  /// The raw OIDC id_token (JWT). Sent to `POST /User` so zinc can provision the
+  /// user from Logto on first sign-in. Null if unauthenticated.
+  Future<String?> idToken() => _client.idToken;
+
   /// A zinc-scoped access token for the Bearer header. Null if unauthenticated or no
   /// resource is configured.
   Future<String?> zincAccessToken() async {

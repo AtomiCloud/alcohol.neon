@@ -42,6 +42,7 @@ dependencies:
   http: ^1.2.2
   # Lightweight state/DI for the auth service.
   provider: ^6.1.2
+  json_annotation: ^4.12.0
 
 # Pin path_provider_foundation below the version that adopted Flutter's experimental
 # native-assets/FFI (objective_c), which doesn't build cleanly under the nixpkgs Flutter
@@ -61,6 +62,9 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   # Generates iOS/Android launcher icons from the logo (see flutter_launcher_icons: below).
   flutter_launcher_icons: ^0.14.1
+  swagger_parser: ^1.43.1
+  build_runner: ^2.15.0
+  json_serializable: ^6.14.0
 
 # App-icon generation. Run: dart run flutter_launcher_icons
 # iOS icons can't be transparent, so the transparent logo is flattened onto a background.

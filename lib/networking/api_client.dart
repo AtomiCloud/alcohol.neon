@@ -99,7 +99,12 @@ class ApiClient {
 
     final headers = await _headers(requiresAuth: requiresAuth);
     if (headers == null) return const Err(Problem.unauthenticated);
-    final encoded = body == null ? null : jsonEncode(body);
+    // zinc actions bind [FromBody]; a bodyless POST/PUT/PATCH (e.g. optional-notes
+    // complete/skip) must still send application/json or the server returns 415.
+    // Send an empty object in that case.
+    final hasBodyVerb = method == 'POST' || method == 'PUT' || method == 'PATCH';
+    final encoded =
+        body != null ? jsonEncode(body) : (hasBodyVerb ? '{}' : null);
     if (encoded != null) headers['Content-Type'] = 'application/json';
 
     http.Response res;

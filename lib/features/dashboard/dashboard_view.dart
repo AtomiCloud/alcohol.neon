@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../theme/app_theme.dart';
 import '../../generated/zinc/models/habit_overview_habit_res.dart';
 import '../../generated/zinc/models/week_status_res.dart';
 import '../../session/session_controller.dart';
@@ -175,22 +176,38 @@ class _BuffersCard extends StatelessWidget {
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+        padding: const EdgeInsets.fromLTRB(12, 6, 6, 6),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Row(
+              children: [
+                Text('Safety nets',
+                    style: theme.textTheme.labelLarge
+                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                const Spacer(),
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  icon: Icon(Icons.info_outline,
+                      size: 18, color: theme.colorScheme.onSurfaceVariant),
+                  tooltip: 'What are these?',
+                  onPressed: () => _showInfo(context),
+                ),
+              ],
+            ),
             Wrap(
               spacing: 8,
               runSpacing: 4,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                _stat(theme, Icons.ac_unit, 'Freezes', freezeLabel, 'monthly',
-                    color: theme.colorScheme.primary),
+                _stat(theme, Icons.ac_unit, 'Freezes', freezeLabel,
+                    'auto-saves a miss',
+                    color: AppColors.freeze),
                 _stat(theme, Icons.fast_forward, 'Skips',
-                    '$skipsLeft/$totalSkip', 'monthly'),
+                    '$skipsLeft/$totalSkip', 'planned, monthly'),
                 if (owed)
                   _stat(theme, Icons.account_balance_wallet, 'Owed',
-                      '${dashboard.totalDebt}', 'this month',
+                      '${dashboard.totalDebt}', 'to charity',
                       color: theme.colorScheme.error),
               ],
             ),
@@ -198,7 +215,7 @@ class _BuffersCard extends StatelessWidget {
             ListTile(
               contentPadding: EdgeInsets.zero,
               dense: true,
-              leading: const Icon(Icons.beach_access),
+              leading: const Icon(Icons.beach_access, color: AppColors.vacation),
               title: const Text('Vacations'),
               subtitle: const Text('Pause habits for a date range'),
               trailing: const Icon(Icons.chevron_right),
@@ -208,6 +225,69 @@ class _BuffersCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showInfo(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Your safety nets',
+                  style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 16),
+              _infoRow(context, Icons.ac_unit, AppColors.freeze, 'Freezes',
+                  'Automatic. If you miss a scheduled day, a freeze is spent for '
+                      'you — your streak survives and you’re not charged. You earn '
+                      'them over time, and the cap grows as your streak grows.'),
+              _infoRow(context, Icons.fast_forward, null, 'Skips',
+                  'You choose these. Tap Skip when you know you won’t do a habit '
+                      'today — it won’t break your streak or charge you. Limited to '
+                      'a monthly allowance.'),
+              _infoRow(context, Icons.beach_access, AppColors.vacation,
+                  'Vacation',
+                  'Pause all habits for a date range, for longer breaks. No misses '
+                      'and no charges while a vacation is active.'),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _infoRow(BuildContext context, IconData icon, Color? color,
+      String title, String body) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon,
+              color: color ?? theme.colorScheme.onSurfaceVariant, size: 22),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title,
+                    style: theme.textTheme.titleSmall
+                        ?.copyWith(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 2),
+                Text(body,
+                    style: theme.textTheme.bodySmall
+                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -269,12 +349,24 @@ class _HabitCard extends StatelessWidget {
       opacity: dim ? 0.6 : 1,
       child: Card(
         margin: const EdgeInsets.symmetric(vertical: 6),
+        clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: habit.id == null
               ? null
               : () => _openEditor(context, controller,
                   habitId: habit.id, enabled: habit.enabled),
-          child: Padding(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                height: 4,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: AppColors.gradientFor(habit.id),
+                  ),
+                ),
+              ),
+              Padding(
             padding: const EdgeInsets.all(14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -286,9 +378,23 @@ class _HabitCard extends StatelessWidget {
                           style: theme.textTheme.titleMedium
                               ?.copyWith(fontWeight: FontWeight.w600)),
                     ),
-                    if (status.currentStreak > 0)
-                      Text('🔥 ${status.currentStreak}',
-                          style: theme.textTheme.labelLarge),
+                    if (status.currentStreak > 0) ...[
+                      const Icon(Icons.local_fire_department,
+                          size: 18, color: AppColors.streak),
+                      const SizedBox(width: 2),
+                      Text('${status.currentStreak}',
+                          style: theme.textTheme.labelLarge
+                              ?.copyWith(fontWeight: FontWeight.w600)),
+                    ],
+                    if (status.maxStreak > 0) ...[
+                      const SizedBox(width: 8),
+                      const Icon(Icons.emoji_events,
+                          size: 17, color: AppColors.best),
+                      const SizedBox(width: 2),
+                      Text('${status.maxStreak}',
+                          style: theme.textTheme.labelLarge
+                              ?.copyWith(fontWeight: FontWeight.w600)),
+                    ],
                   ],
                 ),
                 const SizedBox(height: 4),
@@ -312,6 +418,8 @@ class _HabitCard extends StatelessWidget {
                     skipped: skipped),
               ],
             ),
+          ),
+            ],
           ),
         ),
       ),

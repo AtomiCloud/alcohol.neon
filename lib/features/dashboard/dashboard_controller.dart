@@ -45,6 +45,10 @@ class DashboardController extends ChangeNotifier {
     return left < 0 ? 0 : left;
   }
 
+  /// The monthly skip allowance from the overview (denominator for the buffers
+  /// strip). 0 until the overview loads.
+  int get totalSkip => _overview?.totalSkip ?? 0;
+
   bool isBusy(HabitOverviewHabitRes habit) =>
       habit.id != null && _busy.contains(habit.id);
 

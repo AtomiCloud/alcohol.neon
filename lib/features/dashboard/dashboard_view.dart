@@ -7,6 +7,8 @@ import '../../session/session_controller.dart';
 import '../charity/charity_picker.dart';
 import '../habit/habit_editor_view.dart';
 import '../profile/profile_view.dart';
+import '../vacation/vacation_list_view.dart';
+import 'buffers_controller.dart';
 import 'dashboard_controller.dart';
 
 /// Opens the standalone charity browser (M4) in non-selection mode: tapping a
@@ -56,8 +58,17 @@ class DashboardView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (ctx) => DashboardController(ctx.read<SessionController>())..load(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+            create: (ctx) =>
+                DashboardController(ctx.read<SessionController>())..load()),
+        // Live freeze balance for the buffers strip — a light, separate fetch so
+        // the daily-loop controller stays clean.
+        ChangeNotifierProvider(
+            create: (ctx) =>
+                BuffersController(ctx.read<SessionController>())..load()),
+      ],
       child: const _DashboardScaffold(),
     );
   }
@@ -117,8 +128,10 @@ class _Content extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final habits = c.habits;
+    final buffers = context.watch<BuffersController>();
     return RefreshIndicator(
-      onRefresh: c.load,
+      // Pull-to-refresh reloads both the overview and the live freeze balance.
+      onRefresh: () => Future.wait([c.load(), buffers.load()]),
       child: ListView(
         padding: const EdgeInsets.all(12),
         children: [
@@ -127,7 +140,7 @@ class _Content extends StatelessWidget {
               message: c.actionError!.detail ?? c.actionError!.title,
               onDismiss: c.clearActionError,
             ),
-          _SummaryBar(skipsLeft: c.skipsLeft, totalDebt: c.totalDebt),
+          _BuffersCard(dashboard: c, buffers: buffers),
           const SizedBox(height: 8),
           if (habits.isEmpty)
             const _EmptyState()
@@ -139,32 +152,90 @@ class _Content extends StatelessWidget {
   }
 }
 
-class _SummaryBar extends StatelessWidget {
-  final int skipsLeft;
-  final String? totalDebt;
-  const _SummaryBar({required this.skipsLeft, required this.totalDebt});
+/// Compact buffers strip: the live **freeze balance** (`GET /Protection`), the
+/// monthly **skip budget** (from the habit overview), the current debt, and an
+/// entry point to manage vacations. Freeze is a real server value here — never a
+/// hardcoded 5/5.
+class _BuffersCard extends StatelessWidget {
+  final DashboardController dashboard;
+  final BuffersController buffers;
+  const _BuffersCard({required this.dashboard, required this.buffers});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final owed = _hasDebt(totalDebt);
-    return Row(
-      children: [
-        _pill(theme, Icons.ac_unit, '$skipsLeft skip${skipsLeft == 1 ? '' : 's'} left'),
-        const SizedBox(width: 8),
-        if (owed)
-          _pill(theme, Icons.account_balance_wallet, 'Owed $totalDebt',
-              color: theme.colorScheme.error),
-      ],
+    final skipsLeft = dashboard.skipsLeft;
+    final totalSkip = dashboard.totalSkip;
+    final balance = buffers.balance;
+    final owed = _hasDebt(dashboard.totalDebt);
+
+    final freezeLabel = balance == null
+        ? (buffers.loading ? '…' : '—')
+        : '${balance.balance}/${balance.cap}';
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                _stat(theme, Icons.ac_unit, 'Freezes', freezeLabel, 'monthly',
+                    color: theme.colorScheme.primary),
+                _stat(theme, Icons.fast_forward, 'Skips',
+                    '$skipsLeft/$totalSkip', 'monthly'),
+                if (owed)
+                  _stat(theme, Icons.account_balance_wallet, 'Owed',
+                      '${dashboard.totalDebt}', 'this month',
+                      color: theme.colorScheme.error),
+              ],
+            ),
+            const Divider(height: 16),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+              leading: const Icon(Icons.beach_access),
+              title: const Text('Vacations'),
+              subtitle: const Text('Pause habits for a date range'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const VacationListView()),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _pill(ThemeData theme, IconData icon, String label, {Color? color}) {
+  Widget _stat(ThemeData theme, IconData icon, String label, String value,
+      String hint,
+      {Color? color}) {
     final c = color ?? theme.colorScheme.onSurfaceVariant;
-    return Chip(
-      avatar: Icon(icon, size: 18, color: c),
-      label: Text(label, style: TextStyle(color: c)),
-      visualDensity: VisualDensity.compact,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18, color: c),
+          const SizedBox(width: 6),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('$label $value',
+                  style: theme.textTheme.labelLarge?.copyWith(color: c)),
+              Text(hint,
+                  style: theme.textTheme.labelSmall
+                      ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

@@ -8,7 +8,9 @@ import '../data/config_repository.dart';
 import '../data/execution_repository.dart';
 import '../data/habit_repository.dart';
 import '../data/payment_repository.dart';
+import '../data/protection_repository.dart';
 import '../data/user_repository.dart';
+import '../data/vacation_repository.dart';
 import '../generated/zinc/models/configuration_principal_res.dart';
 import '../generated/zinc/models/payment_consent_res.dart';
 import '../networking/api_client.dart';
@@ -28,6 +30,8 @@ class SessionController extends ChangeNotifier {
   final HabitRepository habits;
   final ExecutionRepository executions;
   final PaymentRepository payments;
+  final ProtectionRepository protections;
+  final VacationRepository vacations;
 
   SessionController(AuthService auth) : this._(auth, auth.makeApiClient());
 
@@ -38,7 +42,9 @@ class SessionController extends ChangeNotifier {
         causes = CauseRepository(api),
         habits = HabitRepository(api),
         executions = ExecutionRepository(api),
-        payments = PaymentRepository(api);
+        payments = PaymentRepository(api),
+        protections = ProtectionRepository(api),
+        vacations = VacationRepository(api);
 
   SessionPhase _phase = SessionPhase.idle;
   Problem? _error;

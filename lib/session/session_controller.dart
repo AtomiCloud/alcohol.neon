@@ -7,6 +7,7 @@ import '../data/charity_repository.dart';
 import '../data/config_repository.dart';
 import '../data/execution_repository.dart';
 import '../data/habit_repository.dart';
+import '../data/payment_repository.dart';
 import '../data/user_repository.dart';
 import '../generated/zinc/models/configuration_principal_res.dart';
 import '../networking/api_client.dart';
@@ -25,6 +26,7 @@ class SessionController extends ChangeNotifier {
   final CauseRepository causes;
   final HabitRepository habits;
   final ExecutionRepository executions;
+  final PaymentRepository payments;
 
   SessionController(AuthService auth) : this._(auth, auth.makeApiClient());
 
@@ -34,7 +36,8 @@ class SessionController extends ChangeNotifier {
         charities = CharityRepository(api),
         causes = CauseRepository(api),
         habits = HabitRepository(api),
-        executions = ExecutionRepository(api);
+        executions = ExecutionRepository(api),
+        payments = PaymentRepository(api);
 
   SessionPhase _phase = SessionPhase.idle;
   Problem? _error;
@@ -108,6 +111,23 @@ class SessionController extends ChangeNotifier {
   void onConfigured(ConfigurationPrincipalRes config) {
     _config = config;
     _setPhase(SessionPhase.ready);
+  }
+
+  /// Re-reads `GET /Configuration/me` and refreshes the cached principal so
+  /// dependent screens (dashboard / habit defaults) see a new timezone or default
+  /// charity after the settings screen saves. Returns the result so the caller can
+  /// surface a failure; on success it notifies listeners. Leaves the cache intact
+  /// (and does not flip the phase) when the refresh fails.
+  Future<Result<ConfigurationPrincipalRes>> refreshConfig() async {
+    final res = await configs.mine();
+    switch (res) {
+      case Ok(:final value):
+        _config = value.principal;
+        notifyListeners();
+        return Ok(value.principal);
+      case Err(:final problem):
+        return Err(problem);
+    }
   }
 
   void _fail(Problem problem) {

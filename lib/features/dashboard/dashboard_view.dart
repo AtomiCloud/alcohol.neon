@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../auth/auth_service.dart';
 import '../../generated/zinc/models/habit_overview_habit_res.dart';
 import '../../generated/zinc/models/week_status_res.dart';
 import '../../session/session_controller.dart';
 import '../charity/charity_picker.dart';
 import '../habit/habit_editor_view.dart';
+import '../profile/profile_view.dart';
 import 'dashboard_controller.dart';
 
 /// Opens the standalone charity browser (M4) in non-selection mode: tapping a
@@ -82,9 +82,12 @@ class _DashboardScaffold extends StatelessWidget {
             icon: const Icon(Icons.refresh),
             onPressed: c.phase == DashboardPhase.loading ? null : c.load,
           ),
-          TextButton(
-            onPressed: () => context.read<AuthService>().signOut(),
-            child: const Text('Sign out'),
+          IconButton(
+            icon: const Icon(Icons.person),
+            tooltip: 'Profile',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const ProfileView()),
+            ),
           ),
         ],
       ),

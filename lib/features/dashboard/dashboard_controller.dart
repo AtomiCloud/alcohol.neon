@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../../core/problem.dart';
@@ -5,6 +7,7 @@ import '../../data/execution_repository.dart';
 import '../../data/habit_repository.dart';
 import '../../generated/zinc/models/habit_overview_habit_res.dart';
 import '../../generated/zinc/models/habit_overview_response.dart';
+import '../../services/notification_service.dart';
 import '../../session/session_controller.dart';
 
 enum DashboardPhase { loading, ready, error }
@@ -75,11 +78,23 @@ class DashboardController extends ChangeNotifier {
       case Ok(:final value):
         _overview = value;
         _phase = DashboardPhase.ready;
+        unawaited(_syncReminders());
       case Err(:final problem):
         _error = problem;
         _phase = DashboardPhase.error;
     }
     notifyListeners();
+  }
+
+  /// Reschedule local habit reminders from the freshly loaded overview. Prompts
+  /// for permission once (iOS). Best-effort — failures don't affect the dashboard.
+  Future<void> _syncReminders() async {
+    try {
+      await NotificationService.instance.requestPermission();
+      await NotificationService.instance.syncHabits(habits);
+    } catch (_) {
+      // ignore — reminders are non-critical
+    }
   }
 
   Future<void> complete(HabitOverviewHabitRes habit) => _act(habit, skip: false);

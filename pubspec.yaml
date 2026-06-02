@@ -45,6 +45,7 @@ dependencies:
   json_annotation: ^4.12.0
   flutter_timezone: ^5.1.0
   url_launcher: ^6.3.2
+  airwallex_payment_flutter: ^0.2.0
 
 # Pin path_provider_foundation below the version that adopted Flutter's experimental
 # native-assets/FFI (objective_c), which doesn't build cleanly under the nixpkgs Flutter

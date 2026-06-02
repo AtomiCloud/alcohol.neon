@@ -9,6 +9,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "93.0.0"
+  airwallex_payment_flutter:
+    dependency: "direct main"
+    description:
+      name: airwallex_payment_flutter
+      sha256: "11924c40cebb6e2b92044231d8772af4234ab47ed13aafce78462e73ae423495"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.0"
   analyzer:
     dependency: transitive
     description:

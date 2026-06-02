@@ -10,6 +10,7 @@ import '../../generated/zinc/models/update_configuration_req.dart';
 import '../../session/session_controller.dart';
 import '../charity/charity_picker.dart';
 import '../onboarding/timezone_picker.dart';
+import '../payment/consent_service.dart';
 
 /// M5 — account settings (mirrors argon's `settings.tsx` field-card layout, minus
 /// the web-only consent SETUP/REMOVAL actions, which land in M6). Loads the user's
@@ -39,8 +40,10 @@ class _SettingsViewState extends State<SettingsView> {
 
   bool _loading = true;
   bool _saving = false;
+  bool _consentBusy = false;
   Problem? _loadError;
   Problem? _saveError;
+  Problem? _consentError;
 
   @override
   void initState() {
@@ -140,6 +143,90 @@ class _SettingsViewState extends State<SettingsView> {
     return changed && !_saving;
   }
 
+  /// Runs the full consent collection flow (confirm → native sheet → poll),
+  /// then mirrors the session's refreshed consent into the local card.
+  Future<void> _setUpConsent() async {
+    final session = context.read<SessionController>();
+    setState(() {
+      _consentBusy = true;
+      _consentError = null;
+    });
+    final res = await ConsentService(session).ensureConsent(context);
+    if (!mounted) return;
+    switch (res) {
+      case Ok():
+        setState(() {
+          _consent = session.consent ?? _consent;
+          _consentBusy = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Payment method set up')),
+        );
+      case Err(:final problem):
+        setState(() {
+          _consentBusy = false;
+          _consentError = problem;
+        });
+    }
+  }
+
+  /// Revokes consent (`DELETE /Payment/{userId}/consent`), then re-GETs to confirm
+  /// and refreshes the session cache. Warns that existing stakes remain in place.
+  Future<void> _removeConsent() async {
+    final session = context.read<SessionController>();
+    final userId = session.userId;
+    if (userId == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Remove payment method?'),
+        content: const Text(
+          'This removes your saved payment method. Your existing staked habits '
+          'stay as they are, but they can no longer be charged — so misses '
+          "won't result in a donation until you set a payment method up again.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() {
+      _consentBusy = true;
+      _consentError = null;
+    });
+
+    final res = await session.payments.revokeConsent(userId);
+    if (!mounted) return;
+    if (res case Err(:final problem)) {
+      setState(() {
+        _consentBusy = false;
+        _consentError = problem;
+      });
+      return;
+    }
+
+    // Re-GET to confirm + refresh the session cache (truth = the GET).
+    await session.refreshConsent();
+    if (!mounted) return;
+    setState(() {
+      _consent = session.consent ?? _consent;
+      _consentBusy = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Payment method removed')),
+    );
+  }
+
   Future<void> _save() async {
     final session = context.read<SessionController>();
     final id = _config?.principal.id;
@@ -217,7 +304,13 @@ class _SettingsViewState extends State<SettingsView> {
               'this anytime.',
           onTap: _pickCharity,
         ),
-        _ConsentCard(consent: _consent),
+        _ConsentCard(
+          consent: _consent,
+          busy: _consentBusy,
+          error: _consentError,
+          onSetUp: _consentBusy ? null : _setUpConsent,
+          onRemove: _consentBusy ? null : _removeConsent,
+        ),
         if (_saveError != null) ...[
           const SizedBox(height: 12),
           Text(
@@ -284,10 +377,23 @@ class _FieldCard extends StatelessWidget {
   }
 }
 
-/// Read-only payment-consent status (M5). The SETUP / REMOVE actions are M6.
+/// Payment-consent status + actions (M6). Shows "Set up payment method" when none
+/// is on file, and "Remove" when one is. While an action runs, both are disabled
+/// and a spinner shows.
 class _ConsentCard extends StatelessWidget {
   final PaymentConsentRes? consent;
-  const _ConsentCard({required this.consent});
+  final bool busy;
+  final Problem? error;
+  final VoidCallback? onSetUp;
+  final VoidCallback? onRemove;
+
+  const _ConsentCard({
+    required this.consent,
+    required this.busy,
+    required this.error,
+    required this.onSetUp,
+    required this.onRemove,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -307,14 +413,56 @@ class _ConsentCard extends StatelessWidget {
           'donations.';
     }
     return Card(
-      child: ListTile(
-        leading: Icon(
-          has ? Icons.verified_user : Icons.gpp_maybe,
-          color: has ? Colors.green.shade700 : theme.colorScheme.outline,
-        ),
-        title: const Text('Payment consent'),
-        subtitle: Text(detail),
-        isThreeLine: false,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ListTile(
+            leading: Icon(
+              has ? Icons.verified_user : Icons.gpp_maybe,
+              color: has ? Colors.green.shade700 : theme.colorScheme.outline,
+            ),
+            title: const Text('Payment consent'),
+            subtitle: Text(detail),
+            isThreeLine: false,
+          ),
+          if (error != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Text(
+                error!.detail ?? error!.title,
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: theme.colorScheme.error),
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: busy
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                  : has
+                      ? TextButton.icon(
+                          onPressed: onRemove,
+                          icon: const Icon(Icons.delete_outline),
+                          style: TextButton.styleFrom(
+                              foregroundColor: theme.colorScheme.error),
+                          label: const Text('Remove'),
+                        )
+                      : FilledButton.icon(
+                          onPressed: onSetUp,
+                          icon: const Icon(Icons.add_card),
+                          label: const Text('Set up payment method'),
+                        ),
+            ),
+          ),
+        ],
       ),
     );
   }

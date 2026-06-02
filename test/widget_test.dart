@@ -1,6 +1,7 @@
 // Foundation smoke tests. Real feature tests come with the habit screens.
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:airwallex_payment_flutter/types/environment.dart';
 import 'package:alcohol_neon/config/app_config.dart';
 import 'package:alcohol_neon/config/landscape.dart';
 import 'package:alcohol_neon/core/problem.dart';
@@ -21,6 +22,7 @@ void main() {
       logtoEndpoint: 'e',
       logtoAppId: 'a',
       zincResource: 'https://api.zinc.alcohol.pichu',
+      airwallexEnv: Environment.demo,
     );
     final withoutResource = AppConfig(
       landscape: Landscape.pichu,
@@ -28,9 +30,15 @@ void main() {
       logtoEndpoint: 'e',
       logtoAppId: 'a',
       zincResource: '',
+      airwallexEnv: Environment.demo,
     );
     expect(withResource.apiResources, ['https://api.zinc.alcohol.pichu']);
     expect(withoutResource.apiResources, isEmpty);
+  });
+
+  test('AppConfig resolves an Airwallex environment per landscape', () {
+    final config = AppConfig.current;
+    expect(Environment.values.contains(config.airwallexEnv), isTrue);
   });
 
   test('Result pattern matching', () {

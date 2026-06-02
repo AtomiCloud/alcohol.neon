@@ -1,4 +1,17 @@
 PODS:
+  - Airwallex (6.4.3):
+    - Airwallex/AirwallexPaymentSheet (= 6.4.3)
+  - Airwallex/AirwallexCore (6.4.3)
+  - Airwallex/AirwallexPayment (6.4.3):
+    - Airwallex/AirwallexCore
+  - Airwallex/AirwallexPaymentSheet (6.4.3):
+    - Airwallex/AirwallexPayment
+  - Airwallex/AirwallexWeChatPay (6.4.3):
+    - Airwallex/AirwallexCore
+  - airwallex_payment_flutter (0.0.1):
+    - Airwallex (~> 6.4.3)
+    - Airwallex/AirwallexWeChatPay (~> 6.4.3)
+    - Flutter
   - Flutter (1.0.0)
   - flutter_secure_storage (6.0.0):
     - Flutter
@@ -13,6 +26,7 @@ PODS:
     - Flutter
 
 DEPENDENCIES:
+  - airwallex_payment_flutter (from `.symlinks/plugins/airwallex_payment_flutter/ios`)
   - Flutter (from `Flutter`)
   - flutter_secure_storage (from `.symlinks/plugins/flutter_secure_storage/ios`)
   - flutter_timezone (from `.symlinks/plugins/flutter_timezone/ios`)
@@ -20,7 +34,13 @@ DEPENDENCIES:
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
   - url_launcher_ios (from `.symlinks/plugins/url_launcher_ios/ios`)
 
+SPEC REPOS:
+  trunk:
+    - Airwallex
+
 EXTERNAL SOURCES:
+  airwallex_payment_flutter:
+    :path: ".symlinks/plugins/airwallex_payment_flutter/ios"
   Flutter:
     :path: Flutter
   flutter_secure_storage:
@@ -35,6 +55,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/url_launcher_ios/ios"
 
 SPEC CHECKSUMS:
+  Airwallex: 9a3948df34af2c445e99e65b8fb49b675d22f4c5
+  airwallex_payment_flutter: 7c213f5b449384e78bc3116e36f2a18783e76d4f
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   flutter_secure_storage: d33dac7ae2ea08509be337e775f6b59f1ff45f12
   flutter_timezone: ac3da59ac941ff1c98a2e1f0293420e020120282

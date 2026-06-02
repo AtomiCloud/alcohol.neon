@@ -7,6 +7,7 @@ import '../../generated/zinc/models/create_habit_req.dart';
 import '../../generated/zinc/models/update_habit_req.dart';
 import '../../session/session_controller.dart';
 import '../charity/charity_picker.dart';
+import '../payment/consent_service.dart';
 
 /// M3 — create / edit a habit. Field contract mirrors argon (verified against
 /// zinc's HabitValidator): day names are PascalCase (e.g. "Monday"),
@@ -178,6 +179,23 @@ class _HabitEditorViewState extends State<HabitEditorView> {
       _saving = true;
       _error = null;
     });
+
+    // Gate staked habits on payment consent. A positive stake needs a card on
+    // file, so collect consent first; only proceed if it succeeds. Truth is the
+    // session's cached `/consent` GET, never the Logto claim.
+    final stakeAmount = double.tryParse(_stakeWire) ?? 0;
+    if (stakeAmount > 0 && !_session.hasPaymentConsent) {
+      final consent =
+          await ConsentService(_session).ensureConsent(context);
+      if (!mounted) return;
+      if (consent case Err(:final problem)) {
+        setState(() {
+          _saving = false;
+          _error = problem;
+        });
+        return;
+      }
+    }
 
     final Result<dynamic> res;
     if (widget.isEdit) {

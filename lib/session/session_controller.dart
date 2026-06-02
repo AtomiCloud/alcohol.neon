@@ -10,6 +10,7 @@ import '../data/habit_repository.dart';
 import '../data/payment_repository.dart';
 import '../data/user_repository.dart';
 import '../generated/zinc/models/configuration_principal_res.dart';
+import '../generated/zinc/models/payment_consent_res.dart';
 import '../networking/api_client.dart';
 
 /// Where the signed-in user is in the bootstrap → configured journey.
@@ -43,6 +44,7 @@ class SessionController extends ChangeNotifier {
   Problem? _error;
   String? _userId;
   ConfigurationPrincipalRes? _config;
+  PaymentConsentRes? _consent;
 
   SessionPhase get phase => _phase;
   Problem? get error => _error;
@@ -51,6 +53,16 @@ class SessionController extends ChangeNotifier {
   /// milestones (habits, payments).
   String? get userId => _userId;
   ConfigurationPrincipalRes? get config => _config;
+
+  /// The user's cached payment consent (`GET /Payment/{userId}/consent`), loaded
+  /// during bootstrap and refreshed via [refreshConsent]. `null` until first loaded
+  /// (or if the load failed).
+  PaymentConsentRes? get consent => _consent;
+
+  /// Whether the user currently has an active payment consent on file. This is the
+  /// single source of truth for gating staked habits — derived from the zinc
+  /// `/consent` GET, **never** the Logto JWT claim (which can be stale).
+  bool get hasPaymentConsent => _consent?.hasPaymentConsent ?? false;
 
   /// Provision the user (idempotent) then resolve configuration. Safe to re-run
   /// (e.g. on retry, or re-entering the authed shell after a previous sign-in).
@@ -96,6 +108,11 @@ class SessionController extends ChangeNotifier {
     switch (cfg) {
       case Ok(:final value):
         _config = value.principal;
+        // Load payment consent up front so the habit editor can gate staked
+        // habits synchronously (off `hasPaymentConsent`). Best-effort: a failure
+        // here leaves consent unknown but must not block reaching the app — the
+        // editor falls back to running the consent flow on demand.
+        await _loadConsent();
         _setPhase(SessionPhase.ready);
       case Err(:final problem):
         // 404 ⇒ no configuration yet ⇒ onboard. Anything else is a real error.
@@ -104,6 +121,34 @@ class SessionController extends ChangeNotifier {
         } else {
           _fail(problem);
         }
+    }
+  }
+
+  /// Best-effort load of the payment consent into the cache (no notify; the caller
+  /// flips the phase). Tolerates failure — leaves the previous cache intact.
+  Future<void> _loadConsent() async {
+    final uid = _userId;
+    if (uid == null) return;
+    final res = await payments.consent(uid);
+    if (res case Ok(:final value)) _consent = value;
+  }
+
+  /// Re-reads `GET /Payment/{userId}/consent` and refreshes the cached consent so
+  /// dependent screens (habit editor gate, settings consent card) reflect a newly
+  /// set-up or revoked payment method. Returns the result so the caller can surface
+  /// a failure; on success it notifies listeners. Leaves the cache intact when the
+  /// refresh fails. Truth is always this GET, never the Logto claim.
+  Future<Result<PaymentConsentRes>> refreshConsent() async {
+    final uid = _userId;
+    if (uid == null) return const Err(Problem.unauthenticated);
+    final res = await payments.consent(uid);
+    switch (res) {
+      case Ok(:final value):
+        _consent = value;
+        notifyListeners();
+        return Ok(value);
+      case Err(:final problem):
+        return Err(problem);
     }
   }
 

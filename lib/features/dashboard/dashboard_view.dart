@@ -195,22 +195,29 @@ class _BuffersCard extends StatelessWidget {
                 ),
               ],
             ),
-            Wrap(
-              spacing: 8,
-              runSpacing: 4,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                _stat(theme, Icons.ac_unit, 'Freezes', freezeLabel,
-                    'auto-saves a miss',
-                    color: AppColors.freeze),
-                _stat(theme, Icons.fast_forward, 'Skips',
-                    '$skipsLeft/$totalSkip', 'planned, monthly'),
-                if (owed)
-                  _stat(theme, Icons.account_balance_wallet, 'Owed',
-                      '${dashboard.totalDebt}', 'to charity',
-                      color: theme.colorScheme.error),
-              ],
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                Expanded(
+                  child: _stat(theme, Icons.ac_unit, 'Freezes', freezeLabel,
+                      'auto-saves a miss',
+                      color: AppColors.freeze),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _stat(theme, Icons.fast_forward, 'Skips',
+                      '$skipsLeft/$totalSkip', 'you choose, monthly'),
+                ),
+                ],
+              ),
             ),
+            if (owed) ...[
+              const SizedBox(height: 8),
+              _stat(theme, Icons.account_balance_wallet, 'Owed',
+                  '${dashboard.totalDebt}', 'to charity',
+                  color: theme.colorScheme.error),
+            ],
             const Divider(height: 16),
             ListTile(
               contentPadding: EdgeInsets.zero,
@@ -292,27 +299,47 @@ class _BuffersCard extends StatelessWidget {
     );
   }
 
+  /// A distinct bordered pill so each safety net reads as its own thing (not a
+  /// flow from one into the next).
   Widget _stat(ThemeData theme, IconData icon, String label, String value,
       String hint,
       {Color? color}) {
     final c = color ?? theme.colorScheme.onSurfaceVariant;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 18, color: c),
-          const SizedBox(width: 6),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('$label $value',
-                  style: theme.textTheme.labelLarge?.copyWith(color: c)),
-              Text(hint,
-                  style: theme.textTheme.labelSmall
-                      ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-            ],
+          Icon(icon, size: 20, color: c),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Text(value,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w700, color: c)),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(label,
+                          style: theme.textTheme.bodySmall,
+                          overflow: TextOverflow.ellipsis),
+                    ),
+                  ],
+                ),
+                Text(hint,
+                    style: theme.textTheme.labelSmall
+                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    overflow: TextOverflow.ellipsis),
+              ],
+            ),
           ),
         ],
       ),

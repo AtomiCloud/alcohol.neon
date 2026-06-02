@@ -140,7 +140,10 @@ class _HabitEditorViewState extends State<HabitEditorView> {
   Future<void> _pickCharity() async {
     final picked = await Navigator.of(context).push<CharityPrincipalRes>(
       MaterialPageRoute(
-        builder: (_) => CharityPicker(repository: _session.charities),
+        builder: (_) => CharityPicker(
+          repository: _session.charities,
+          causeRepository: _session.causes,
+        ),
       ),
     );
     if (picked != null && mounted) {

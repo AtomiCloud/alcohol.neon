@@ -37,6 +37,18 @@ class CharityRepository {
     );
   }
 
+  /// The set of ISO 3166-1 alpha-2 country codes charities can be filtered by
+  /// (`GET /Charity/supported-countries`). The endpoint returns a *bare* JSON
+  /// string array (e.g. `["US","GB"]`) — not a wrapped object — so it decodes
+  /// straight to `List<String>`.
+  Future<Result<List<String>>> supportedCountries() {
+    return _api.get(
+      '$_base/supported-countries',
+      (j) => (j as List<dynamic>).map((e) => e as String).toList(),
+      requiresAuth: false,
+    );
+  }
+
   /// A single charity by id (`GET /Charity/{id}` → `CharityRes{principal}`).
   Future<Result<CharityRes>> byId(String id) {
     return _api.get(

@@ -5,8 +5,24 @@ import '../../auth/auth_service.dart';
 import '../../generated/zinc/models/habit_overview_habit_res.dart';
 import '../../generated/zinc/models/week_status_res.dart';
 import '../../session/session_controller.dart';
+import '../charity/charity_picker.dart';
 import '../habit/habit_editor_view.dart';
 import 'dashboard_controller.dart';
+
+/// Opens the standalone charity browser (M4) in non-selection mode: tapping a
+/// charity opens its detail screen rather than returning a selection.
+void _openCharityBrowse(BuildContext context) {
+  final session = context.read<SessionController>();
+  Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (_) => CharityBrowse(
+        repository: session.charities,
+        causeRepository: session.causes,
+        selectionMode: false,
+      ),
+    ),
+  );
+}
 
 /// Opens the habit editor (create when [habitId] is null, else edit) and reloads
 /// the dashboard if it reports a change.
@@ -57,6 +73,11 @@ class _DashboardScaffold extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Today'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.volunteer_activism),
+            tooltip: 'Browse charities',
+            onPressed: () => _openCharityBrowse(context),
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: c.phase == DashboardPhase.loading ? null : c.load,

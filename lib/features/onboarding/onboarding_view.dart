@@ -68,7 +68,10 @@ class _OnboardingViewState extends State<OnboardingView> {
     final session = context.read<SessionController>();
     final picked = await Navigator.of(context).push<CharityPrincipalRes>(
       MaterialPageRoute(
-        builder: (_) => CharityPicker(repository: session.charities),
+        builder: (_) => CharityPicker(
+          repository: session.charities,
+          causeRepository: session.causes,
+        ),
       ),
     );
     if (picked != null && mounted) setState(() => _charity = picked);

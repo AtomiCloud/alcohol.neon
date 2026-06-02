@@ -44,6 +44,7 @@ dependencies:
   provider: ^6.1.2
   json_annotation: ^4.12.0
   flutter_timezone: ^5.1.0
+  url_launcher: ^6.3.2
 
 # Pin path_provider_foundation below the version that adopted Flutter's experimental
 # native-assets/FFI (objective_c), which doesn't build cleanly under the nixpkgs Flutter

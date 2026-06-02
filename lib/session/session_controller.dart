@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../auth/auth_service.dart';
 import '../core/problem.dart';
+import '../data/cause_repository.dart';
 import '../data/charity_repository.dart';
 import '../data/config_repository.dart';
 import '../data/execution_repository.dart';
@@ -21,6 +22,7 @@ class SessionController extends ChangeNotifier {
   final UserRepository users;
   final ConfigRepository configs;
   final CharityRepository charities;
+  final CauseRepository causes;
   final HabitRepository habits;
   final ExecutionRepository executions;
 
@@ -30,6 +32,7 @@ class SessionController extends ChangeNotifier {
       : users = UserRepository(api),
         configs = ConfigRepository(api),
         charities = CharityRepository(api),
+        causes = CauseRepository(api),
         habits = HabitRepository(api),
         executions = ExecutionRepository(api);
 

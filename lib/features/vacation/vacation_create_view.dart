@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/date_format.dart';
 import '../../core/problem.dart';
+import '../../theme/app_theme.dart';
 import '../onboarding/timezone_picker.dart';
 import 'vacation_controller.dart';
 
@@ -64,27 +64,55 @@ class _VacationCreateViewState extends State<VacationCreateView> {
     if (picked != null && mounted) setState(() => _timezone = picked);
   }
 
-  Future<void> _pickDate({required bool isStart}) async {
+  /// One continuous flow: pick start then end on a single calendar (the range
+  /// picker guarantees end >= start), instead of two disconnected pickers.
+  Future<void> _pickRange() async {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final initial = (isStart ? _start : _end) ?? _start ?? today;
-    final picked = await showDatePicker(
+    final picked = await showDateRangePicker(
       context: context,
-      initialDate: initial.isBefore(today) ? today : initial,
       firstDate: today,
       lastDate: DateTime(now.year + 5),
+      initialDateRange: (_start != null && _end != null)
+          ? DateTimeRange(start: _start!, end: _end!)
+          : null,
+      helpText: 'Select vacation dates',
+      saveText: 'Done',
     );
     if (picked == null || !mounted) return;
     setState(() {
-      if (isStart) {
-        _start = picked;
-        // Keep end >= start.
-        if (_end != null && _end!.isBefore(picked)) _end = picked;
-      } else {
-        _end = picked;
-      }
+      _start = picked.start;
+      _end = picked.end;
     });
   }
+
+  /// Dates on the first line, duration on a second line (so a long range never
+  /// wraps mid-line).
+  Widget _datesSubtitle(ThemeData theme) {
+    if (_start == null || _end == null) {
+      return const Text('Tap to choose start & end');
+    }
+    final days = _end!.difference(_start!).inDays + 1;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 2),
+        Text('${_pretty(_start!)}  →  ${_pretty(_end!)}',
+            style: theme.textTheme.bodyMedium),
+        const SizedBox(height: 2),
+        Text('$days day${days == 1 ? '' : 's'}',
+            style: theme.textTheme.bodySmall
+                ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+      ],
+    );
+  }
+
+  static const _months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  ];
+
+  String _pretty(DateTime d) => '${d.day} ${_months[d.month - 1]} ${d.year}';
 
   Future<void> _submit() async {
     final start = _start;
@@ -164,16 +192,15 @@ class _VacationCreateViewState extends State<VacationCreateView> {
           Text('Pause all your habits for a date range.',
               style: theme.textTheme.bodyMedium),
           const SizedBox(height: 16),
-          _DateTile(
-            label: 'Start date',
-            value: _start,
-            onTap: () => _pickDate(isStart: true),
-          ),
-          const SizedBox(height: 8),
-          _DateTile(
-            label: 'End date',
-            value: _end,
-            onTap: () => _pickDate(isStart: false),
+          Card(
+            child: ListTile(
+              isThreeLine: _start != null && _end != null,
+              leading: const Icon(Icons.date_range, color: AppColors.vacation),
+              title: const Text('Dates'),
+              subtitle: _datesSubtitle(theme),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: _pickRange,
+            ),
           ),
           const SizedBox(height: 8),
           Card(
@@ -226,22 +253,3 @@ class _VacationCreateViewState extends State<VacationCreateView> {
   }
 }
 
-class _DateTile extends StatelessWidget {
-  final String label;
-  final DateTime? value;
-  final VoidCallback onTap;
-  const _DateTile({required this.label, required this.value, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: ListTile(
-        leading: const Icon(Icons.calendar_today),
-        title: Text(label),
-        subtitle: Text(value == null ? 'Not set' : formatStandardDate(value!)),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: onTap,
-      ),
-    );
-  }
-}

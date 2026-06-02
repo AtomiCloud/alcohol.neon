@@ -111,23 +111,36 @@ class _VacationCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: _StatusChip(status: item.status),
+            ),
+            const SizedBox(height: 12),
             Row(
               children: [
-                Expanded(
-                  child: Text(
-                    _rangeLabel(start, end),
-                    style: theme.textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w600),
-                  ),
+                Expanded(child: _dateBlock(theme, 'FROM', start)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Icon(Icons.arrow_forward,
+                      size: 18, color: theme.colorScheme.onSurfaceVariant),
                 ),
-                _StatusChip(status: item.status),
+                Expanded(child: _dateBlock(theme, 'TO', end)),
               ],
             ),
-            const SizedBox(height: 4),
-            Text(
-              v.timezone ?? 'Unknown timezone',
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Icon(Icons.public,
+                    size: 14, color: theme.colorScheme.onSurfaceVariant),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    _meta(v.timezone, start, end),
+                    style: theme.textTheme.bodySmall
+                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 4),
             if (busy)
@@ -207,11 +220,38 @@ class _VacationCard extends StatelessWidget {
     if (ok == true) await controller.endToday(item.id);
   }
 
-  static String _rangeLabel(DateTime? start, DateTime? end) {
-    final s = start == null ? '?' : formatStandardDate(start);
-    final e = end == null ? '?' : formatStandardDate(end);
-    return '$s → $e';
+  Widget _dateBlock(ThemeData theme, String label, DateTime? d) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant, letterSpacing: 0.6)),
+        const SizedBox(height: 2),
+        Text(_pretty(d),
+            style: theme.textTheme.titleMedium
+                ?.copyWith(fontWeight: FontWeight.w600)),
+      ],
+    );
   }
+
+  /// "Asia/Singapore · 10 days" (duration inclusive of both ends).
+  String _meta(String? tz, DateTime? start, DateTime? end) {
+    final parts = <String>[if (tz != null && tz.isNotEmpty) tz];
+    if (start != null && end != null) {
+      final days = end.difference(start).inDays + 1;
+      parts.add('$days day${days == 1 ? '' : 's'}');
+    }
+    return parts.isEmpty ? 'Unknown' : parts.join('  ·  ');
+  }
+
+  static const _months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  ];
+
+  String _pretty(DateTime? d) =>
+      d == null ? '—' : '${d.day} ${_months[d.month - 1]} ${d.year}';
 }
 
 class _StatusChip extends StatelessWidget {

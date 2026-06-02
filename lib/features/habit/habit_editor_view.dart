@@ -6,8 +6,10 @@ import '../../generated/zinc/models/charity_principal_res.dart';
 import '../../generated/zinc/models/create_habit_req.dart';
 import '../../generated/zinc/models/update_habit_req.dart';
 import '../../session/session_controller.dart';
+import '../../theme/app_theme.dart';
 import '../charity/charity_picker.dart';
 import '../payment/consent_service.dart';
+import 'stake_sheet.dart';
 
 /// M3 — create / edit a habit. Field contract mirrors argon (verified against
 /// zinc's HabitValidator): day names are PascalCase (e.g. "Monday"),
@@ -127,6 +129,11 @@ class _HabitEditorViewState extends State<HabitEditorView> {
 
   String get _timeWire =>
       '${_time.hour.toString().padLeft(2, '0')}:${_time.minute.toString().padLeft(2, '0')}:00';
+
+  String _stakeDisplay() {
+    final v = double.tryParse(_stake.text.trim()) ?? 0;
+    return v <= 0 ? 'No stake' : 'USD ${v.toStringAsFixed(2)}';
+  }
 
   String get _stakeWire {
     final t = _stake.text.trim();
@@ -334,15 +341,19 @@ class _HabitEditorViewState extends State<HabitEditorView> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                TextField(
-                  controller: _stake,
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(
-                    labelText: 'Stake (USD)',
-                    hintText: '0',
-                    helperText: 'Charged to your charity if you miss a day. 0 = no stake.',
-                    border: OutlineInputBorder(),
+                Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.attach_money, color: AppColors.money),
+                    title: const Text('Stake'),
+                    subtitle: Text(_stakeDisplay()),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () async {
+                      final picked =
+                          await showStakeSheet(context, initial: _stake.text);
+                      if (picked != null && mounted) {
+                        setState(() => _stake.text = picked);
+                      }
+                    },
                   ),
                 ),
                 if (widget.isEdit) ...[

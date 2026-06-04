@@ -1,0 +1,25 @@
+# OpenAPI → Dart codegen config (swagger_parser).
+#
+# We generate the zinc DTOs ONLY. swagger_parser also emits Retrofit/dio REST
+# clients, but we keep our own `ApiClient` (Result<T>/Problem, lazy bearer), so
+# the generated clients are isolated into `clients/` (put_clients_in_folder) and
+# deleted by scripts/generate-sdk.sh — that keeps dio/retrofit out of our deps.
+# The DTOs are standalone (json_serializable) and don't import the clients.
+#
+# Regenerate with: pls generate:sdk   (or ./scripts/generate-sdk.sh)
+swagger_parser:
+  # Committed copy of zinc's spec (refreshed from pichu by the generate script).
+  schema_path: openapi/zinc.swagger.json
+  output_directory: lib/generated/zinc
+  language: dart
+  json_serializer: json_serializable
+  # Don't emit the root aggregator client; per-tag clients go in clients/ and are
+  # removed post-generation (we use our own ApiClient).
+  root_client: false
+  put_clients_in_folder: true
+  enums_to_json: true
+  # Treat unknown enum values as null rather than throwing (forward-compat with zinc).
+  unknown_enum_value: true
+  # Keep generated names stable/idiomatic.
+  enums_parent_prefix: true
+  mark_files_as_generated: true

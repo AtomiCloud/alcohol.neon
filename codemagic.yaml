@@ -1,0 +1,112 @@
+# Codemagic CI for LazyTax (alcohol.neon) — iOS only for now (Play/Android deferred).
+#
+# 3 apps, one per landscape. iOS signing is automatic via the App Store Connect API
+# key integration set up in Codemagic Settings -> Integrations as `lazytax_app_store_connect`.
+#
+# Workflows are MANUAL by default (no `triggering:`) — start one from the Codemagic UI
+# ("Start new build" -> pick workflow). Add tag triggers later (template at the bottom).
+#
+# Prereq for iOS builds to succeed: the per-flavor Xcode schemes `pichu`/`pikachu`/`raichu`
+# must exist (see docs/codemagic-setup.md Part 11).
+
+definitions:
+  versions: &versions
+    flutter: stable
+    xcode: latest
+    cocoapods: default
+
+  ios_scripts: &ios_scripts
+    - name: Flutter pub get
+      script: flutter pub get
+    - name: Pod install
+      script: find . -name "Podfile" -execdir pod install \;
+    - name: Set up code signing (fetch cert + profile for this workflow's bundle id)
+      script: xcode-project use-profiles
+    - name: Build signed IPA
+      script: |
+        LATEST=$(app-store-connect get-latest-build-number "$APP_STORE_APPLE_ID" || echo 0)
+        BUILD_NUMBER=$(( ${LATEST:-0} + 1 ))
+        flutter build ipa --release \
+          --flavor "$FLAVOR" \
+          --build-number="$BUILD_NUMBER" \
+          --export-options-plist=/Users/builder/export_options.plist
+
+  ios_publish: &ios_publish
+    app_store_connect:
+      auth: integration
+      submit_to_testflight: true     # upload to TestFlight
+      submit_to_app_store: false     # never auto-submit to the public App Store (manual gate)
+      # beta_groups:                 # uncomment + name TestFlight group(s) once created in ASC
+      #   - internal
+
+workflows:
+
+  neon-pichu-ios:
+    name: iOS pichu (dev -> TestFlight)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: lazytax_app_store_connect
+    environment:
+      <<: *versions
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: cloud.atomi.alcohol.neon.pichu
+      vars:
+        FLAVOR: pichu
+        APP_STORE_APPLE_ID: "6777280038"
+    scripts: *ios_scripts
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing: *ios_publish
+
+  neon-pikachu-ios:
+    name: iOS pikachu (stage -> TestFlight)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: lazytax_app_store_connect
+    environment:
+      <<: *versions
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: cloud.atomi.alcohol.neon.pikachu
+      vars:
+        FLAVOR: pikachu
+        APP_STORE_APPLE_ID: "6777280047"
+    scripts: *ios_scripts
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing: *ios_publish
+
+  neon-raichu-ios:
+    name: iOS raichu (prod -> TestFlight; promote to App Store manually)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: lazytax_app_store_connect
+    environment:
+      <<: *versions
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: cloud.atomi.alcohol.neon
+      vars:
+        FLAVOR: raichu
+        APP_STORE_APPLE_ID: "6777280099"
+    scripts: *ios_scripts
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing: *ios_publish
+
+# ── Later: triggers (no RC; plain x.y.z tags) ───────────────────────────────
+# Add to a workflow to auto-build on tags:
+#   triggering:
+#     events: [tag]
+#     tag_patterns:
+#       - pattern: 'v*.*.*'
+#         include: true
+# raichu stays manual-promote (submit_to_app_store: false; release in App Store Connect by hand).
+#
+# ── Later: Android / Play (currently deferred) ──────────────────────────────
+# Add android_signing: [lazytax_upload_keystore], `flutter build appbundle --flavor <f>`,
+# and publishing.google_play (credentials: $GOOGLE_PLAY_SERVICE_ACCOUNT_CREDENTIALS, track per landscape).

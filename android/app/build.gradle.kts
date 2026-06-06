@@ -30,6 +30,27 @@ android {
         versionName = flutter.versionName
     }
 
+    // Per-landscape flavors (bundle-id-as-marker): each gets its own applicationId
+    // suffix + app name. prod (raichu) keeps the clean base id. Build with e.g.
+    // `flutter build appbundle --flavor pichu`.
+    flavorDimensions += "landscape"
+    productFlavors {
+        create("pichu") {
+            dimension = "landscape"
+            applicationIdSuffix = ".pichu"
+            manifestPlaceholders["appName"] = "LazyTax Dev"
+        }
+        create("pikachu") {
+            dimension = "landscape"
+            applicationIdSuffix = ".pikachu"
+            manifestPlaceholders["appName"] = "LazyTax Stage"
+        }
+        create("raichu") {
+            dimension = "landscape"
+            manifestPlaceholders["appName"] = "LazyTax"
+        }
+    }
+
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.

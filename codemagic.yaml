@@ -34,13 +34,12 @@ definitions:
   ios_publish: &ios_publish
     app_store_connect:
       auth: integration
-      submit_to_testflight: true     # upload to TestFlight
-      submit_to_app_store: false     # never auto-submit to the public App Store (manual gate)
+      submit_to_testflight: true # upload to TestFlight
+      submit_to_app_store: false # never auto-submit to the public App Store (manual gate)
       # beta_groups:                 # uncomment + name TestFlight group(s) once created in ASC
       #   - internal
 
 workflows:
-
   neon-pichu-ios:
     name: iOS pichu (dev -> TestFlight)
     instance_type: mac_mini_m2
@@ -54,7 +53,7 @@ workflows:
         bundle_identifier: cloud.atomi.alcohol.neon.pichu
       vars:
         FLAVOR: pichu
-        APP_STORE_APPLE_ID: "6777280038"
+        APP_STORE_APPLE_ID: '6777280038'
     scripts: *ios_scripts
     artifacts:
       - build/ios/ipa/*.ipa
@@ -73,7 +72,7 @@ workflows:
         bundle_identifier: cloud.atomi.alcohol.neon.pikachu
       vars:
         FLAVOR: pikachu
-        APP_STORE_APPLE_ID: "6777280047"
+        APP_STORE_APPLE_ID: '6777280047'
     scripts: *ios_scripts
     artifacts:
       - build/ios/ipa/*.ipa
@@ -92,7 +91,7 @@ workflows:
         bundle_identifier: cloud.atomi.alcohol.neon
       vars:
         FLAVOR: raichu
-        APP_STORE_APPLE_ID: "6777280099"
+        APP_STORE_APPLE_ID: '6777280099'
     scripts: *ios_scripts
     artifacts:
       - build/ios/ipa/*.ipa

@@ -1,0 +1,104 @@
+atomi/workspace:
+  active: true
+  history:
+    - version: 42
+      time: 2026-06-06T06:27:38.654797Z
+      answers:
+        atomi/llm:
+          type: Bool
+          value: true
+        cyan/nix/llm:
+          type: String
+          value: yes
+        atomi/secret:
+          type: Bool
+          value: true
+        cyan/nix/basic:
+          type: String
+          value: yes
+        atomi/helm:
+          type: Bool
+          value: false
+        atomi/service:
+          type: String
+          value: neon
+        atomi/platform:
+          type: String
+          value: alcohol
+        atomi/docker:
+          type: Bool
+          value: false
+      deterministic_states: {}
+file_conflicts:
+  - path: nix/env.nix
+    resolution: resolver
+    resolver_used:
+      id: 71e49199-667a-46be-9c82-91c848953489
+      docker_ref: ghcr.io/atomicloud/ketone.nix-resolver/nix
+      docker_tag: f8802e-main
+    variations:
+      - template_id: cddc0866-e5ef-4c99-9d10-7fa1c608da4e
+      - template_id: 80d9e8b2-ea31-4872-97ea-8cfec25c5abc
+  - path: .envrc
+    resolution: resolver
+    resolver_used:
+      id: cef27eb6-fce0-4699-a335-b132463bc9a7
+      docker_ref: ghcr.io/atomicloud/ketone.md-resolver/md
+      docker_tag: 769c12-main
+    variations:
+      - template_id: cddc0866-e5ef-4c99-9d10-7fa1c608da4e
+      - template_id: 80d9e8b2-ea31-4872-97ea-8cfec25c5abc
+  - path: .gitignore
+    resolution: resolver
+    resolver_used:
+      id: e1d2f3b6-75ad-4b31-9c2f-915244d25f6d
+      docker_ref: ghcr.io/atomicloud/ketone.ignore-resolver/ignore
+      docker_tag: c94f78-main
+    variations:
+      - template_id: cddc0866-e5ef-4c99-9d10-7fa1c608da4e
+      - template_id: 80d9e8b2-ea31-4872-97ea-8cfec25c5abc
+  - path: CLAUDE.md
+    resolution: resolver
+    resolver_used:
+      id: cef27eb6-fce0-4699-a335-b132463bc9a7
+      docker_ref: ghcr.io/atomicloud/ketone.md-resolver/md
+      docker_tag: 769c12-main
+    variations:
+      - template_id: cddc0866-e5ef-4c99-9d10-7fa1c608da4e
+      - template_id: 80d9e8b2-ea31-4872-97ea-8cfec25c5abc
+  - path: nix/fmt.nix
+    resolution: resolver
+    resolver_used:
+      id: 71e49199-667a-46be-9c82-91c848953489
+      docker_ref: ghcr.io/atomicloud/ketone.nix-resolver/nix
+      docker_tag: f8802e-main
+    variations:
+      - template_id: cddc0866-e5ef-4c99-9d10-7fa1c608da4e
+      - template_id: 80d9e8b2-ea31-4872-97ea-8cfec25c5abc
+  - path: nix/packages.nix
+    resolution: resolver
+    resolver_used:
+      id: 71e49199-667a-46be-9c82-91c848953489
+      docker_ref: ghcr.io/atomicloud/ketone.nix-resolver/nix
+      docker_tag: f8802e-main
+    variations:
+      - template_id: cddc0866-e5ef-4c99-9d10-7fa1c608da4e
+      - template_id: 80d9e8b2-ea31-4872-97ea-8cfec25c5abc
+  - path: nix/shells.nix
+    resolution: resolver
+    resolver_used:
+      id: 71e49199-667a-46be-9c82-91c848953489
+      docker_ref: ghcr.io/atomicloud/ketone.nix-resolver/nix
+      docker_tag: f8802e-main
+    variations:
+      - template_id: cddc0866-e5ef-4c99-9d10-7fa1c608da4e
+      - template_id: 80d9e8b2-ea31-4872-97ea-8cfec25c5abc
+  - path: nix/pre-commit.nix
+    resolution: resolver
+    resolver_used:
+      id: 71e49199-667a-46be-9c82-91c848953489
+      docker_ref: ghcr.io/atomicloud/ketone.nix-resolver/nix
+      docker_tag: f8802e-main
+    variations:
+      - template_id: cddc0866-e5ef-4c99-9d10-7fa1c608da4e
+      - template_id: 80d9e8b2-ea31-4872-97ea-8cfec25c5abc

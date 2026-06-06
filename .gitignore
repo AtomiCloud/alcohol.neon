@@ -1,29 +1,57 @@
-# Miscellaneous
-*.class
-*.log
-*.pyc
+### AtomiCloud
+#### source: 1dcf99b7-867e-40aa-b378-bf6d569d51ea, 80d9e8b2-ea31-4872-97ea-8cfec25c5abc
+.kloop/
+
+### IDE
+#### source: 1dcf99b7-867e-40aa-b378-bf6d569d51ea, 80d9e8b2-ea31-4872-97ea-8cfec25c5abc
+*.swn
+*.swo
 *.swp
-.DS_Store
-.atom/
-.build/
-.buildlog/
-.history
-.svn/
-.swiftpm/
-migrate_working_dir/
-
-# IntelliJ related
-*.iml
-*.ipr
-*.iws
 .idea/
+.vscode/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+### Linux
+#### source: 1dcf99b7-867e-40aa-b378-bf6d569d51ea, 80d9e8b2-ea31-4872-97ea-8cfec25c5abc
+*~
 
-# Flutter/Dart/Pub related
+### macOS
+#### source: 1dcf99b7-867e-40aa-b378-bf6d569d51ea, 80d9e8b2-ea31-4872-97ea-8cfec25c5abc
+.DS_Store
+._*
+
+### Nix
+#### source: 1dcf99b7-867e-40aa-b378-bf6d569d51ea, 80d9e8b2-ea31-4872-97ea-8cfec25c5abc
+.direnv/
+result
+result-*
+
+### nix-init
+#### source: cddc0866-e5ef-4c99-9d10-7fa1c608da4e
+.direnv
+.pre-commit-config.yaml
+
+### Project
+#### source: 1dcf99b7-867e-40aa-b378-bf6d569d51ea, 80d9e8b2-ea31-4872-97ea-8cfec25c5abc
+.kagent/
+
+### Secrets
+#### source: 1dcf99b7-867e-40aa-b378-bf6d569d51ea, 80d9e8b2-ea31-4872-97ea-8cfec25c5abc
+*.tfvars
+.env
+.env.*
+.infisical.json
+
+### Windows
+#### source: 1dcf99b7-867e-40aa-b378-bf6d569d51ea, 80d9e8b2-ea31-4872-97ea-8cfec25c5abc
+Thumbs.db
+desktop.ini
+
+# ─────────────────────────────────────────────────────────────────────────
+# Project-specific (alcohol.neon — Flutter mobile). Appended below the
+# templated sections above so upstream template pulls stay conflict-free.
+# ─────────────────────────────────────────────────────────────────────────
+
+# Flutter / Dart / Pub
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/
@@ -32,28 +60,24 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
+migrate_working_dir/
 
-# Symbolication related
+# Symbolication / obfuscation
 app.*.symbols
-
-# Obfuscation related
 app.*.map.json
 
-# Android Studio will place build artifacts here
+# Android build artifacts
 /android/app/debug
 /android/app/profile
 /android/app/release
 
-# Secrets — never commit credentials. Config is via --dart-define + the public
-# Logto app id; real secrets (API keys, Airwallex, etc.) belong in Infisical/CI.
-*.env
-.env*
+# Mobile signing material — NEVER commit keystores/certs
+*.keystore
+*.jks
+*.p12
+*.pem
+*.key
 *.dev.vars
 .dev.vars
 secrets.*
 *.secret
-*.pem
-*.p12
-*.key
-*.keystore
-*.jks

@@ -50,7 +50,7 @@ echo "==> Rewriting export barrel (models only)"
     case "$f" in *.g.dart) continue ;; esac
     echo "export 'models/$(basename "$f")';"
   done
-} > "$OUT/export.dart"
+} >"$OUT/export.dart"
 
 echo "==> build_runner (json_serializable *.g.dart)"
 flutter pub run build_runner build

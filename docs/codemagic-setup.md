@@ -1,6 +1,6 @@
 # LazyTax (alcohol.neon) — Codemagic + Store Setup Runbook
 
-Step-by-step setup for shipping **3 channels** of the LazyTax app (codename *neon*) to the
+Step-by-step setup for shipping **3 channels** of the LazyTax app (codename _neon_) to the
 App Store and Play Store, with Codemagic automating signing + publishing.
 
 - **pichu** = dev → **TestFlight internal + Play internal** (not public)
@@ -8,23 +8,23 @@ App Store and Play Store, with Codemagic automating signing + publishing.
 - **raichu** = prod → **public App Store + Play production**
 
 Signing rests on just **1 Apple API key + 1 Android keystore + 1 Play service account** — shared by all 3.
-Everything done "×3" is only *identity registration*.
+Everything done "×3" is only _identity registration_.
 
 > **▶ CURRENT SCOPE: Apple / App Store only.** Play Store steps are **deferred**. Parts 6, 7, 8, the Android
 > keystore (Part 9), and the Android/Play portions of Parts 10–12 are tagged **_(DEFERRED)_** — skip them for
 > now. Do the Apple parts: **3, 4, 5, 10a**, and the iOS portions of **11–12**.
 >
 > **Account status:** Parts 3–5 require the Apple Developer Program membership to be **active**. If enrollment
-> is still pending approval, wait for Apple's confirmation email before starting Part 3. App *review* is not
+> is still pending approval, wait for Apple's confirmation email before starting Part 3. App _review_ is not
 > needed for setup — **TestFlight internal testing requires no review**.
 
 ## Identities (target state)
 
-| Flavor | iOS bundle id | Android applicationId | Display name | Public? |
-|---|---|---|---|---|
-| `pichu` (dev) | `cloud.atomi.alcohol.neon.pichu` | `cloud.atomi.alcohol_neon.pichu` | LazyTax Dev | No (TestFlight/internal only) |
-| `pikachu` (stage) | `cloud.atomi.alcohol.neon.pikachu` | `cloud.atomi.alcohol_neon.pikachu` | LazyTax Stage | No (TestFlight/closed only) |
-| `raichu` (prod) | `cloud.atomi.alcohol.neon` | `cloud.atomi.alcohol_neon` | LazyTax | Yes |
+| Flavor            | iOS bundle id                      | Android applicationId              | Display name  | Public?                       |
+| ----------------- | ---------------------------------- | ---------------------------------- | ------------- | ----------------------------- |
+| `pichu` (dev)     | `cloud.atomi.alcohol.neon.pichu`   | `cloud.atomi.alcohol_neon.pichu`   | LazyTax Dev   | No (TestFlight/internal only) |
+| `pikachu` (stage) | `cloud.atomi.alcohol.neon.pikachu` | `cloud.atomi.alcohol_neon.pikachu` | LazyTax Stage | No (TestFlight/closed only)   |
+| `raichu` (prod)   | `cloud.atomi.alcohol.neon`         | `cloud.atomi.alcohol_neon`         | LazyTax       | Yes                           |
 
 ---
 
@@ -36,6 +36,7 @@ Everything done "×3" is only *identity registration*.
 - No Mac required — Codemagic provides macOS build machines.
 
 ### Step 0 — confirm the owning team
+
 - developer.apple.com/account → **Membership details** → note the **Team Name**. That team will own LazyTax.
 - The active team is your own account. If publishing under a different team, switch via the top-right avatar first (you must be **Admin** on that team to register App IDs).
 
@@ -145,7 +146,7 @@ KEY_ID    = __________     # the new key's ID
 
 ---
 
-## PART 6 — Create the 3 Google Play apps  _(DEFERRED — Play Store)_
+## PART 6 — Create the 3 Google Play apps _(DEFERRED — Play Store)_
 
 1. Go to **play.google.com/console** (confirm the correct developer account).
 2. Click **Create app**, fill the block below → **Create app**.
@@ -176,17 +177,18 @@ Free or paid:     Free
 
 ---
 
-## PART 7 — Confirm Play App Signing (each app)  _(DEFERRED — Play Store)_
+## PART 7 — Confirm Play App Signing (each app) _(DEFERRED — Play Store)_
 
-1. Open each app → **Test and release** → **Setup** → **App signing** (under *App integrity* in newer UI).
+1. Open each app → **Test and release** → **Setup** → **App signing** (under _App integrity_ in newer UI).
 2. Confirm **Play App Signing is enabled** (default). You sign with the upload key (Part 9); Google
    holds the real app-signing key. Nothing to change.
 
 ---
 
-## PART 8 — Create 1 Google Play service account (shared)  _(DEFERRED — Play Store)_
+## PART 8 — Create 1 Google Play service account (shared) _(DEFERRED — Play Store)_
 
 **In Google Cloud Console** (console.cloud.google.com — same Google account as Play):
+
 1. **APIs & Services → Library** → search **Google Play Android Developer API** → **Enable**.
 2. **IAM & Admin → Service Accounts → Create service account**: name `codemagic-lazytax-publish`
    → **Create and continue** → skip optional roles → **Done**.
@@ -194,14 +196,12 @@ Free or paid:     Free
    A `.json` downloads — ⚠️ **save it; this is `GOOGLE_PLAY_SERVICE_ACCOUNT_CREDENTIALS`.**
 4. Copy the service account **email** (`...@<project>.iam.gserviceaccount.com`).
 
-**In Play Console:**
-5. Account home → **Users and permissions** → **Invite new users** → paste the service-account email.
-6. **App permissions** → add all 3 apps → grant **Admin** (or at least *Release to testing* +
-   *Release to production*) → **Invite user**. (Activation can take up to ~24h.)
+**In Play Console:** 5. Account home → **Users and permissions** → **Invite new users** → paste the service-account email. 6. **App permissions** → add all 3 apps → grant **Admin** (or at least _Release to testing_ +
+_Release to production_) → **Invite user**. (Activation can take up to ~24h.)
 
 ---
 
-## PART 9 — Generate the 1 Android upload keystore (shared)  _(DEFERRED — Android)_
+## PART 9 — Generate the 1 Android upload keystore (shared) _(DEFERRED — Android)_
 
 Run locally (`keytool` ships with any JDK):
 
@@ -229,15 +229,18 @@ KEY_PASSWORD   = __________   (press Enter at the prompt to reuse the store pass
 Codemagic → **avatar → Settings** (personal account).
 
 **10a — Apple integration** → **Integrations** → **Apple Developer Portal** → **Connect**:
+
 ```
 Name:      lazytax_app_store_connect
 Issuer ID: <ISSUER_ID from Part 5>
 Key ID:    <KEY_ID from Part 5>
 API key:   upload AuthKey_<KEY_ID>.p8
 ```
+
 → Codemagic auto-creates the cert + per-bundle-id provisioning profiles at build time.
 
 **10b — Android keystore** _(DEFERRED — Android)_ → **Code signing identities → Android keystores → Add keystore**:
+
 ```
 Reference name: lazytax_upload_keystore
 Keystore file:  upload neon-upload.jks
@@ -248,11 +251,13 @@ Key pwd:        <KEY_PASSWORD>
 
 **10c — Play service account secret** _(DEFERRED — Play Store)_ → in the **alcohol.neon app → Environment variables**.
 This UI is just **Variable name + Value + Secret** (no groups — that's fine, we don't need them). Add ONE entry:
+
 ```
 Variable name: GOOGLE_PLAY_SERVICE_ACCOUNT_CREDENTIALS
 Variable value: paste the entire Part 8 JSON
 Secret: [x]
 ```
+
 > ⚠️ Variables added in this box apply to **every build of the app** (no per-landscape scoping). So only put
 > things here that are the **same for all three channels** — i.e. just the Play JSON. Do **not** add `FLAVOR`,
 > bundle id, track, etc. here (those differ per channel → they go in the workflow YAML, Part 11). If you added
@@ -261,13 +266,13 @@ Secret: [x]
 **10d — Per-landscape values** are NOT entered in the UI — they live in `codemagic.yaml` (Part 11), where
 each workflow/loop iteration sets its own. Reference table:
 
-| | pichu | pikachu | raichu |
-|---|---|---|---|
-| `FLAVOR` | pichu | pikachu | raichu |
-| `BUNDLE_ID_IOS` | cloud.atomi.alcohol.neon.pichu | cloud.atomi.alcohol.neon.pikachu | cloud.atomi.alcohol.neon |
-| `PACKAGE_NAME` | cloud.atomi.alcohol_neon.pichu | cloud.atomi.alcohol_neon.pikachu | cloud.atomi.alcohol_neon |
-| `APP_STORE_APPLE_ID` | _(pichu Apple ID, Part 4)_ | _(pikachu Apple ID)_ | _(raichu Apple ID)_ |
-| `GOOGLE_PLAY_TRACK` | internal | qa-closed _(closed-track name)_ | production |
+|                      | pichu                          | pikachu                          | raichu                   |
+| -------------------- | ------------------------------ | -------------------------------- | ------------------------ |
+| `FLAVOR`             | pichu                          | pikachu                          | raichu                   |
+| `BUNDLE_ID_IOS`      | cloud.atomi.alcohol.neon.pichu | cloud.atomi.alcohol.neon.pikachu | cloud.atomi.alcohol.neon |
+| `PACKAGE_NAME`       | cloud.atomi.alcohol_neon.pichu | cloud.atomi.alcohol_neon.pikachu | cloud.atomi.alcohol_neon |
+| `APP_STORE_APPLE_ID` | _(pichu Apple ID, Part 4)_     | _(pikachu Apple ID)_             | _(raichu Apple ID)_      |
+| `GOOGLE_PLAY_TRACK`  | internal                       | qa-closed _(closed-track name)_  | production               |
 
 The Apple IDs aren't secret, so they'll be hardcoded in the YAML. (Only the Play JSON needs to be a Codemagic secret.)
 
@@ -276,19 +281,21 @@ The Apple IDs aren't secret, so they'll be hardcoded in the YAML. (Only the Play
 ## PART 11 — Repo: flavors + config
 
 **Status — code implemented on branch `speedykrab/release-channels`:**
+
 - ✅ `package_info_plus` added; `AppConfig` selects the landscape from the app's **own bundle id** at
   runtime (bundle-id-as-marker) — no per-build `--dart-define`. `main()` awaits `AppConfig.load()`.
-  *(All 3 landscapes' values were already baked into `_defaults()`, so no asset JSON files are needed.)*
+  _(All 3 landscapes' values were already baked into `_defaults()`, so no asset JSON files are needed.)_
 - ✅ Android `productFlavors` (`pichu`/`pikachu`/`raichu`) + applicationId suffixes + per-flavor app name.
 - ✅ `codemagic.yaml` — 3 iOS workflows (build → sign → TestFlight), Apple IDs filled in, manual triggers.
 - ⚠️ Flutter isn't on the agent's PATH, so this wasn't compiled here — **run `flutter pub get && flutter analyze && flutter test`** to verify.
 
 **You still need to do — iOS Xcode flavor setup** (schemes don't exist yet; `--flavor pichu` needs them):
+
 1. Open `ios/Runner.xcworkspace` in Xcode.
 2. **Rename the base bundle id** to `cloud.atomi.alcohol.neon` (currently `cloud.atomi.alcoholNeon`) — Runner target → Signing & Capabilities, all configs.
 3. **Duplicate build configs:** Project → Info → Configurations → duplicate Debug/Profile/Release into `*-pichu`, `*-pikachu`, `*-raichu`.
-4. **Create 3 shared schemes** named exactly `pichu`/`pikachu`/`raichu` (Product → Scheme → Manage Schemes → +, tick *Shared*); map each scheme's Run/Profile/Archive to its `-<flavor>` configs.
-5. **Per-config bundle id + name:** set `PRODUCT_BUNDLE_IDENTIFIER` per config (`…neon.pichu`/`…neon.pikachu`/`…neon`); add a user-defined `APP_DISPLAY_NAME` (`LazyTax Dev`/`LazyTax Stage`/`LazyTax`) and set Info.plist *Bundle display name* = `$(APP_DISPLAY_NAME)`.
+4. **Create 3 shared schemes** named exactly `pichu`/`pikachu`/`raichu` (Product → Scheme → Manage Schemes → +, tick _Shared_); map each scheme's Run/Profile/Archive to its `-<flavor>` configs.
+5. **Per-config bundle id + name:** set `PRODUCT_BUNDLE_IDENTIFIER` per config (`…neon.pichu`/`…neon.pikachu`/`…neon`); add a user-defined `APP_DISPLAY_NAME` (`LazyTax Dev`/`LazyTax Stage`/`LazyTax`) and set Info.plist _Bundle display name_ = `$(APP_DISPLAY_NAME)`.
 6. **Register configs in `ios/Podfile`** project map: add `'Debug-pichu' => :debug, 'Profile-pichu' => :release, 'Release-pichu' => :release` (and pikachu/raichu).
    > Shortcut: `flutter_flavorizr` can generate steps 3–6; manual is more reliable on an existing project.
 

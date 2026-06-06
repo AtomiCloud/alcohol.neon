@@ -1,5 +1,5 @@
 name: alcohol_neon
-description: "AtomiCloud alcohol mobile app"
+description: 'AtomiCloud alcohol mobile app'
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -78,18 +78,17 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/brand/logo.png"
+  image_path: 'assets/brand/logo.png'
   remove_alpha_ios: true
-  background_color_ios: "#FFFFFF"
-  adaptive_icon_background: "#FFFFFF"
-  adaptive_icon_foreground: "assets/brand/logo.png"
+  background_color_ios: '#FFFFFF'
+  adaptive_icon_background: '#FFFFFF'
+  adaptive_icon_foreground: 'assets/brand/logo.png'
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
 # The following section is specific to Flutter packages.
 flutter:
-
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.

@@ -27,13 +27,14 @@ iOS and Android namespace installed apps by bundle id / applicationId. Two build
 
 Keep the **clean base id for raichu (prod)** so prod owns the canonical public listing and the canonical Logto redirect.
 
-| Landscape | Flavor name | Android applicationId | iOS bundle id | Display name | Stores |
-|---|---|---|---|---|---|
-| pichu (dev) | `pichu` | `cloud.atomi.alcohol_neon.pichu` | `cloud.atomi.alcohol.neon.pichu` | `Neon Dev` | TestFlight internal + Play internal |
-| pikachu (stage) | `pikachu` | `cloud.atomi.alcohol_neon.pikachu` | `cloud.atomi.alcohol.neon.pikachu` | `Neon Stage` | TestFlight external + Play closed |
-| raichu (prod) | `raichu` | `cloud.atomi.alcohol_neon` (no suffix) | `cloud.atomi.alcohol.neon` (no suffix) | `Neon` | App Store + Play production |
+| Landscape       | Flavor name | Android applicationId                  | iOS bundle id                          | Display name | Stores                              |
+| --------------- | ----------- | -------------------------------------- | -------------------------------------- | ------------ | ----------------------------------- |
+| pichu (dev)     | `pichu`     | `cloud.atomi.alcohol_neon.pichu`       | `cloud.atomi.alcohol.neon.pichu`       | `Neon Dev`   | TestFlight internal + Play internal |
+| pikachu (stage) | `pikachu`   | `cloud.atomi.alcohol_neon.pikachu`     | `cloud.atomi.alcohol.neon.pikachu`     | `Neon Stage` | TestFlight external + Play closed   |
+| raichu (prod)   | `raichu`    | `cloud.atomi.alcohol_neon` (no suffix) | `cloud.atomi.alcohol.neon` (no suffix) | `Neon`       | App Store + Play production         |
 
 Notes:
+
 - Flavor name = Android product flavor = iOS Xcode scheme name = `--flavor` value = `appFlavor` at runtime. Keep them identical (and lowercase — the Flutter CLI matches the iOS scheme name case-sensitively/lowercase) so they never drift. ([Flutter flavors](https://docs.flutter.dev/deployment/flavors), [iOS flavors](https://docs.flutter.dev/deployment/flavors-ios))
 - An applicationId/bundle id **can never change after first publish** or the store treats it as a brand-new app. ([Android](https://developer.android.com/build/configure-app-module), [Apple](https://developer.apple.com/help/app-store-connect/create-an-app-record/create-and-submit-app-bundles/))
 - Logto OIDC: the current shared scheme `cloud.atomi.alcohol.neon://callback` would be **ambiguous** with three apps installed (iOS routes a custom scheme to whichever app claims it). Make the scheme landscape-specific per bundle id (e.g. `cloud.atomi.alcohol.neon.pichu://callback`), and register a **separate Logto Native app + redirect URI per landscape**.
@@ -42,11 +43,11 @@ Notes:
 
 ## 3. Store channel mapping
 
-| Landscape | App Store / TestFlight target | Play Console track | Who can install | Public listing? |
-|---|---|---|---|---|
-| **pichu (dev)** | TestFlight **internal** group (≤100 ASC users, no Beta App Review, builds testable within minutes) | **internal** testing (≤100 testers, fast) | Team only | **No** |
-| **pikachu (stage)** | TestFlight **external** group(s) (≤10,000; first build of each version clears Beta App Review) | **closed** testing (≤2,000 per email list, up to 50 lists) | Invited QA/UAT testers | **No** |
-| **raichu (prod)** | Full **App Store review** + public listing (optionally keep an external TestFlight group for RC sign-off) | **production** | Everyone | **Yes** |
+| Landscape           | App Store / TestFlight target                                                                             | Play Console track                                         | Who can install        | Public listing? |
+| ------------------- | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- | ---------------------- | --------------- |
+| **pichu (dev)**     | TestFlight **internal** group (≤100 ASC users, no Beta App Review, builds testable within minutes)        | **internal** testing (≤100 testers, fast)                  | Team only              | **No**          |
+| **pikachu (stage)** | TestFlight **external** group(s) (≤10,000; first build of each version clears Beta App Review)            | **closed** testing (≤2,000 per email list, up to 50 lists) | Invited QA/UAT testers | **No**          |
+| **raichu (prod)**   | Full **App Store review** + public listing (optionally keep an external TestFlight group for RC sign-off) | **production**                                             | Everyone               | **Yes**         |
 
 **Dev and stage must NOT be public store listings.** Only raichu goes through full App Store review and Play production. This is the industry-standard tier model and eliminates accidental dev→public releases.
 
@@ -124,6 +125,7 @@ flutter build appbundle --release --flavor pichu --dart-define-from-file=config/
 ### 5.1 iOS — App Store Connect API key + automatic signing
 
 **One-time in Apple consoles:**
+
 1. Register all three App IDs in the Apple Developer portal: `cloud.atomi.alcohol.neon.pichu`, `.pikachu`, and `cloud.atomi.alcohol.neon`.
 2. Create three App Store Connect **app records**, one per bundle id (a bundle id can't be changed after the first upload).
 3. **Users and Access ▸ Integrations ▸ App Store Connect API** → create one key with **App Manager** access. Capture **Issuer ID** (account-level), **Key ID** (per key), and download the **`.p8` (downloadable only once)**.
@@ -159,6 +161,7 @@ buildTypes { getByName("release") { signingConfig = signingConfigs.getByName("re
 ```
 
 **Service account for CI publishing (one-time in Google Cloud + Play Console):**
+
 1. Google Cloud Console (same Google account as Play Console) → enable the **Google Play Android Developer API** → create a service account → generate a **JSON key**.
 2. Play Console ▸ **Users and permissions** → invite the service-account email → grant **Release Manager/Admin on all three apps**. One service account publishes all three listings. (Can take up to ~24h to activate.)
 3. Store the JSON as a Codemagic secret env var (e.g. `GOOGLE_PLAY_SERVICE_ACCOUNT_CREDENTIALS`). ([Codemagic Google Play](https://docs.codemagic.io/yaml-publishing/google-play/), [Android publisher getting started](https://developers.google.com/android-publisher/getting_started))
@@ -185,14 +188,13 @@ definitions:
       submit_to_app_store: false
 
 workflows:
-
   # ---------- iOS ----------
   neon-pichu-ios:
     name: iOS pichu (dev)
     instance_type: mac_mini_m2
     max_build_duration: 60
     integrations:
-      app_store_connect: AtomiNeonKey          # Team integration name
+      app_store_connect: AtomiNeonKey # Team integration name
     environment:
       <<: *env_versions
       ios_signing:
@@ -246,20 +248,20 @@ workflows:
       tag_patterns:
         - pattern: 'v*'
           include: true
-        - pattern: 'v*-rc'        # exclude RC tags from prod
+        - pattern: 'v*-rc' # exclude RC tags from prod
           include: false
     publishing:
       app_store_connect:
         auth: integration
         submit_to_testflight: true
         submit_to_app_store: true
-        release_type: MANUAL        # human approves the public release
+        release_type: MANUAL # human approves the public release
         cancel_previous_submissions: true
 
   # ---------- Android ----------
   neon-pichu-android:
     name: Android pichu (dev)
-    instance_type: linux_x2        # Android-only → cheaper than macOS
+    instance_type: linux_x2 # Android-only → cheaper than macOS
     environment:
       <<: *env_versions
       android_signing: [neon_upload_keystore]
@@ -300,10 +302,11 @@ workflows:
       google_play:
         credentials: $GOOGLE_PLAY_SERVICE_ACCOUNT_CREDENTIALS
         track: production
-        rollout_fraction: 0.25      # staged rollout; omit for 100%
+        rollout_fraction: 0.25 # staged rollout; omit for 100%
 ```
 
 Key behaviors (all from official Codemagic docs):
+
 - **iOS signing**: the integration + `ios_signing` auto-resolves the correct provisioning profile per bundle id; only `xcode-project use-profiles` is needed. ([signing-ios](https://docs.codemagic.io/yaml-code-signing/signing-ios/))
 - **iOS publishing** is async post-processing: `submit_to_testflight` (default false), `beta_groups`, `submit_to_app_store`, `release_type` (MANUAL/AFTER_APPROVAL/SCHEDULED). pichu can alternatively use `XCODE_PROJECT_CUSTOM_EXPORT_OPTIONS={"testFlightInternalTestingOnly": true}` to push to internal testers and skip review. ([app-store-connect](https://docs.codemagic.io/yaml-publishing/app-store-connect/))
 - **Android publishing**: `google_play.track` accepts `internal|alpha|beta|production|<closed-track-name>`. `rollout_fraction` not usable with `submit_as_draft`. Leave `changes_not_sent_for_review` **unset** initially; add `true` only if Google returns "Changes cannot be sent for review automatically." ([google-play](https://docs.codemagic.io/yaml-publishing/google-play/), [common errors](https://docs.codemagic.io/troubleshooting/common-google-play-errors/))
@@ -313,15 +316,16 @@ Key behaviors (all from official Codemagic docs):
 
 ## 7. Trigger & versioning model
 
-| Git ref | Workflow(s) | Landscape | iOS channel | Play track |
-|---|---|---|---|---|
-| `push` → `main` | `neon-pichu-{ios,android}` | pichu (dev) | TestFlight internal | internal |
-| tag `v*-rc` (e.g. `v1.4.0-rc1`) | `neon-pikachu-{ios,android}` | pikachu (stage) | TestFlight external | closed |
-| tag `v*` excluding `*-rc` (e.g. `v1.4.0`) | `neon-raichu-{ios,android}` | raichu (prod) | App Store (MANUAL) | production (staged) |
+| Git ref                                   | Workflow(s)                  | Landscape       | iOS channel         | Play track          |
+| ----------------------------------------- | ---------------------------- | --------------- | ------------------- | ------------------- |
+| `push` → `main`                           | `neon-pichu-{ios,android}`   | pichu (dev)     | TestFlight internal | internal            |
+| tag `v*-rc` (e.g. `v1.4.0-rc1`)           | `neon-pikachu-{ios,android}` | pikachu (stage) | TestFlight external | closed              |
+| tag `v*` excluding `*-rc` (e.g. `v1.4.0`) | `neon-raichu-{ios,android}`  | raichu (prod)   | App Store (MANUAL)  | production (staged) |
 
 - Keep `cancel_previous_builds: true`; manual UI/API builds remain available for ad-hoc releases.
 
 **Versioning scheme:**
+
 - `--build-number` sets Android `versionCode` and iOS `CFBundleVersion`; `--build-name` sets `versionName`/`CFBundleShortVersionString`.
 - **Build number per channel**: query the relevant store/track and `+1` so numbers monotonically increase **within each channel** — iOS `app-store-connect get-latest-build-number $APP_STORE_APPLE_ID`; Android `google-play get-latest-build-number --tracks=$GOOGLE_PLAY_TRACK`. Each Play listing has its own versionCode space; never reuse a versionCode within one applicationId. ([build-versioning](https://docs.codemagic.io/knowledge-codemagic/build-versioning/))
 - **versionName**: for pikachu/raichu, derive from the git tag (strip leading `v`, drop `-rc` suffix → e.g. `1.4.0`). For pichu, use a fixed dev label (e.g. `0.0.0-dev`) since it builds on every `main` push.
@@ -330,13 +334,13 @@ Key behaviors (all from official Codemagic docs):
 
 ## 8. Costs
 
-| Item | Cost | Covers all 3 channels? |
-|---|---|---|
-| Apple Developer Program | **$99/yr** (already paid) | Yes — no **documented** per-app/per-bundle-id fee. (The free "Personal Team" 10-App-ID cap does **not** apply to the paid Program.) ([Apple memberships](https://developer.apple.com/programs/whats-included/)) |
-| Google Play Console | **$25 one-time** (already paid) | Yes — one-time, no annual or per-app fee. ([Play fee](https://support.google.com/android-developer-console/answer/16604405?hl=en)) |
-| Codemagic free tier | 500 macOS-M2 min/mo | **Personal accounts only — NOT available on Team accounts.** ([pricing](https://docs.codemagic.io/billing/pricing/)) |
-| Codemagic Pay-As-You-Go | macOS M2 **$0.095/min**, M4 $0.114/min, Linux/Windows **$0.045/min**; +$49/mo per extra concurrency (up to 3) | — |
-| Codemagic flat (unlimited min) | from **$3,990/yr** (M2, 3 concurrencies) | — |
+| Item                           | Cost                                                                                                          | Covers all 3 channels?                                                                                                                                                                                          |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Apple Developer Program        | **$99/yr** (already paid)                                                                                     | Yes — no **documented** per-app/per-bundle-id fee. (The free "Personal Team" 10-App-ID cap does **not** apply to the paid Program.) ([Apple memberships](https://developer.apple.com/programs/whats-included/)) |
+| Google Play Console            | **$25 one-time** (already paid)                                                                               | Yes — one-time, no annual or per-app fee. ([Play fee](https://support.google.com/android-developer-console/answer/16604405?hl=en))                                                                              |
+| Codemagic free tier            | 500 macOS-M2 min/mo                                                                                           | **Personal accounts only — NOT available on Team accounts.** ([pricing](https://docs.codemagic.io/billing/pricing/))                                                                                            |
+| Codemagic Pay-As-You-Go        | macOS M2 **$0.095/min**, M4 $0.114/min, Linux/Windows **$0.045/min**; +$49/mo per extra concurrency (up to 3) | —                                                                                                                                                                                                               |
+| Codemagic flat (unlimited min) | from **$3,990/yr** (M2, 3 concurrencies)                                                                      | —                                                                                                                                                                                                               |
 
 > Pricing correction: a "$299/mo unlimited" plan circulates on third-party review sites but is **stale** — the current unlimited tier is billed annually from $3,990/yr. Do **not** plan around $299/mo.
 
@@ -378,12 +382,12 @@ Key behaviors (all from official Codemagic docs):
 
 ## 11. Open decisions for the user
 
-1. **Play account type — organization vs personal?** *Recommendation:* use/transfer to an **AtomiCloud organization** account to skip the 12-tester/14-day production gate entirely. If it must stay personal-post-Nov-2023, schedule the closed test before raichu launch.
-2. **pikachu Play track — closed vs open testing?** *Recommendation:* **closed** testing (invited QA/UAT), since stage should not be publicly discoverable.
-3. **One shared upload keystore vs one per applicationId?** *Recommendation:* **one shared** keystore — simpler in CI; each app still enrolls separately in Play App Signing.
-4. **raichu rollout — staged vs 100%?** *Recommendation:* **staged** (`rollout_fraction: 0.1–0.25`) for the first few prod releases, then widen.
-5. **Codemagic workflow shape — 3 combined vs 6 split?** *Recommendation:* **6 split** (iOS/Android per landscape) so a signing failure on one platform can't block the other's release.
-6. **Are any `NEON_*` defines sensitive?** *Recommendation:* keep `NEON_LOGTO_APP_ID` (and anything secret-ish) in **Codemagic encrypted env groups**, not committed JSON; commit only non-secret defaults.
-7. **iOS release approval — MANUAL vs AFTER_APPROVAL?** *Recommendation:* **MANUAL** (`release_type: MANUAL`) so a human gates the public App Store release after review passes.
-8. **Shorebird OTA on raichu?** *Recommendation:* treat as an **optional later add-on** for Dart-only hotfixes; it cannot change baked dart-define config, native code, assets, or the engine version.
-9. **CI lock-in tolerance?** *Recommendation:* **Codemagic** for lowest setup; keep Fastlane + GitHub Actions documented as the portable fallback. EAS is ruled out (no Flutter support).
+1. **Play account type — organization vs personal?** _Recommendation:_ use/transfer to an **AtomiCloud organization** account to skip the 12-tester/14-day production gate entirely. If it must stay personal-post-Nov-2023, schedule the closed test before raichu launch.
+2. **pikachu Play track — closed vs open testing?** _Recommendation:_ **closed** testing (invited QA/UAT), since stage should not be publicly discoverable.
+3. **One shared upload keystore vs one per applicationId?** _Recommendation:_ **one shared** keystore — simpler in CI; each app still enrolls separately in Play App Signing.
+4. **raichu rollout — staged vs 100%?** _Recommendation:_ **staged** (`rollout_fraction: 0.1–0.25`) for the first few prod releases, then widen.
+5. **Codemagic workflow shape — 3 combined vs 6 split?** _Recommendation:_ **6 split** (iOS/Android per landscape) so a signing failure on one platform can't block the other's release.
+6. **Are any `NEON_*` defines sensitive?** _Recommendation:_ keep `NEON_LOGTO_APP_ID` (and anything secret-ish) in **Codemagic encrypted env groups**, not committed JSON; commit only non-secret defaults.
+7. **iOS release approval — MANUAL vs AFTER_APPROVAL?** _Recommendation:_ **MANUAL** (`release_type: MANUAL`) so a human gates the public App Store release after review passes.
+8. **Shorebird OTA on raichu?** _Recommendation:_ treat as an **optional later add-on** for Dart-only hotfixes; it cannot change baked dart-define config, native code, assets, or the engine version.
+9. **CI lock-in tolerance?** _Recommendation:_ **Codemagic** for lowest setup; keep Fastlane + GitHub Actions documented as the portable fallback. EAS is ruled out (no Flutter support).

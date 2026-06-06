@@ -8,6 +8,7 @@ import '../../auth/auth_service.dart';
 import '../dev/dev_config_view.dart';
 import '../../core/problem.dart';
 import '../../generated/zinc/models/user_principal_res.dart';
+import '../../services/notification_service.dart';
 import '../../session/session_controller.dart';
 import '../settings/settings_view.dart';
 
@@ -251,6 +252,22 @@ class _ProfileViewState extends State<ProfileView> {
             subtitle: const Text('Timezone, default charity, payment consent'),
             trailing: const Icon(Icons.chevron_right),
             onTap: _openSettings,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.notifications_active_outlined),
+            title: const Text('Send test notification'),
+            subtitle: const Text('Fires a local notification now'),
+            onTap: () async {
+              await NotificationService.instance.showNow();
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Test notification sent')),
+                );
+              }
+            },
           ),
         ),
         const SizedBox(height: 24),

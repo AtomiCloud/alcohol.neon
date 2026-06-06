@@ -2,12 +2,15 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../../auth/auth_service.dart';
+import '../../config/app_config.dart';
 import '../../core/problem.dart';
 import '../../data/execution_repository.dart';
 import '../../data/habit_repository.dart';
 import '../../generated/zinc/models/habit_overview_habit_res.dart';
 import '../../generated/zinc/models/habit_overview_response.dart';
 import '../../services/notification_service.dart';
+import '../../services/widget_service.dart';
 import '../../session/session_controller.dart';
 
 enum DashboardPhase { loading, ready, error }
@@ -19,11 +22,26 @@ class DashboardController extends ChangeNotifier {
   final String? userId;
   final HabitRepository _habits;
   final ExecutionRepository _executions;
+  final AuthService _auth;
 
   DashboardController(SessionController session)
     : userId = session.userId,
       _habits = session.habits,
-      _executions = session.executions;
+      _executions = session.executions,
+      _auth = session.auth;
+
+  /// Push the freshly-loaded schedule to the iOS widget, and cache the auth context
+  /// (zinc base URL + a current access token + user id) into the shared App Group so
+  /// the widget's "Complete" button can POST the completion directly. Best-effort.
+  Future<void> _pushToWidget(HabitOverviewResponse overview) async {
+    await WidgetService.instance.sync(overview);
+    final token = await _auth.zincAccessToken();
+    await WidgetService.instance.cacheAuth(
+      baseUrl: AppConfig.current.zincBaseUrl.toString(),
+      token: token,
+      userId: userId,
+    );
+  }
 
   DashboardPhase _phase = DashboardPhase.loading;
   Problem? _error;
@@ -79,6 +97,8 @@ class DashboardController extends ChangeNotifier {
         _overview = value;
         _phase = DashboardPhase.ready;
         unawaited(_syncReminders());
+        // Push today's schedule + auth context to the iOS home-screen widget.
+        unawaited(_pushToWidget(value));
       case Err(:final problem):
         _error = problem;
         _phase = DashboardPhase.error;
@@ -131,7 +151,11 @@ class DashboardController extends ChangeNotifier {
     final uid = userId;
     if (uid == null) return;
     final res = await _habits.overview(uid);
-    if (res case Ok(:final value)) _overview = value;
+    if (res case Ok(:final value)) {
+      _overview = value;
+      // Keep the home-screen widget + cached auth in sync after a complete/skip.
+      unawaited(_pushToWidget(value));
+    }
     // A refresh failure leaves the prior data on screen; the action itself succeeded.
   }
 }

@@ -1,5 +1,3 @@
-// PARKED — see docs/widget/README.md. Restore to lib/services/widget_service.dart
-// when re-adding the home-screen widget (needs the home_widget package + App Group).
 import 'dart:convert';
 
 import 'package:home_widget/home_widget.dart';
@@ -34,6 +32,9 @@ class WidgetService {
         final isDone = h.status.isCompleteToday;
         if (isDone) done++;
         items.add({
+          'id': h
+              .version
+              .id, // habit version id — the widget's Complete button completes this
           'time': _hm(h.notificationTime),
           'name': h.name ?? 'Habit',
           'done': isDone,
@@ -54,6 +55,56 @@ class WidgetService {
       await HomeWidget.updateWidget(iOSName: _kind);
     } catch (_) {
       // Widget not installed / not iOS — non-critical.
+    }
+  }
+
+  /// Cache the auth context the widget's "Complete" button needs to POST a completion
+  /// to zinc directly (Swift URLSession). The access token is short-lived; we refresh
+  /// it here on every dashboard load. If it's stale when the widget is tapped, the POST
+  /// 401s and the optimistic tick is rolled back. Best-effort.
+  Future<void> cacheAuth({
+    required String baseUrl,
+    required String? token,
+    required String? userId,
+  }) async {
+    try {
+      await HomeWidget.setAppGroupId(_appGroup);
+      await HomeWidget.saveWidgetData<String>('zinc_base', baseUrl);
+      if (token != null) {
+        await HomeWidget.saveWidgetData<String>('zinc_token', token);
+      }
+      if (userId != null) {
+        await HomeWidget.saveWidgetData<String>('zinc_uid', userId);
+      }
+    } catch (_) {
+      // Non-critical.
+    }
+  }
+
+  /// Undo an optimistic completion the widget applied locally (Swift flips the item
+  /// to done instantly on tap). Called when the background zinc completion fails, so
+  /// the tick doesn't lie about a habit the server never recorded. Best-effort.
+  Future<void> revertDone(String versionId) async {
+    try {
+      await HomeWidget.setAppGroupId(_appGroup);
+      final raw = await HomeWidget.getWidgetData<String>(_dataKey);
+      if (raw == null) return;
+      final map = jsonDecode(raw) as Map<String, dynamic>;
+      final items =
+          (map['items'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
+      var changed = false;
+      for (final it in items) {
+        if (it['id'] == versionId && it['done'] == true) {
+          it['done'] = false;
+          map['done'] = ((map['done'] as int?) ?? 1) - 1;
+          changed = true;
+        }
+      }
+      if (!changed) return;
+      await HomeWidget.saveWidgetData<String>(_dataKey, jsonEncode(map));
+      await HomeWidget.updateWidget(iOSName: _kind);
+    } catch (_) {
+      // Non-critical.
     }
   }
 

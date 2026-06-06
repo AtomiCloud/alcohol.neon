@@ -78,8 +78,36 @@ class DashboardView extends StatelessWidget {
   }
 }
 
-class _DashboardScaffold extends StatelessWidget {
+class _DashboardScaffold extends StatefulWidget {
   const _DashboardScaffold();
+
+  @override
+  State<_DashboardScaffold> createState() => _DashboardScaffoldState();
+}
+
+class _DashboardScaffoldState extends State<_DashboardScaffold>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Returning to the foreground: refetch so completions made on the home-screen
+    // widget (which the app isn't notified of) get tallied here too.
+    if (state == AppLifecycleState.resumed && mounted) {
+      context.read<DashboardController>().load();
+      context.read<BuffersController>().load();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -148,7 +176,13 @@ class _Content extends StatelessWidget {
           if (habits.isEmpty)
             const _EmptyState()
           else
-            ...habits.map((h) => _HabitCard(habit: h, controller: c)),
+            ...habits.map(
+              (h) => _HabitCard(
+                key: ValueKey(h.id ?? h.name),
+                habit: h,
+                controller: c,
+              ),
+            ),
         ],
       ),
     );
@@ -420,7 +454,7 @@ class _BuffersCard extends StatelessWidget {
 class _HabitCard extends StatelessWidget {
   final HabitOverviewHabitRes habit;
   final DashboardController controller;
-  const _HabitCard({required this.habit, required this.controller});
+  const _HabitCard({super.key, required this.habit, required this.controller});
 
   @override
   Widget build(BuildContext context) {

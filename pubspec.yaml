@@ -48,6 +48,8 @@ dependencies:
   airwallex_payment_flutter: ^0.2.0
   flutter_local_notifications: ^19.0.0
   timezone: ^0.10.0
+  # Shared App Group bridge to the iOS home-screen widget (schedule + auth cache).
+  home_widget: ^0.9.2
   # App's own bundle id at runtime → AppConfig selects the landscape (bundle-id-as-marker).
   package_info_plus: ^8.0.0
   # Parse the layered config/*.yaml at startup.

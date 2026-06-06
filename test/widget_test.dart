@@ -7,9 +7,11 @@ import 'package:alcohol_neon/config/landscape.dart';
 import 'package:alcohol_neon/core/problem.dart';
 
 void main() {
-  test('AppConfig.current resolves a landscape with defaults', () {
-    final config = AppConfig.current;
-    expect(Landscape.values.contains(config.landscape), isTrue);
+  test('AppConfig resolves landscape + defaults from its bundle id', () {
+    final config = AppConfig.resolveForPackage(
+      'cloud.atomi.alcohol.neon.pichu',
+    );
+    expect(config.landscape, Landscape.pichu);
     expect(config.redirectUri, 'cloud.atomi.alcohol.neon://callback');
     expect(config.logtoEndpoint, isNotEmpty);
   });
@@ -37,7 +39,10 @@ void main() {
   });
 
   test('AppConfig resolves an Airwallex environment per landscape', () {
-    final config = AppConfig.current;
+    final config = AppConfig.resolveForPackage(
+      'cloud.atomi.alcohol.neon.pikachu',
+    );
+    expect(config.landscape, Landscape.pikachu);
     expect(Environment.values.contains(config.airwallexEnv), isTrue);
   });
 

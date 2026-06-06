@@ -9,7 +9,8 @@ import 'package:flutter_test/flutter_test.dart';
 /// model.fromJson).
 void main() {
   test('HabitOverviewResponse decodes skip budget + nested habit', () {
-    final json = jsonDecode('''
+    final json =
+        jsonDecode('''
       {
         "usedSkip": 1,
         "totalSkip": 3,
@@ -40,7 +41,8 @@ void main() {
           }
         ]
       }
-    ''') as Map<String, Object?>;
+    ''')
+            as Map<String, Object?>;
 
     final res = HabitOverviewResponse.fromJson(json);
     expect(res.usedSkip, 1);
@@ -61,9 +63,11 @@ void main() {
   });
 
   test('HabitOverviewResponse decodes with no habits', () {
-    final json = jsonDecode('''
+    final json =
+        jsonDecode('''
       { "usedSkip": 0, "totalSkip": 5 }
-    ''') as Map<String, Object?>;
+    ''')
+            as Map<String, Object?>;
 
     final res = HabitOverviewResponse.fromJson(json);
     expect(res.usedSkip, 0);

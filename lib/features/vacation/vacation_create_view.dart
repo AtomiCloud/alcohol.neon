@@ -97,19 +97,34 @@ class _VacationCreateViewState extends State<VacationCreateView> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 2),
-        Text('${_pretty(_start!)}  →  ${_pretty(_end!)}',
-            style: theme.textTheme.bodyMedium),
+        Text(
+          '${_pretty(_start!)}  →  ${_pretty(_end!)}',
+          style: theme.textTheme.bodyMedium,
+        ),
         const SizedBox(height: 2),
-        Text('$days day${days == 1 ? '' : 's'}',
-            style: theme.textTheme.bodySmall
-                ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+        Text(
+          '$days day${days == 1 ? '' : 's'}',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
       ],
     );
   }
 
   static const _months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
 
   String _pretty(DateTime d) => '${d.day} ${_months[d.month - 1]} ${d.year}';
@@ -120,10 +135,12 @@ class _VacationCreateViewState extends State<VacationCreateView> {
     final tz = _timezone;
     if (start == null || end == null || tz == null) return;
     if (start.isAfter(end)) {
-      setState(() => _error = Problem.local(
-            'Invalid dates',
-            detail: 'Start date must be on or before the end date.',
-          ));
+      setState(
+        () => _error = Problem.local(
+          'Invalid dates',
+          detail: 'Start date must be on or before the end date.',
+        ),
+      );
       return;
     }
 
@@ -176,9 +193,7 @@ class _VacationCreateViewState extends State<VacationCreateView> {
   @override
   Widget build(BuildContext context) {
     if (_loadingTz) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     final theme = Theme.of(context);
     final canSubmit =
@@ -189,8 +204,10 @@ class _VacationCreateViewState extends State<VacationCreateView> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text('Pause all your habits for a date range.',
-              style: theme.textTheme.bodyMedium),
+          Text(
+            'Pause all your habits for a date range.',
+            style: theme.textTheme.bodyMedium,
+          ),
           const SizedBox(height: 16),
           Card(
             child: ListTile(
@@ -207,8 +224,7 @@ class _VacationCreateViewState extends State<VacationCreateView> {
             child: ListTile(
               leading: const Icon(Icons.public),
               title: const Text('Timezone'),
-              subtitle:
-                  Text((_timezone ?? 'UTC').replaceAll('_', ' ')),
+              subtitle: Text((_timezone ?? 'UTC').replaceAll('_', ' ')),
               trailing: const Icon(Icons.chevron_right),
               onTap: _pickTimezone,
             ),
@@ -221,14 +237,17 @@ class _VacationCreateViewState extends State<VacationCreateView> {
                 padding: const EdgeInsets.all(12),
                 child: Row(
                   children: [
-                    Icon(Icons.error_outline,
-                        color: theme.colorScheme.onErrorContainer),
+                    Icon(
+                      Icons.error_outline,
+                      color: theme.colorScheme.onErrorContainer,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         _friendly(_error!),
                         style: TextStyle(
-                            color: theme.colorScheme.onErrorContainer),
+                          color: theme.colorScheme.onErrorContainer,
+                        ),
                       ),
                     ),
                   ],
@@ -252,4 +271,3 @@ class _VacationCreateViewState extends State<VacationCreateView> {
     );
   }
 }
-

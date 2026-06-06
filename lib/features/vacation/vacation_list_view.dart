@@ -53,12 +53,14 @@ class _VacationScaffold extends StatelessWidget {
             )
           : null,
       body: switch (c.phase) {
-        VacationPhase.loading =>
-          const Center(child: CircularProgressIndicator()),
+        VacationPhase.loading => const Center(
+          child: CircularProgressIndicator(),
+        ),
         VacationPhase.error => _ErrorRetry(
-            message: c.error?.detail ?? c.error?.title ?? 'Could not load vacations',
-            onRetry: c.load,
-          ),
+          message:
+              c.error?.detail ?? c.error?.title ?? 'Could not load vacations',
+          onRetry: c.load,
+        ),
         VacationPhase.ready => _List(c: c),
       },
     );
@@ -121,8 +123,11 @@ class _VacationCard extends StatelessWidget {
                 Expanded(child: _dateBlock(theme, 'FROM', start)),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Icon(Icons.arrow_forward,
-                      size: 18, color: theme.colorScheme.onSurfaceVariant),
+                  child: Icon(
+                    Icons.arrow_forward,
+                    size: 18,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
                 Expanded(child: _dateBlock(theme, 'TO', end)),
               ],
@@ -130,14 +135,18 @@ class _VacationCard extends StatelessWidget {
             const SizedBox(height: 10),
             Row(
               children: [
-                Icon(Icons.public,
-                    size: 14, color: theme.colorScheme.onSurfaceVariant),
+                Icon(
+                  Icons.public,
+                  size: 14,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
                     _meta(v.timezone, start, end),
-                    style: theme.textTheme.bodySmall
-                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
               ],
@@ -184,15 +193,18 @@ class _VacationCard extends StatelessWidget {
       builder: (ctx) => AlertDialog(
         title: const Text('Delete vacation?'),
         content: const Text(
-            'This removes the scheduled window. A vacation that has already '
-            'started cannot be deleted — use "End today" instead.'),
+          'This removes the scheduled window. A vacation that has already '
+          'started cannot be deleted — use "End today" instead.',
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Delete')),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
         ],
       ),
     );
@@ -205,15 +217,18 @@ class _VacationCard extends StatelessWidget {
       builder: (ctx) => AlertDialog(
         title: const Text('End vacation today?'),
         content: const Text(
-            'This ends the active vacation as of today. Your habits resume '
-            'tomorrow.'),
+          'This ends the active vacation as of today. Your habits resume '
+          'tomorrow.',
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('End today')),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('End today'),
+          ),
         ],
       ),
     );
@@ -224,13 +239,20 @@ class _VacationCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant, letterSpacing: 0.6)),
+        Text(
+          label,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+            letterSpacing: 0.6,
+          ),
+        ),
         const SizedBox(height: 2),
-        Text(_pretty(d),
-            style: theme.textTheme.titleMedium
-                ?.copyWith(fontWeight: FontWeight.w600)),
+        Text(
+          _pretty(d),
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ],
     );
   }
@@ -246,8 +268,18 @@ class _VacationCard extends StatelessWidget {
   }
 
   static const _months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
 
   String _pretty(DateTime? d) =>
@@ -263,20 +295,20 @@ class _StatusChip extends StatelessWidget {
     final theme = Theme.of(context);
     final (label, color, icon) = switch (status) {
       VacationStatus.active => (
-          'Active',
-          theme.colorScheme.primary,
-          Icons.beach_access
-        ),
+        'Active',
+        theme.colorScheme.primary,
+        Icons.beach_access,
+      ),
       VacationStatus.upcoming => (
-          'Upcoming',
-          theme.colorScheme.tertiary,
-          Icons.schedule
-        ),
+        'Upcoming',
+        theme.colorScheme.tertiary,
+        Icons.schedule,
+      ),
       VacationStatus.ended => (
-          'Ended',
-          theme.colorScheme.onSurfaceVariant,
-          Icons.history
-        ),
+        'Ended',
+        theme.colorScheme.onSurfaceVariant,
+        Icons.history,
+      ),
     };
     return Chip(
       avatar: Icon(icon, size: 16, color: color),
@@ -297,15 +329,21 @@ class _EmptyState extends StatelessWidget {
       padding: const EdgeInsets.only(top: 64),
       child: Column(
         children: [
-          Icon(Icons.beach_access,
-              size: 48, color: theme.colorScheme.onSurfaceVariant),
+          Icon(
+            Icons.beach_access,
+            size: 48,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
           const SizedBox(height: 12),
           Text('No vacations scheduled', style: theme.textTheme.titleMedium),
           const SizedBox(height: 4),
-          Text('Schedule a window to pause your habits while you’re away.',
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+          Text(
+            'Schedule a window to pause your habits while you’re away.',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
         ],
       ),
     );
@@ -324,10 +362,14 @@ class _ActionErrorBanner extends StatelessWidget {
       color: theme.colorScheme.errorContainer,
       child: ListTile(
         dense: true,
-        leading:
-            Icon(Icons.error_outline, color: theme.colorScheme.onErrorContainer),
-        title: Text(message,
-            style: TextStyle(color: theme.colorScheme.onErrorContainer)),
+        leading: Icon(
+          Icons.error_outline,
+          color: theme.colorScheme.onErrorContainer,
+        ),
+        title: Text(
+          message,
+          style: TextStyle(color: theme.colorScheme.onErrorContainer),
+        ),
         trailing: IconButton(
           icon: Icon(Icons.close, color: theme.colorScheme.onErrorContainer),
           onPressed: onDismiss,

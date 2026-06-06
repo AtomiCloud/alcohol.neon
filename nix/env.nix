@@ -20,6 +20,13 @@ with packages;
   main = [
   ];
 
+  mobile = [
+    flutter
+    cocoapods
+    rsync
+    resvg
+  ];
+
   releaser = [
     sg
   ];

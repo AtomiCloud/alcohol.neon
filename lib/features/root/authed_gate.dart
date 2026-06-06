@@ -56,8 +56,10 @@ class _BootstrapError extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(problem?.title ?? 'Something went wrong',
-                  style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                problem?.title ?? 'Something went wrong',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               if (problem?.detail != null) ...[
                 const SizedBox(height: 8),
                 Text(problem!.detail!, textAlign: TextAlign.center),

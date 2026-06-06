@@ -11,7 +11,8 @@ import 'package:flutter_test/flutter_test.dart';
 /// same path ApiClient uses (jsonDecode → decode fn).
 void main() {
   test('Charity list decodes unwrapped principals', () {
-    final list = jsonDecode('''
+    final list =
+        jsonDecode('''
       [
         {
           "id": "ch1",
@@ -21,7 +22,8 @@ void main() {
         },
         { "id": "ch2" }
       ]
-    ''') as List<dynamic>;
+    ''')
+            as List<dynamic>;
 
     final charities = list
         .map((e) => CharityPrincipalRes.fromJson(e as Map<String, Object?>))
@@ -36,9 +38,11 @@ void main() {
   });
 
   test('CharityRes wraps principal', () {
-    final json = jsonDecode('''
+    final json =
+        jsonDecode('''
       { "principal": { "id": "ch1", "name": "Red Cross" } }
-    ''') as Map<String, Object?>;
+    ''')
+            as Map<String, Object?>;
 
     final res = CharityRes.fromJson(json);
     expect(res.principal, isA<CharityPrincipalRes>());

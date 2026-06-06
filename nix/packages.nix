@@ -29,6 +29,8 @@ let
           pre-commit
           shellcheck
           treefmt
+          rsync
+          resvg
           ;
       }
     );
@@ -36,6 +38,10 @@ let
     nix-unstable = (
       with pkgs-unstable;
       {
+        inherit
+          flutter
+          cocoapods
+          ;
       }
     );
   };

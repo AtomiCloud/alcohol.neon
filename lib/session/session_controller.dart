@@ -36,15 +36,15 @@ class SessionController extends ChangeNotifier {
   SessionController(AuthService auth) : this._(auth, auth.makeApiClient());
 
   SessionController._(this.auth, ApiClient api)
-      : users = UserRepository(api),
-        configs = ConfigRepository(api),
-        charities = CharityRepository(api),
-        causes = CauseRepository(api),
-        habits = HabitRepository(api),
-        executions = ExecutionRepository(api),
-        payments = PaymentRepository(api),
-        protections = ProtectionRepository(api),
-        vacations = VacationRepository(api);
+    : users = UserRepository(api),
+      configs = ConfigRepository(api),
+      charities = CharityRepository(api),
+      causes = CauseRepository(api),
+      habits = HabitRepository(api),
+      executions = ExecutionRepository(api),
+      payments = PaymentRepository(api),
+      protections = ProtectionRepository(api),
+      vacations = VacationRepository(api);
 
   SessionPhase _phase = SessionPhase.idle;
   Problem? _error;
@@ -86,9 +86,14 @@ class SessionController extends ChangeNotifier {
     final accessToken = await auth.zincAccessToken();
     final idToken = await auth.idToken();
     if (idToken == null || accessToken == null) {
-      return _fail(Problem.local('Could not read sign-in tokens',
+      return _fail(
+        Problem.local(
+          'Could not read sign-in tokens',
           type: 'neon:auth',
-          detail: 'No id/access token available after sign-in. Try signing in again.'));
+          detail:
+              'No id/access token available after sign-in. Try signing in again.',
+        ),
+      );
     }
 
     // Ensure the zinc user exists. We check with GET /User/Me/All first rather than
@@ -98,11 +103,14 @@ class SessionController extends ChangeNotifier {
     final me = await users.me();
     if (me case Err(:final problem)) {
       if (problem.status == 404) {
-        final created =
-            await users.create(idToken: idToken, accessToken: accessToken);
+        final created = await users.create(
+          idToken: idToken,
+          accessToken: accessToken,
+        );
         // Tolerate a 409 in case of a concurrent first-sign-in race.
-        if (created case Err(problem: final p)
-            when p.status != 409 && !p.title.toLowerCase().contains('conflict')) {
+        if (created case Err(
+          problem: final p,
+        ) when p.status != 409 && !p.title.toLowerCase().contains('conflict')) {
           return _fail(p);
         }
       } else {

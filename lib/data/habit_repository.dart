@@ -41,12 +41,7 @@ class HabitRepository {
       (j) => (j as List<dynamic>)
           .map((e) => HabitVersionRes.fromJson(e as Map<String, Object?>))
           .toList(),
-      query: {
-        'Task': task,
-        'Enabled': enabled,
-        'Limit': limit,
-        'Skip': skip,
-      },
+      query: {'Task': task, 'Enabled': enabled, 'Limit': limit, 'Skip': skip},
     );
   }
 

@@ -14,8 +14,8 @@ class BuffersController extends ChangeNotifier {
   final ProtectionRepository _protections;
 
   BuffersController(SessionController session)
-      : userId = session.userId,
-        _protections = session.protections;
+    : userId = session.userId,
+      _protections = session.protections;
 
   bool _loading = false;
   ProtectionBalanceRes? _balance;
@@ -35,7 +35,10 @@ class BuffersController extends ChangeNotifier {
     final uid = userId;
     if (uid == null) {
       _error = const Problem(
-          type: 'neon:auth', title: 'Not signed in', status: 401);
+        type: 'neon:auth',
+        title: 'Not signed in',
+        status: 401,
+      );
       notifyListeners();
       return;
     }

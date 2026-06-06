@@ -26,12 +26,7 @@ class CauseRepository {
           .map((e) => CausePrincipalRes.fromJson(e as Map<String, Object?>))
           .toList(),
       requiresAuth: false,
-      query: {
-        'Key': key,
-        'Name': name,
-        'Limit': limit,
-        'Skip': skip,
-      },
+      query: {'Key': key, 'Name': name, 'Limit': limit, 'Skip': skip},
     );
   }
 

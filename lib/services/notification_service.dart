@@ -40,14 +40,22 @@ class NotificationService {
   /// Asks for notification permission (prompts once on iOS). Safe to call repeatedly.
   Future<bool> requestPermission() async {
     await init();
-    final ios = _plugin.resolvePlatformSpecificImplementation<
-        IOSFlutterLocalNotificationsPlugin>();
+    final ios = _plugin
+        .resolvePlatformSpecificImplementation<
+          IOSFlutterLocalNotificationsPlugin
+        >();
     if (ios != null) {
-      return await ios.requestPermissions(alert: true, badge: true, sound: true) ??
+      return await ios.requestPermissions(
+            alert: true,
+            badge: true,
+            sound: true,
+          ) ??
           false;
     }
-    final android = _plugin.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
+    final android = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     return await android?.requestNotificationsPermission() ?? true;
   }
 
@@ -110,8 +118,14 @@ class NotificationService {
     // DateTime weekday: Mon=1..Sun=7. zinc's Sunday=0 → 7.
     final targetWeekday = d == 0 ? 7 : d;
     final now = tz.TZDateTime.now(tz.local);
-    var scheduled =
-        tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);
+    var scheduled = tz.TZDateTime(
+      tz.local,
+      now.year,
+      now.month,
+      now.day,
+      hour,
+      minute,
+    );
     while (scheduled.weekday != targetWeekday || !scheduled.isAfter(now)) {
       scheduled = scheduled.add(const Duration(days: 1));
     }

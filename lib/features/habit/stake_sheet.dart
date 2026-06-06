@@ -25,7 +25,8 @@ class _StakeSheet extends StatefulWidget {
 }
 
 class _StakeSheetState extends State<_StakeSheet> {
-  late int _cents = ((double.tryParse(widget.initial ?? '') ?? 0) * 100).round();
+  late int _cents = ((double.tryParse(widget.initial ?? '') ?? 0) * 100)
+      .round();
 
   String get _decimal => (_cents / 100).toStringAsFixed(2);
 
@@ -55,22 +56,29 @@ class _StakeSheetState extends State<_StakeSheet> {
           children: [
             Text('Set your stake', style: theme.textTheme.titleMedium),
             const SizedBox(height: 4),
-            Text('Charged to your charity if you miss a day',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+            Text(
+              'Charged to your charity if you miss a day',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
             const SizedBox(height: 18),
             RichText(
               text: TextSpan(
-                style: theme.textTheme.displaySmall
-                    ?.copyWith(fontWeight: FontWeight.w700, color: AppColors.money),
+                style: theme.textTheme.displaySmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.money,
+                ),
                 children: [
                   const TextSpan(text: '\$'),
                   TextSpan(text: _decimal),
                   TextSpan(
-                      text: '  USD',
-                      style: theme.textTheme.labelMedium
-                          ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                    text: '  USD',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -96,7 +104,18 @@ class _StakeSheetState extends State<_StakeSheet> {
               crossAxisSpacing: 8,
               children: [
                 for (final k in const [
-                  '1', '2', '3', '4', '5', '6', '7', '8', '9', '⌫', '0', 'C'
+                  '1',
+                  '2',
+                  '3',
+                  '4',
+                  '5',
+                  '6',
+                  '7',
+                  '8',
+                  '9',
+                  '⌫',
+                  '0',
+                  'C',
                 ])
                   _key(theme, k),
               ],
@@ -133,9 +152,12 @@ class _StakeSheetState extends State<_StakeSheet> {
         borderRadius: BorderRadius.circular(12),
         onTap: () => _append(k),
         child: Center(
-          child: Text(k,
-              style: theme.textTheme.titleLarge
-                  ?.copyWith(fontWeight: FontWeight.w500)),
+          child: Text(
+            k,
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ),
       ),
     );

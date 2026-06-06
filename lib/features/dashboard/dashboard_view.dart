@@ -62,13 +62,15 @@ class DashboardView extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(
-            create: (ctx) =>
-                DashboardController(ctx.read<SessionController>())..load()),
+          create: (ctx) =>
+              DashboardController(ctx.read<SessionController>())..load(),
+        ),
         // Live freeze balance for the buffers strip — a light, separate fetch so
         // the daily-loop controller stays clean.
         ChangeNotifierProvider(
-            create: (ctx) =>
-                BuffersController(ctx.read<SessionController>())..load()),
+          create: (ctx) =>
+              BuffersController(ctx.read<SessionController>())..load(),
+        ),
       ],
       child: const _DashboardScaffold(),
     );
@@ -97,9 +99,9 @@ class _DashboardScaffold extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.person),
             tooltip: 'Profile',
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const ProfileView()),
-            ),
+            onPressed: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const ProfileView())),
           ),
         ],
       ),
@@ -110,12 +112,13 @@ class _DashboardScaffold extends StatelessWidget {
             )
           : null,
       body: switch (c.phase) {
-        DashboardPhase.loading =>
-          const Center(child: CircularProgressIndicator()),
+        DashboardPhase.loading => const Center(
+          child: CircularProgressIndicator(),
+        ),
         DashboardPhase.error => _ErrorRetry(
-            message: c.error?.detail ?? c.error?.title ?? 'Could not load habits',
-            onRetry: c.load,
-          ),
+          message: c.error?.detail ?? c.error?.title ?? 'Could not load habits',
+          onRetry: c.load,
+        ),
         DashboardPhase.ready => _Content(c: c),
       },
     );
@@ -182,14 +185,20 @@ class _BuffersCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Text('Safety nets',
-                    style: theme.textTheme.labelLarge
-                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                Text(
+                  'Safety nets',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
                 const Spacer(),
                 IconButton(
                   visualDensity: VisualDensity.compact,
-                  icon: Icon(Icons.info_outline,
-                      size: 18, color: theme.colorScheme.onSurfaceVariant),
+                  icon: Icon(
+                    Icons.info_outline,
+                    size: 18,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                   tooltip: 'What are these?',
                   onPressed: () => _showInfo(context),
                 ),
@@ -199,30 +208,48 @@ class _BuffersCard extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                Expanded(
-                  child: _stat(theme, Icons.ac_unit, 'Freezes', freezeLabel,
+                  Expanded(
+                    child: _stat(
+                      theme,
+                      Icons.ac_unit,
+                      'Freezes',
+                      freezeLabel,
                       'auto-saves a miss',
-                      color: AppColors.freeze),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _stat(theme, Icons.fast_forward, 'Skips',
-                      '$skipsLeft/$totalSkip', 'you choose, monthly'),
-                ),
+                      color: AppColors.freeze,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _stat(
+                      theme,
+                      Icons.fast_forward,
+                      'Skips',
+                      '$skipsLeft/$totalSkip',
+                      'you choose, monthly',
+                    ),
+                  ),
                 ],
               ),
             ),
             if (owed) ...[
               const SizedBox(height: 8),
-              _stat(theme, Icons.account_balance_wallet, 'Owed',
-                  '${dashboard.totalDebt}', 'to charity',
-                  color: theme.colorScheme.error),
+              _stat(
+                theme,
+                Icons.account_balance_wallet,
+                'Owed',
+                '${dashboard.totalDebt}',
+                'to charity',
+                color: theme.colorScheme.error,
+              ),
             ],
             const Divider(height: 16),
             ListTile(
               contentPadding: EdgeInsets.zero,
               dense: true,
-              leading: const Icon(Icons.beach_access, color: AppColors.vacation),
+              leading: const Icon(
+                Icons.beach_access,
+                color: AppColors.vacation,
+              ),
               title: const Text('Vacations'),
               subtitle: const Text('Pause habits for a date range'),
               trailing: const Icon(Icons.chevron_right),
@@ -247,21 +274,37 @@ class _BuffersCard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Your safety nets',
-                  style: Theme.of(context).textTheme.titleLarge),
+              Text(
+                'Your safety nets',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
               const SizedBox(height: 16),
-              _infoRow(context, Icons.ac_unit, AppColors.freeze, 'Freezes',
-                  'Automatic. If you miss a scheduled day, a freeze is spent for '
-                      'you — your streak survives and you’re not charged. You earn '
-                      'them over time, and the cap grows as your streak grows.'),
-              _infoRow(context, Icons.fast_forward, null, 'Skips',
-                  'You choose these. Tap Skip when you know you won’t do a habit '
-                      'today — it won’t break your streak or charge you. Limited to '
-                      'a monthly allowance.'),
-              _infoRow(context, Icons.beach_access, AppColors.vacation,
-                  'Vacation',
-                  'Pause all habits for a date range, for longer breaks. No misses '
-                      'and no charges while a vacation is active.'),
+              _infoRow(
+                context,
+                Icons.ac_unit,
+                AppColors.freeze,
+                'Freezes',
+                'Automatic. If you miss a scheduled day, a freeze is spent for '
+                    'you — your streak survives and you’re not charged. You earn '
+                    'them over time, and the cap grows as your streak grows.',
+              ),
+              _infoRow(
+                context,
+                Icons.fast_forward,
+                null,
+                'Skips',
+                'You choose these. Tap Skip when you know you won’t do a habit '
+                    'today — it won’t break your streak or charge you. Limited to '
+                    'a monthly allowance.',
+              ),
+              _infoRow(
+                context,
+                Icons.beach_access,
+                AppColors.vacation,
+                'Vacation',
+                'Pause all habits for a date range, for longer breaks. No misses '
+                    'and no charges while a vacation is active.',
+              ),
             ],
           ),
         ),
@@ -269,28 +312,42 @@ class _BuffersCard extends StatelessWidget {
     );
   }
 
-  Widget _infoRow(BuildContext context, IconData icon, Color? color,
-      String title, String body) {
+  Widget _infoRow(
+    BuildContext context,
+    IconData icon,
+    Color? color,
+    String title,
+    String body,
+  ) {
     final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon,
-              color: color ?? theme.colorScheme.onSurfaceVariant, size: 22),
+          Icon(
+            icon,
+            color: color ?? theme.colorScheme.onSurfaceVariant,
+            size: 22,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title,
-                    style: theme.textTheme.titleSmall
-                        ?.copyWith(fontWeight: FontWeight.w600)),
+                Text(
+                  title,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(body,
-                    style: theme.textTheme.bodySmall
-                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                Text(
+                  body,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
               ],
             ),
           ),
@@ -301,9 +358,14 @@ class _BuffersCard extends StatelessWidget {
 
   /// A distinct bordered pill so each safety net reads as its own thing (not a
   /// flow from one into the next).
-  Widget _stat(ThemeData theme, IconData icon, String label, String value,
-      String hint,
-      {Color? color}) {
+  Widget _stat(
+    ThemeData theme,
+    IconData icon,
+    String label,
+    String value,
+    String hint, {
+    Color? color,
+  }) {
     final c = color ?? theme.colorScheme.onSurfaceVariant;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -323,21 +385,30 @@ class _BuffersCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Text(value,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w700, color: c)),
+                    Text(
+                      value,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: c,
+                      ),
+                    ),
                     const SizedBox(width: 4),
                     Flexible(
-                      child: Text(label,
-                          style: theme.textTheme.bodySmall,
-                          overflow: TextOverflow.ellipsis),
+                      child: Text(
+                        label,
+                        style: theme.textTheme.bodySmall,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
                 ),
-                Text(hint,
-                    style: theme.textTheme.labelSmall
-                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                    overflow: TextOverflow.ellipsis),
+                Text(
+                  hint,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ),
           ),
@@ -380,8 +451,12 @@ class _HabitCard extends StatelessWidget {
         child: InkWell(
           onTap: habit.id == null
               ? null
-              : () => _openEditor(context, controller,
-                  habitId: habit.id, enabled: habit.enabled),
+              : () => _openEditor(
+                  context,
+                  controller,
+                  habitId: habit.id,
+                  enabled: habit.enabled,
+                ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -394,58 +469,77 @@ class _HabitCard extends StatelessWidget {
                 ),
               ),
               Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Text(habit.name ?? 'Habit',
-                          style: theme.textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.w600)),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            habit.name ?? 'Habit',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        if (status.currentStreak > 0) ...[
+                          const Icon(
+                            Icons.local_fire_department,
+                            size: 18,
+                            color: AppColors.streak,
+                          ),
+                          const SizedBox(width: 2),
+                          Text(
+                            '${status.currentStreak}',
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                        if (status.maxStreak > 0) ...[
+                          const SizedBox(width: 8),
+                          const Icon(
+                            Icons.emoji_events,
+                            size: 17,
+                            color: AppColors.best,
+                          ),
+                          const SizedBox(width: 2),
+                          Text(
+                            '${status.maxStreak}',
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
-                    if (status.currentStreak > 0) ...[
-                      const Icon(Icons.local_fire_department,
-                          size: 18, color: AppColors.streak),
-                      const SizedBox(width: 2),
-                      Text('${status.currentStreak}',
-                          style: theme.textTheme.labelLarge
-                              ?.copyWith(fontWeight: FontWeight.w600)),
-                    ],
-                    if (status.maxStreak > 0) ...[
-                      const SizedBox(width: 8),
-                      const Icon(Icons.emoji_events,
-                          size: 17, color: AppColors.best),
-                      const SizedBox(width: 2),
-                      Text('${status.maxStreak}',
-                          style: theme.textTheme.labelLarge
-                              ?.copyWith(fontWeight: FontWeight.w600)),
-                    ],
+                    const SizedBox(height: 4),
+                    Text(
+                      '$stakeLabel → ${habit.charity.name ?? 'charity'}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _scheduleSummary(habit.days),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    _todayRow(
+                      context,
+                      busy: busy,
+                      paused: paused,
+                      restDay: restDay,
+                      done: done,
+                      skipped: skipped,
+                    ),
                   ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  '$stakeLabel → ${habit.charity.name ?? 'charity'}',
-                  style: theme.textTheme.bodySmall
-                      ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  _scheduleSummary(habit.days),
-                  style: theme.textTheme.bodySmall
-                      ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                ),
-                const SizedBox(height: 10),
-                _todayRow(context,
-                    busy: busy,
-                    paused: paused,
-                    restDay: restDay,
-                    done: done,
-                    skipped: skipped),
-              ],
-            ),
-          ),
+              ),
             ],
           ),
         ),
@@ -469,13 +563,20 @@ class _HabitCard extends StatelessWidget {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 6),
         child: SizedBox(
-            height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+          height: 20,
+          width: 20,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
       );
     }
     if (paused) return _statusLine(theme, Icons.pause_circle_outline, 'Paused');
     if (done) {
-      return _statusLine(theme, Icons.check_circle, 'Completed today',
-          color: Colors.green.shade700);
+      return _statusLine(
+        theme,
+        Icons.check_circle,
+        'Completed today',
+        color: Colors.green.shade700,
+      );
     }
     if (skipped) return _statusLine(theme, Icons.fast_forward, 'Skipped today');
     if (restDay) return _statusLine(theme, Icons.bedtime_outlined, 'Rest day');
@@ -499,8 +600,12 @@ class _HabitCard extends StatelessWidget {
     );
   }
 
-  Widget _statusLine(ThemeData theme, IconData icon, String label,
-      {Color? color}) {
+  Widget _statusLine(
+    ThemeData theme,
+    IconData icon,
+    String label, {
+    Color? color,
+  }) {
     final c = color ?? theme.colorScheme.onSurfaceVariant;
     return Row(
       children: [
@@ -512,14 +617,14 @@ class _HabitCard extends StatelessWidget {
   }
 
   static String? _todayStatus(WeekStatusRes w, int idx) => [
-        w.sunday,
-        w.monday,
-        w.tuesday,
-        w.wednesday,
-        w.thursday,
-        w.friday,
-        w.saturday,
-      ][idx];
+    w.sunday,
+    w.monday,
+    w.tuesday,
+    w.wednesday,
+    w.thursday,
+    w.friday,
+    w.saturday,
+  ][idx];
 }
 
 /// Human-readable schedule from days[] (Sunday=0), mirroring argon's
@@ -550,14 +655,20 @@ class _EmptyState extends StatelessWidget {
       padding: const EdgeInsets.only(top: 64),
       child: Column(
         children: [
-          Icon(Icons.task_alt,
-              size: 48, color: theme.colorScheme.onSurfaceVariant),
+          Icon(
+            Icons.task_alt,
+            size: 48,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
           const SizedBox(height: 12),
           Text('No habits yet', style: theme.textTheme.titleMedium),
           const SizedBox(height: 4),
-          Text('Create one to start staking.',
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+          Text(
+            'Create one to start staking.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
         ],
       ),
     );
@@ -576,9 +687,14 @@ class _ActionErrorBanner extends StatelessWidget {
       color: theme.colorScheme.errorContainer,
       child: ListTile(
         dense: true,
-        leading: Icon(Icons.error_outline, color: theme.colorScheme.onErrorContainer),
-        title: Text(message,
-            style: TextStyle(color: theme.colorScheme.onErrorContainer)),
+        leading: Icon(
+          Icons.error_outline,
+          color: theme.colorScheme.onErrorContainer,
+        ),
+        title: Text(
+          message,
+          style: TextStyle(color: theme.colorScheme.onErrorContainer),
+        ),
         trailing: IconButton(
           icon: Icon(Icons.close, color: theme.colorScheme.onErrorContainer),
           onPressed: onDismiss,

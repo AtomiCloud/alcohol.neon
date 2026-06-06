@@ -102,8 +102,9 @@ class _CharityBrowseState extends State<CharityBrowse> {
       if (mounted && causesRes is Ok<List<CausePrincipalRes>>) {
         // Sort by full hierarchical name so parents group above their children.
         final sorted = [...causesRes.value]
-          ..sort((a, b) =>
-              (a.name ?? a.key ?? '').compareTo(b.name ?? b.key ?? ''));
+          ..sort(
+            (a, b) => (a.name ?? a.key ?? '').compareTo(b.name ?? b.key ?? ''),
+          );
         setState(() => _causes = sorted);
       }
     }
@@ -301,8 +302,11 @@ class _CauseLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final segments =
-        name.split(' > ').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+    final segments = name
+        .split(' > ')
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
     final depth = segments.isEmpty ? 0 : segments.length - 1;
     final leaf = segments.isEmpty ? name : segments.last;
     return Padding(

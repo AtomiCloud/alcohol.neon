@@ -31,15 +31,20 @@ class _SignInViewState extends State<SignInView> {
                 semanticLabel: 'LazyTax logo',
               ),
               const SizedBox(height: 16),
-              Text('LazyTax',
-                  style: Theme.of(context)
-                      .textTheme
-                      .displaySmall
-                      ?.copyWith(fontWeight: FontWeight.bold)),
+              Text(
+                'LazyTax',
+                style: Theme.of(
+                  context,
+                ).textTheme.displaySmall?.copyWith(fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 12),
-              Text('Stake money on your habits.\nMiss one, it goes to charity.',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: outline)),
+              Text(
+                'Stake money on your habits.\nMiss one, it goes to charity.',
+                textAlign: TextAlign.center,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.copyWith(color: outline),
+              ),
               const Spacer(),
               SizedBox(
                 width: double.infinity,
@@ -55,13 +60,18 @@ class _SignInViewState extends State<SignInView> {
                       ? const SizedBox(
                           height: 20,
                           width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2))
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
                       : const Text('Sign in'),
                 ),
               ),
               const SizedBox(height: 12),
-              Text('Environment: ${auth.config.landscape.name}',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: outline)),
+              Text(
+                'Environment: ${auth.config.landscape.name}',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: outline),
+              ),
             ],
           ),
         ),

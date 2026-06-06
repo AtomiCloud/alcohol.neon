@@ -34,11 +34,17 @@ class ConsentCollectResult {
   final String? paymentConsentId;
   final Problem? problem;
 
-  const ConsentCollectResult._(this.outcome, {this.paymentConsentId, this.problem});
+  const ConsentCollectResult._(
+    this.outcome, {
+    this.paymentConsentId,
+    this.problem,
+  });
 
   factory ConsentCollectResult.success({String? paymentConsentId}) =>
-      ConsentCollectResult._(ConsentCollectOutcome.success,
-          paymentConsentId: paymentConsentId);
+      ConsentCollectResult._(
+        ConsentCollectOutcome.success,
+        paymentConsentId: paymentConsentId,
+      );
 
   factory ConsentCollectResult.cancelled() =>
       const ConsentCollectResult._(ConsentCollectOutcome.cancelled);
@@ -109,18 +115,22 @@ class AirwallexConsentCollector implements PaymentConsentCollector {
     // customerId / clientSecret are nullable in the generated DTOs — a recurring
     // card-on-file mandate is meaningless without both.
     if (customerId == null || customerId.isEmpty) {
-      return ConsentCollectResult.failed(Problem.local(
-        'Could not start payment setup',
-        type: 'neon:payment',
-        detail: 'Missing customer id from the payment service.',
-      ));
+      return ConsentCollectResult.failed(
+        Problem.local(
+          'Could not start payment setup',
+          type: 'neon:payment',
+          detail: 'Missing customer id from the payment service.',
+        ),
+      );
     }
     if (clientSecret == null || clientSecret.isEmpty) {
-      return ConsentCollectResult.failed(Problem.local(
-        'Could not start payment setup',
-        type: 'neon:payment',
-        detail: 'Missing client secret from the payment service.',
-      ));
+      return ConsentCollectResult.failed(
+        Problem.local(
+          'Could not start payment setup',
+          type: 'neon:payment',
+          detail: 'Missing client secret from the payment service.',
+        ),
+      );
     }
 
     try {
@@ -140,36 +150,44 @@ class AirwallexConsentCollector implements PaymentConsentCollector {
         merchantTriggerReason: MerchantTriggerReason.unscheduled,
       );
 
-      final PaymentResult result =
-          await Airwallex().presentCardPaymentFlow(session);
+      final PaymentResult result = await Airwallex().presentCardPaymentFlow(
+        session,
+      );
 
       switch (result) {
         case PaymentSuccessResult(:final paymentConsentId):
           return ConsentCollectResult.success(
-              paymentConsentId: paymentConsentId);
+            paymentConsentId: paymentConsentId,
+          );
         case PaymentCancelledResult():
           return ConsentCollectResult.cancelled();
         case PaymentInProgressResult():
           return ConsentCollectResult.inProgress();
         default:
-          return ConsentCollectResult.failed(Problem.local(
-            'Payment setup did not complete',
-            type: 'neon:payment',
-            detail: 'Unexpected payment result: ${result.status}.',
-          ));
+          return ConsentCollectResult.failed(
+            Problem.local(
+              'Payment setup did not complete',
+              type: 'neon:payment',
+              detail: 'Unexpected payment result: ${result.status}.',
+            ),
+          );
       }
     } on PlatformException catch (e) {
-      return ConsentCollectResult.failed(Problem.local(
-        'Payment setup failed',
-        type: 'neon:payment',
-        detail: e.message ?? e.toString(),
-      ));
+      return ConsentCollectResult.failed(
+        Problem.local(
+          'Payment setup failed',
+          type: 'neon:payment',
+          detail: e.message ?? e.toString(),
+        ),
+      );
     } catch (e) {
-      return ConsentCollectResult.failed(Problem.local(
-        'Payment setup failed',
-        type: 'neon:payment',
-        detail: e.toString(),
-      ));
+      return ConsentCollectResult.failed(
+        Problem.local(
+          'Payment setup failed',
+          type: 'neon:payment',
+          detail: e.toString(),
+        ),
+      );
     }
   }
 }

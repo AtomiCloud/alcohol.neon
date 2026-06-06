@@ -27,6 +27,8 @@ DateTime? tryParseStandardDate(String? value) {
   if (mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
   final parsed = DateTime(yyyy, mm, dd);
   // Reject overflow (e.g. 31-02-2026 → 03-03-2026): round-trip must match.
-  if (parsed.day != dd || parsed.month != mm || parsed.year != yyyy) return null;
+  if (parsed.day != dd || parsed.month != mm || parsed.year != yyyy) {
+    return null;
+  }
   return parsed;
 }

@@ -13,14 +13,16 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   test('PUT /Configuration/{id} decodes a FLAT ConfigurationPrincipalRes', () {
     // The PUT response shape: principal fields at the top level, NOT wrapped.
-    final json = jsonDecode('''
+    final json =
+        jsonDecode('''
       {
         "id": "c1",
         "userId": "u1",
         "timezone": "Asia/Singapore",
         "defaultCharityId": "ch1"
       }
-    ''') as Map<String, Object?>;
+    ''')
+            as Map<String, Object?>;
 
     final res = ConfigurationPrincipalRes.fromJson(json);
     expect(res.id, 'c1');
@@ -30,7 +32,8 @@ void main() {
   });
 
   test('GET /Configuration/me wraps principal + charity (camelCase)', () {
-    final json = jsonDecode('''
+    final json =
+        jsonDecode('''
       {
         "principal": {
           "id": "c1", "userId": "u1",
@@ -38,7 +41,8 @@ void main() {
         },
         "charity": { "id": "ch1", "name": "Red Cross" }
       }
-    ''') as Map<String, Object?>;
+    ''')
+            as Map<String, Object?>;
 
     final res = ConfigurationRes.fromJson(json);
     expect(res.principal.timezone, 'Asia/Singapore');

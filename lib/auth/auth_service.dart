@@ -56,8 +56,11 @@ class AuthService extends ChangeNotifier {
           ? AuthStatus.authenticated
           : AuthStatus.unauthenticated;
     } catch (e) {
-      _lastError =
-          Problem.local('Sign-in failed', detail: e.toString(), type: 'neon:auth');
+      _lastError = Problem.local(
+        'Sign-in failed',
+        detail: e.toString(),
+        type: 'neon:auth',
+      );
       _status = AuthStatus.failed;
     }
     notifyListeners();

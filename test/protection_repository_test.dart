@@ -8,13 +8,15 @@ import 'package:flutter_test/flutter_test.dart';
 /// ApiClient uses (jsonDecode → model.fromJson).
 void main() {
   test('ProtectionBalanceRes decodes balance + cap (camelCase)', () {
-    final json = jsonDecode('''
+    final json =
+        jsonDecode('''
       {
         "userId": "u1",
         "balance": 3,
         "cap": 5
       }
-    ''') as Map<String, Object?>;
+    ''')
+            as Map<String, Object?>;
 
     final res = ProtectionBalanceRes.fromJson(json);
     expect(res.userId, 'u1');
@@ -23,9 +25,11 @@ void main() {
   });
 
   test('ProtectionBalanceRes tolerates absent userId', () {
-    final json = jsonDecode('''
+    final json =
+        jsonDecode('''
       { "balance": 0, "cap": 5 }
-    ''') as Map<String, Object?>;
+    ''')
+            as Map<String, Object?>;
 
     final res = ProtectionBalanceRes.fromJson(json);
     expect(res.userId, isNull);

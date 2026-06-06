@@ -65,6 +65,30 @@ pre-commit-lib.run {
       language = "system";
     };
 
+    a-dart-format = {
+      enable = true;
+      description = "Format Dart code (writes in place)";
+      entry = "${packages.flutter}/bin/dart format";
+      files = "\\.dart$";
+      excludes = [
+        ".*\\.g\\.dart$"
+        "lib/generated/.*"
+      ];
+      name = "Dart Format";
+      pass_filenames = true;
+      language = "system";
+    };
+
+    a-flutter-analyze = {
+      enable = true;
+      description = "Static analysis (flutter analyze)";
+      entry = "${packages.flutter}/bin/flutter analyze";
+      files = "\\.dart$";
+      pass_filenames = false;
+      name = "Flutter Analyze";
+      language = "system";
+    };
+
     treefmt = {
       enable = true;
       excludes = [

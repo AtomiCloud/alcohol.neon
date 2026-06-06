@@ -32,10 +32,11 @@ class ConsentService {
   ConsentService(
     this.session, {
     PaymentConsentCollector Function()? collectorFactory,
-  }) : collectorFactory = collectorFactory ??
-            (() => AirwallexConsentCollector(
-                  environment: AppConfig.current.airwallexEnv,
-                ));
+  }) : collectorFactory =
+           collectorFactory ??
+           (() => AirwallexConsentCollector(
+             environment: AppConfig.current.airwallexEnv,
+           ));
 
   // Polling schedule — copied verbatim from argon's `pollPaymentConsent`.
   static const _maxDuration = Duration(milliseconds: 120000);
@@ -103,8 +104,10 @@ class ConsentService {
 
     if (collect.isCancelled) return Err(_cancelled);
     if (collect.isFailed) {
-      return Err(collect.problem ??
-          Problem.local('Payment setup failed', type: 'neon:payment'));
+      return Err(
+        collect.problem ??
+            Problem.local('Payment setup failed', type: 'neon:payment'),
+      );
     }
     // success or inProgress → poll the server for the consent record.
 
@@ -141,7 +144,9 @@ class ConsentService {
 
   /// Shows a non-dismissible overlay, runs [_poll], then tears the overlay down.
   Future<Result<void>> _pollWithOverlay(
-      BuildContext context, String userId) async {
+    BuildContext context,
+    String userId,
+  ) async {
     final navigator = Navigator.of(context, rootNavigator: true);
 
     // Push a blocking overlay route — back-button disabled, no dismiss.
@@ -178,12 +183,15 @@ class ConsentService {
 
       final elapsed = DateTime.now().difference(start);
       if (elapsed >= _maxDuration) {
-        return Err(Problem.local(
-          'Payment setup is taking longer than expected',
-          type: 'neon:payment',
-          detail: "We couldn't confirm your payment method in time. If you "
-              'completed the card form, check Settings in a moment.',
-        ));
+        return Err(
+          Problem.local(
+            'Payment setup is taking longer than expected',
+            type: 'neon:payment',
+            detail:
+                "We couldn't confirm your payment method in time. If you "
+                'completed the card form, check Settings in a moment.',
+          ),
+        );
       }
 
       if (attempts >= _initialAttempts) {
@@ -193,8 +201,7 @@ class ConsentService {
 
       // Don't overshoot the cap on the final wait.
       final remaining = _maxDuration - elapsed;
-      await Future<void>.delayed(
-          interval < remaining ? interval : remaining);
+      await Future<void>.delayed(interval < remaining ? interval : remaining);
     }
   }
 }
@@ -221,8 +228,11 @@ class _PollOverlayRoute extends ModalRoute<void> {
   bool get maintainState => true;
 
   @override
-  Widget buildPage(BuildContext context, Animation<double> animation,
-      Animation<double> secondaryAnimation) {
+  Widget buildPage(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+  ) {
     // PopScope blocks the system back gesture/button.
     return PopScope(
       canPop: false,

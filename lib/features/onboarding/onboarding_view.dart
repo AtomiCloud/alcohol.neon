@@ -87,8 +87,10 @@ class _OnboardingViewState extends State<OnboardingView> {
       _submitting = true;
       _error = null;
     });
-    final res =
-        await session.configs.create(timezone: tz, defaultCharityId: charityId);
+    final res = await session.configs.create(
+      timezone: tz,
+      defaultCharityId: charityId,
+    );
     if (!mounted) return;
     switch (res) {
       case Ok(:final value):
@@ -115,14 +117,17 @@ class _OnboardingViewState extends State<OnboardingView> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text('A few details to get started',
-              style: theme.textTheme.titleLarge),
+          Text(
+            'A few details to get started',
+            style: theme.textTheme.titleLarge,
+          ),
           const SizedBox(height: 8),
           Text(
             'Your timezone sets when each day ends. Your default charity receives '
             'stakes from missed habits — you can change both later.',
-            style: theme.textTheme.bodyMedium
-                ?.copyWith(color: theme.colorScheme.outline),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.outline,
+            ),
           ),
           const SizedBox(height: 24),
           Card(
@@ -147,8 +152,9 @@ class _OnboardingViewState extends State<OnboardingView> {
             const SizedBox(height: 12),
             Text(
               _error!.detail ?? _error!.title,
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: theme.colorScheme.error),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.error,
+              ),
             ),
           ],
           const SizedBox(height: 24),
@@ -158,7 +164,8 @@ class _OnboardingViewState extends State<OnboardingView> {
                 ? const SizedBox(
                     height: 20,
                     width: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2))
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
                 : const Text('Continue'),
           ),
         ],

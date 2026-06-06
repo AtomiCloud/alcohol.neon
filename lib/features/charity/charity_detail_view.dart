@@ -61,9 +61,9 @@ class _CharityDetailViewState extends State<CharityDetailView> {
   Future<void> _openWebsite(Uri uri) async {
     final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!ok && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open website')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Could not open website')));
     }
   }
 
@@ -98,11 +98,7 @@ class _CharityDetailViewState extends State<CharityDetailView> {
           const SizedBox(height: 16),
         ],
         if (countries.isNotEmpty)
-          _DetailRow(
-            icon: Icons.public,
-            label: 'Countries',
-            value: countries,
-          ),
+          _DetailRow(icon: Icons.public, label: 'Countries', value: countries),
         if ((c.primaryRegistrationNumber ?? '').isNotEmpty)
           _DetailRow(
             icon: Icons.badge_outlined,
@@ -152,9 +148,12 @@ class _DetailRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label,
-                    style: theme.textTheme.labelSmall
-                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                Text(
+                  label,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
                 Text(value, style: theme.textTheme.bodyMedium),
               ],
             ),

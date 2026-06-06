@@ -61,9 +61,9 @@ class _ProfileViewState extends State<ProfileView> {
   }
 
   void _openSettings() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const SettingsView()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const SettingsView()));
   }
 
   // AuthService is a ChangeNotifier and RootView reacts to its status — just sign
@@ -77,22 +77,24 @@ class _ProfileViewState extends State<ProfileView> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? _ErrorRetry(problem: _error!, onRetry: _load)
-              : _content(context),
+          ? _ErrorRetry(problem: _error!, onRetry: _load)
+          : _content(context),
     );
   }
 
   Widget _content(BuildContext context) {
     final theme = Theme.of(context);
     final user = _user;
-    final displayName = _claims?.name ??
+    final displayName =
+        _claims?.name ??
         user?.username ??
         _claims?.email ??
         user?.email ??
         'User';
     final email = _claims?.email ?? user?.email ?? '';
-    final initial =
-        (user?.username ?? email).trim().isEmpty ? 'U' : (user?.username ?? email).trim()[0].toUpperCase();
+    final initial = (user?.username ?? email).trim().isEmpty
+        ? 'U'
+        : (user?.username ?? email).trim()[0].toUpperCase();
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -114,14 +116,19 @@ class _ProfileViewState extends State<ProfileView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(displayName,
-                      style: theme.textTheme.titleLarge,
-                      overflow: TextOverflow.ellipsis),
+                  Text(
+                    displayName,
+                    style: theme.textTheme.titleLarge,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   if (email.isNotEmpty)
-                    Text(email,
-                        style: theme.textTheme.bodyMedium
-                            ?.copyWith(color: theme.colorScheme.outline),
-                        overflow: TextOverflow.ellipsis),
+                    Text(
+                      email,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.outline,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                 ],
               ),
             ),
@@ -192,15 +199,21 @@ class _FieldCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label,
-                style: theme.textTheme.labelMedium
-                    ?.copyWith(color: theme.colorScheme.outline)),
+            Text(
+              label,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.outline,
+              ),
+            ),
             const SizedBox(height: 4),
             Text(value, style: theme.textTheme.titleMedium),
             const SizedBox(height: 4),
-            Text(subtitle,
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: theme.colorScheme.outline)),
+            Text(
+              subtitle,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.outline,
+              ),
+            ),
           ],
         ),
       ),

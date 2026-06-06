@@ -3,8 +3,36 @@
   pkgs,
   pkgs-2605,
   pkgs-unstable,
+  pkgs-android,
 }:
 let
+  androidComposition = pkgs-android.androidenv.composeAndroidPackages {
+    platformVersions = [
+      "35"
+      "36"
+    ];
+    buildToolsVersions = [
+      "35.0.0"
+      "36.0.0"
+    ];
+    abiVersions = [
+      "arm64-v8a"
+      "x86_64"
+    ];
+    includeNDK = false;
+    includeEmulator = false;
+    includeSystemImages = false;
+    extraLicenses = [
+      "android-sdk-license"
+      "android-sdk-preview-license"
+      "android-googletv-license"
+      "android-sdk-arm-dbt-license"
+      "google-gdk-license"
+      "intel-android-extra-license"
+      "intel-android-sysimage-license"
+      "mips-android-sysimage-license"
+    ];
+  };
   all = rec {
     atomipkgs = (
       with atomi;
@@ -31,6 +59,7 @@ let
           treefmt
           rsync
           resvg
+          jdk17
           ;
       }
     );
@@ -44,7 +73,11 @@ let
           ;
       }
     );
+
+    nix-android = {
+      androidsdk = androidComposition.androidsdk;
+    };
   };
 in
 with all;
-atomipkgs // nix-2605 // nix-unstable
+atomipkgs // nix-2605 // nix-unstable // nix-android

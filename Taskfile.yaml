@@ -29,11 +29,6 @@ tasks:
     cmds:
       - ./scripts/generate-sdk.sh {{ .CLI_ARGS | default "https://api.zinc.alcohol.pichu.cluster.atomi.cloud/swagger/v1/swagger.json" }}
 
-  analyze:
-    desc: Static analysis
-    cmds:
-      - flutter analyze
-
   test:
     desc: Run unit tests
     cmds:

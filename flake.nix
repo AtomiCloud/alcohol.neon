@@ -30,6 +30,15 @@
       let
         pkgs-2605 = nixpkgs-2605.legacyPackages.${system};
         pkgs-unstable = nixpkgs-unstable.legacyPackages.${system};
+        # Android SDK needs unfree + license acceptance, so import a
+        # separately-configured nixpkgs for it.
+        pkgs-android = import nixpkgs-unstable {
+          inherit system;
+          config = {
+            allowUnfree = true;
+            android_sdk.accept_license = true;
+          };
+        };
         atomi = atomipkgs.packages.${system};
         pre-commit-lib = pre-commit-hooks.lib.${system};
       in
@@ -48,6 +57,7 @@
             pkgs
             pkgs-2605
             pkgs-unstable
+            pkgs-android
             atomi
             ;
         };

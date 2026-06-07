@@ -1,3 +1,10 @@
+## [1.0.2](https://github.com/AtomiCloud/alcohol.neon/compare/v1.0.1...v1.0.2) (2026-06-07)
+
+
+### 🐛 Bug Fixes 🐛
+
+* **ci:** create iOS signing profiles + correct Android keystore name ([3d0cd32](https://github.com/AtomiCloud/alcohol.neon/commit/3d0cd32ddac5425211fc1981955867e363552bc3))
+
 ## [1.0.1](https://github.com/AtomiCloud/alcohol.neon/compare/v1.0.0...v1.0.1) (2026-06-07)
 
 

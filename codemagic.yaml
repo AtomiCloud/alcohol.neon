@@ -139,7 +139,7 @@ workflows:
   # and a variable group `google_play` holding GOOGLE_PLAY_SERVICE_ACCOUNT_CREDENTIALS.
   neon-pichu-android:
     name: Android pichu (dev -> Play internal)
-    instance_type: linux_x2
+    instance_type: mac_mini_m2
     max_build_duration: 60
     triggering:
       events:
@@ -163,7 +163,7 @@ workflows:
 
   neon-pikachu-android:
     name: Android pikachu (stage -> Play internal)
-    instance_type: linux_x2
+    instance_type: mac_mini_m2
     max_build_duration: 60
     triggering:
       events:
@@ -187,7 +187,7 @@ workflows:
 
   neon-raichu-android:
     name: Android raichu (prod -> Play internal; promote in Play Console)
-    instance_type: linux_x2
+    instance_type: mac_mini_m2
     max_build_duration: 60
     triggering:
       events:

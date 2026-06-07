@@ -1,3 +1,10 @@
+## [1.0.4](https://github.com/AtomiCloud/alcohol.neon/compare/v1.0.3...v1.0.4) (2026-06-07)
+
+
+### 🐛 Bug Fixes 🐛
+
+* **ci:** drop ios_signing block so explicit profile creation runs ([a625a55](https://github.com/AtomiCloud/alcohol.neon/commit/a625a551ecf15e328bb80c52f863d8646866708e))
+
 ## [1.0.3](https://github.com/AtomiCloud/alcohol.neon/compare/v1.0.2...v1.0.3) (2026-06-07)
 
 

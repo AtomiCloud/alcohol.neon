@@ -1,7 +1,9 @@
 # Codemagic CI for LazyTax (alcohol.neon) — 3 apps (one per landscape), Apple + Play.
 #
-# iOS signing is automatic via the App Store Connect API key integration set up in
-# Codemagic Settings -> Integrations as `AtomiCloud App Store Connect`.
+# iOS signing uses the App Store Connect API key integration (`AtomiCloud App Store
+# Connect`); the build creates + fetches the app_store profile in-script
+# (app-store-connect fetch-signing-files --create). No `ios_signing` block — its
+# automatic mode only *applies* existing profiles and fails before the script runs.
 #
 # All 6 workflows auto-build on `v*.*.*` tags (semantic-release cuts these on main).
 # iOS -> TestFlight, Android -> Play internal track. raichu (prod) goes to
@@ -30,6 +32,7 @@ definitions:
         # (use-profiles alone only applies already-existing profiles).
         app-store-connect fetch-signing-files "$BUNDLE_ID" \
           --type IOS_APP_STORE \
+          --certificate-key @env:CERTIFICATE_PRIVATE_KEY \
           --create
         keychain add-certificates
         xcode-project use-profiles
@@ -77,9 +80,8 @@ workflows:
       app_store_connect: AtomiCloud App Store Connect
     environment:
       <<: *versions
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: cloud.atomi.alcohol.neon.pichu
+      groups:
+        - appstore # provides CERTIFICATE_PRIVATE_KEY (reuses one distribution cert)
       vars:
         FLAVOR: pichu
         APP_STORE_APPLE_ID: '6777280038'
@@ -103,9 +105,8 @@ workflows:
       app_store_connect: AtomiCloud App Store Connect
     environment:
       <<: *versions
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: cloud.atomi.alcohol.neon.pikachu
+      groups:
+        - appstore # provides CERTIFICATE_PRIVATE_KEY (reuses one distribution cert)
       vars:
         FLAVOR: pikachu
         APP_STORE_APPLE_ID: '6777280047'
@@ -129,9 +130,8 @@ workflows:
       app_store_connect: AtomiCloud App Store Connect
     environment:
       <<: *versions
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: cloud.atomi.alcohol.neon.raichu
+      groups:
+        - appstore # provides CERTIFICATE_PRIVATE_KEY (reuses one distribution cert)
       vars:
         FLAVOR: raichu
         APP_STORE_APPLE_ID: '6777280099'

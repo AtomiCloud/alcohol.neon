@@ -1,10 +1,13 @@
-# Codemagic CI for LazyTax (alcohol.neon) — iOS only for now (Play/Android deferred).
+# Codemagic CI for LazyTax (alcohol.neon) — 3 apps (one per landscape), Apple + Play.
 #
-# 3 apps, one per landscape. iOS signing is automatic via the App Store Connect API
-# key integration set up in Codemagic Settings -> Integrations as `AtomiCloud App Store Connect`.
+# iOS signing is automatic via the App Store Connect API key integration set up in
+# Codemagic Settings -> Integrations as `AtomiCloud App Store Connect`.
 #
-# Workflows are MANUAL by default (no `triggering:`) — start one from the Codemagic UI
-# ("Start new build" -> pick workflow). Add tag triggers later (template at the bottom).
+# All 6 workflows auto-build on `v*.*.*` tags (semantic-release cuts these on main).
+# iOS -> TestFlight, Android -> Play internal track. raichu (prod) goes to
+# TestFlight/internal automatically too; promotion to the public App Store / Play
+# production stays MANUAL (submit_to_app_store: false; track: internal). You can also
+# still start any workflow by hand from the Codemagic UI.
 #
 # Prereq for iOS builds to succeed: the per-flavor Xcode schemes `pichu`/`pikachu`/`raichu`
 # must exist (see docs/codemagic-setup.md Part 11).
@@ -56,6 +59,12 @@ workflows:
     name: iOS pichu (dev -> TestFlight)
     instance_type: mac_mini_m2
     max_build_duration: 60
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: 'v*.*.*'
+          include: true
     integrations:
       app_store_connect: AtomiCloud App Store Connect
     environment:
@@ -75,6 +84,12 @@ workflows:
     name: iOS pikachu (stage -> TestFlight)
     instance_type: mac_mini_m2
     max_build_duration: 60
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: 'v*.*.*'
+          include: true
     integrations:
       app_store_connect: AtomiCloud App Store Connect
     environment:
@@ -94,6 +109,12 @@ workflows:
     name: iOS raichu (prod -> TestFlight; promote to App Store manually)
     instance_type: mac_mini_m2
     max_build_duration: 60
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: 'v*.*.*'
+          include: true
     integrations:
       app_store_connect: AtomiCloud App Store Connect
     environment:
@@ -116,6 +137,12 @@ workflows:
     name: Android pichu (dev -> Play internal)
     instance_type: linux_x2
     max_build_duration: 60
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: 'v*.*.*'
+          include: true
     environment:
       flutter: stable
       android_signing:
@@ -134,6 +161,12 @@ workflows:
     name: Android pikachu (stage -> Play internal)
     instance_type: linux_x2
     max_build_duration: 60
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: 'v*.*.*'
+          include: true
     environment:
       flutter: stable
       android_signing:
@@ -152,6 +185,12 @@ workflows:
     name: Android raichu (prod -> Play internal; promote in Play Console)
     instance_type: linux_x2
     max_build_duration: 60
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: 'v*.*.*'
+          include: true
     environment:
       flutter: stable
       android_signing:
@@ -166,14 +205,13 @@ workflows:
       - build/**/outputs/mapping/**/mapping.txt
     publishing: *android_publish
 
-# ── Later: triggers (no RC; plain x.y.z tags) ───────────────────────────────
-# Add to a workflow to auto-build on tags:
-#   triggering:
-#     events: [tag]
-#     tag_patterns:
-#       - pattern: 'v*.*.*'
-#         include: true
-# raichu stays manual-promote (submit_to_app_store: false; release in App Store Connect by hand).
+# ── Triggers ─────────────────────────────────────────────────────────────────
+# All 6 workflows auto-build on `v*.*.*` tags (semantic-release cuts these on main).
+# No RC tags. To stop a flavor from auto-building, remove its `triggering:` block.
+#
+# ── Promotion (stays manual) ─────────────────────────────────────────────────
+# raichu iOS uploads to TestFlight but never auto-submits to the public App Store
+# (submit_to_app_store: false) — promote it by hand in App Store Connect.
 #
 # ── Android / Play notes ────────────────────────────────────────────────────
 # All 3 Android workflows publish to the Play **internal** track. To ship raichu

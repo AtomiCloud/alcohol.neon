@@ -8,6 +8,8 @@
 let
   androidComposition = pkgs-android.androidenv.composeAndroidPackages {
     platformVersions = [
+      "33"
+      "34"
       "35"
       "36"
     ];
@@ -19,7 +21,9 @@ let
       "arm64-v8a"
       "x86_64"
     ];
-    includeNDK = false;
+    includeNDK = true;
+    ndkVersions = [ "28.2.13676358" ]; # must match flutter.ndkVersion
+    cmakeVersions = [ "3.22.1" ];
     includeEmulator = false;
     includeSystemImages = false;
     extraLicenses = [

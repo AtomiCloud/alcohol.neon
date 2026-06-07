@@ -23,8 +23,16 @@ definitions:
       script: flutter pub get
     - name: Pod install
       script: find . -name "Podfile" -execdir pod install \;
-    - name: Set up code signing (fetch cert + profile for this workflow's bundle id)
-      script: xcode-project use-profiles
+    - name: Set up code signing (create + fetch the app_store profile)
+      script: |
+        keychain initialize
+        # Create the cert + app_store provisioning profile if they don't exist yet
+        # (use-profiles alone only applies already-existing profiles).
+        app-store-connect fetch-signing-files "$BUNDLE_ID" \
+          --type IOS_APP_STORE \
+          --create
+        keychain add-certificates
+        xcode-project use-profiles
     - name: Build signed IPA
       script: |
         LATEST=$(app-store-connect get-latest-build-number "$APP_STORE_APPLE_ID" || echo 0)
@@ -75,6 +83,7 @@ workflows:
       vars:
         FLAVOR: pichu
         APP_STORE_APPLE_ID: '6777280038'
+        BUNDLE_ID: cloud.atomi.alcohol.neon.pichu
     scripts: *ios_scripts
     artifacts:
       - build/ios/ipa/*.ipa
@@ -100,6 +109,7 @@ workflows:
       vars:
         FLAVOR: pikachu
         APP_STORE_APPLE_ID: '6777280047'
+        BUNDLE_ID: cloud.atomi.alcohol.neon.pikachu
     scripts: *ios_scripts
     artifacts:
       - build/ios/ipa/*.ipa
@@ -125,13 +135,14 @@ workflows:
       vars:
         FLAVOR: raichu
         APP_STORE_APPLE_ID: '6777280099'
+        BUNDLE_ID: cloud.atomi.alcohol.neon.raichu
     scripts: *ios_scripts
     artifacts:
       - build/ios/ipa/*.ipa
     publishing: *ios_publish
 
   # ── Android → Google Play (internal track) ────────────────────────────────
-  # Requires (Codemagic Settings): an Android keystore named `lazytax_upload_keystore`
+  # Requires (Codemagic Settings): an Android keystore named `atomi_upload_keystore`
   # and a variable group `google_play` holding GOOGLE_PLAY_SERVICE_ACCOUNT_CREDENTIALS.
   neon-pichu-android:
     name: Android pichu (dev -> Play internal)
@@ -146,7 +157,7 @@ workflows:
     environment:
       flutter: stable
       android_signing:
-        - lazytax_upload_keystore
+        - atomi_upload_keystore
       groups:
         - google_play
       vars:
@@ -170,7 +181,7 @@ workflows:
     environment:
       flutter: stable
       android_signing:
-        - lazytax_upload_keystore
+        - atomi_upload_keystore
       groups:
         - google_play
       vars:
@@ -194,7 +205,7 @@ workflows:
     environment:
       flutter: stable
       android_signing:
-        - lazytax_upload_keystore
+        - atomi_upload_keystore
       groups:
         - google_play
       vars:

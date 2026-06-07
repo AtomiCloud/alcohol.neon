@@ -252,7 +252,7 @@ API key:   upload AuthKey_<KEY_ID>.p8
 **10b — Android keystore** _(DEFERRED — Android)_ → **Code signing identities → Android keystores → Add keystore**:
 
 ```
-Reference name: lazytax_upload_keystore
+Reference name: atomi_upload_keystore
 Keystore file:  upload atomi-upload.jks
 Keystore pwd:   <STORE_PASSWORD>
 Key alias:      atomi-upload

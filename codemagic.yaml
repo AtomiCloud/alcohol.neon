@@ -40,8 +40,12 @@ definitions:
       script: |
         LATEST=$(app-store-connect get-latest-build-number "$APP_STORE_APPLE_ID" || echo 0)
         BUILD_NUMBER=$(( ${LATEST:-0} + 1 ))
+        # Version name = the release tag (v1.2.3 -> 1.2.3). Empty on manual
+        # builds, so the flag is dropped and pubspec's version is used.
+        BUILD_NAME="${CM_TAG#v}"
         flutter build ipa --release \
           --flavor "$FLAVOR" \
+          ${BUILD_NAME:+--build-name="$BUILD_NAME"} \
           --build-number="$BUILD_NUMBER" \
           --export-options-plist=/Users/builder/export_options.plist
 
@@ -57,7 +61,14 @@ definitions:
     - name: Flutter pub get
       script: flutter pub get
     - name: Build signed AAB (release keystore via CM_* env vars)
-      script: flutter build appbundle --release --flavor "$FLAVOR"
+      script: |
+        # Version name = the release tag (v1.2.3 -> 1.2.3); empty on manual builds.
+        # versionCode = Codemagic's incrementing build number (Play needs it unique).
+        BUILD_NAME="${CM_TAG#v}"
+        flutter build appbundle --release \
+          --flavor "$FLAVOR" \
+          ${BUILD_NAME:+--build-name="$BUILD_NAME"} \
+          --build-number="$PROJECT_BUILD_NUMBER"
 
   android_publish: &android_publish
     google_play:

@@ -10,7 +10,7 @@
 
 ## 1. TL;DR
 
-- **Identity:** three distinct app identities, one per landscape, so all three install side-by-side on one device. Prod (raichu) keeps the clean base id; dev/stage get suffixes — Android `cloud.atomi.alcohol_neon[.pichu/.pikachu]`, iOS `cloud.atomi.alcohol.neon[.pichu/.pikachu]`.
+- **Identity:** three distinct app identities, one per landscape, so all three install side-by-side on one device. **Every** landscape — including prod (raichu) — gets a flavor suffix, so the base id is never shipped directly — Android `cloud.atomi.alcohol_neon.{pichu,pikachu,raichu}`, iOS `cloud.atomi.alcohol.neon.{pichu,pikachu,raichu}`.
 - **Store channels:** only **raichu** gets public listings (App Store + Play production). **pichu** = TestFlight internal + Play internal track (no public listing). **pikachu** = TestFlight external + Play closed testing (no public listing).
 - **Flutter mechanism:** three flavors named exactly `pichu`/`pikachu`/`raichu` (Android product flavors + iOS shared Xcode schemes), with per-landscape config injected via `--dart-define-from-file=config/<flavor>.json` alongside `--flavor`.
 - **CI tool:** **Codemagic** — Flutter-first, managed macOS runners, automatic iOS signing via one App Store Connect API key, declarative store publishing. (Fastlane+GitHub Actions is the zero-lock-in fallback; EAS is ruled out — no Flutter support.)
@@ -25,13 +25,13 @@
 
 iOS and Android namespace installed apps by bundle id / applicationId. Two builds sharing an id overwrite each other, so distinct ids are the **only** way to install dev+stage+prod simultaneously — valuable for a team testing auth (Logto) and payments (Airwallex) against different backends. Each distinct id is also its own App Store Connect record / Play Console listing, with independent review pipelines, crash data, and icons, and zero risk of shipping a dev build to the public listing. Cost: 3 app records, 3 provisioning setups, 3 CI workflows per platform — accepted here because the team explicitly wants three published channels.
 
-Keep the **clean base id for raichu (prod)** so prod owns the canonical public listing and the canonical Logto redirect.
+Give **every** landscape — including raichu (prod) — its own flavor suffix, so the bare base id is never shipped and all three install side-by-side.
 
-| Landscape       | Flavor name | Android applicationId                  | iOS bundle id                          | Display name | Stores                              |
-| --------------- | ----------- | -------------------------------------- | -------------------------------------- | ------------ | ----------------------------------- |
-| pichu (dev)     | `pichu`     | `cloud.atomi.alcohol_neon.pichu`       | `cloud.atomi.alcohol.neon.pichu`       | `Neon Dev`   | TestFlight internal + Play internal |
-| pikachu (stage) | `pikachu`   | `cloud.atomi.alcohol_neon.pikachu`     | `cloud.atomi.alcohol.neon.pikachu`     | `Neon Stage` | TestFlight external + Play closed   |
-| raichu (prod)   | `raichu`    | `cloud.atomi.alcohol_neon` (no suffix) | `cloud.atomi.alcohol.neon` (no suffix) | `Neon`       | App Store + Play production         |
+| Landscape       | Flavor name | Android applicationId              | iOS bundle id                      | Display name | Stores                              |
+| --------------- | ----------- | ---------------------------------- | ---------------------------------- | ------------ | ----------------------------------- |
+| pichu (dev)     | `pichu`     | `cloud.atomi.alcohol_neon.pichu`   | `cloud.atomi.alcohol.neon.pichu`   | `Neon Dev`   | TestFlight internal + Play internal |
+| pikachu (stage) | `pikachu`   | `cloud.atomi.alcohol_neon.pikachu` | `cloud.atomi.alcohol.neon.pikachu` | `Neon Stage` | TestFlight external + Play closed   |
+| raichu (prod)   | `raichu`    | `cloud.atomi.alcohol_neon.raichu`  | `cloud.atomi.alcohol.neon.raichu`  | `Neon`       | App Store + Play production         |
 
 Notes:
 
@@ -64,7 +64,7 @@ The foundation already injects per-landscape config via `--dart-define` (`NEON_L
 ```kotlin
 android {
     defaultConfig {
-        applicationId = "cloud.atomi.alcohol_neon"   // canonical prod id
+        applicationId = "cloud.atomi.alcohol_neon"   // base id; every flavor adds a suffix
         // versionCode / versionName driven by --build-number / --build-name from CI
     }
     flavorDimensions += "landscape"
@@ -73,7 +73,7 @@ android {
                             resValue("string", "app_name", "Neon Dev") }
         create("pikachu") { dimension = "landscape"; applicationIdSuffix = ".pikachu";
                             resValue("string", "app_name", "Neon Stage") }
-        create("raichu")  { dimension = "landscape"; /* NO suffix → clean prod id */
+        create("raichu")  { dimension = "landscape"; applicationIdSuffix = ".raichu";
                             resValue("string", "app_name", "Neon") }
     }
 }
@@ -85,7 +85,7 @@ android {
 
 - Create three **shared** schemes `pichu`/`pikachu`/`raichu` (Product ▸ Scheme ▸ New Scheme, target `Runner`, mark Shared in Manage Schemes).
 - Duplicate `Debug`/`Profile`/`Release` into per-flavor configs: `Debug-pichu`, `Profile-pichu`, `Release-pichu` (and pikachu/raichu). Map each scheme's Run→`Debug-<flavor>`, Profile→`Profile-<flavor>`, Archive→`Release-<flavor>`.
-- Set `PRODUCT_BUNDLE_IDENTIFIER` per config from base `cloud.atomi.alcohol.neon` (pichu→`.pichu`, pikachu→`.pikachu`, raichu→clean). Set `CFBundleDisplayName` to a user-defined `$(APP_DISPLAY_NAME)` var per config.
+- Set `PRODUCT_BUNDLE_IDENTIFIER` per config from base `cloud.atomi.alcohol.neon` (pichu→`.pichu`, pikachu→`.pikachu`, raichu→`.raichu`). Set `CFBundleDisplayName` to a user-defined `$(APP_DISPLAY_NAME)` var per config.
 - **Register every new config in `ios/Podfile`'s project map** (`'Debug-pichu' => :debug, 'Release-pichu' => :release, …`). The official docs require this so CocoaPods knows each config's build mode (note: docs require the registration but do **not** state `pod install` hard-fails — treat as a correctness requirement). ([iOS flavors](https://docs.flutter.dev/deployment/flavors-ios))
 - xcconfig trap: `//` is treated as a comment **even inside quotes** — never put a raw `https://…` URL in an xcconfig-injected value; prefix the scheme in Dart code.
 
@@ -126,7 +126,7 @@ flutter build appbundle --release --flavor pichu --dart-define-from-file=config/
 
 **One-time in Apple consoles:**
 
-1. Register all three App IDs in the Apple Developer portal: `cloud.atomi.alcohol.neon.pichu`, `.pikachu`, and `cloud.atomi.alcohol.neon`.
+1. Register all three App IDs in the Apple Developer portal: `cloud.atomi.alcohol.neon.pichu`, `.pikachu`, and `.raichu`.
 2. Create three App Store Connect **app records**, one per bundle id (a bundle id can't be changed after the first upload).
 3. **Users and Access ▸ Integrations ▸ App Store Connect API** → create one key with **App Manager** access. Capture **Issuer ID** (account-level), **Key ID** (per key), and download the **`.p8` (downloadable only once)**.
 4. Register that key in **Codemagic Team Settings ▸ Integrations** as an Apple Developer Portal integration.
@@ -138,8 +138,8 @@ With the integration, Codemagic **auto-creates/fetches the cert + provisioning p
 **Generate a real upload keystore now** (replaces the current debug-key placeholder in `android/app/build.gradle.kts`):
 
 ```bash
-keytool -genkeypair -v -keystore neon-upload.jks -storetype JKS \
-  -keyalg RSA -keysize 2048 -validity 10000 -alias neon-upload
+keytool -genkeypair -v -keystore atomi-upload.jks -storetype JKS \
+  -keyalg RSA -keysize 2048 -validity 10000 -alias atomi-upload
 ```
 
 - A **single shared upload keystore across all three flavors is fine** (each enrolls separately in Play App Signing). Upload it under Codemagic **Team settings ▸ Code signing identities ▸ Android keystores**. Codemagic exports `CM_KEYSTORE_PATH`/`CM_KEYSTORE_PASSWORD`/`CM_KEY_ALIAS`/`CM_KEY_PASSWORD`. **Codemagic-uploaded keystores cannot be downloaded back — keep a secure offline copy.**
@@ -242,7 +242,7 @@ workflows:
 
   neon-raichu-ios:
     name: iOS raichu (prod)
-    # bundle_identifier cloud.atomi.alcohol.neon, --flavor raichu, config/raichu.json
+    # bundle_identifier cloud.atomi.alcohol.neon.raichu, --flavor raichu, config/raichu.json
     triggering:
       events: [tag]
       tag_patterns:
@@ -296,7 +296,7 @@ workflows:
     ...
 
   neon-raichu-android:
-    # flavor raichu, PACKAGE_NAME cloud.atomi.alcohol_neon, track: production,
+    # flavor raichu, PACKAGE_NAME cloud.atomi.alcohol_neon.raichu, track: production,
     # tag 'v*' excluding 'v*-rc'
     publishing:
       google_play:

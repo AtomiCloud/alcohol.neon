@@ -24,7 +24,7 @@ Everything done "×3" is only _identity registration_.
 | ----------------- | ---------------------------------- | ---------------------------------- | ------------- | ----------------------------- |
 | `pichu` (dev)     | `cloud.atomi.alcohol.neon.pichu`   | `cloud.atomi.alcohol_neon.pichu`   | LazyTax Dev   | No (TestFlight/internal only) |
 | `pikachu` (stage) | `cloud.atomi.alcohol.neon.pikachu` | `cloud.atomi.alcohol_neon.pikachu` | LazyTax Stage | No (TestFlight/closed only)   |
-| `raichu` (prod)   | `cloud.atomi.alcohol.neon`         | `cloud.atomi.alcohol_neon`         | LazyTax       | Yes                           |
+| `raichu` (prod)   | `cloud.atomi.alcohol.neon.raichu`  | `cloud.atomi.alcohol_neon.raichu`  | LazyTax       | Yes                           |
 
 ---
 
@@ -67,7 +67,7 @@ Capability:  [x] Push Notifications
 
 # raichu (prod)
 Description: LazyTax
-Bundle ID:   Explicit  →  cloud.atomi.alcohol.neon
+Bundle ID:   Explicit  →  cloud.atomi.alcohol.neon.raichu
 Capability:  [x] Push Notifications
 ```
 
@@ -89,7 +89,7 @@ Platforms:        [x] iOS
 Name:             LazyTax Dev
 Primary Language: English (U.S.)
 Bundle ID:        cloud.atomi.alcohol.neon.pichu
-SKU:              lazytax-pichu
+SKU:              alcohol-neon-pichu
 User Access:      Full Access
 
 # pikachu (stage)
@@ -97,15 +97,15 @@ Platforms:        [x] iOS
 Name:             LazyTax Stage
 Primary Language: English (U.S.)
 Bundle ID:        cloud.atomi.alcohol.neon.pikachu
-SKU:              lazytax-pikachu
+SKU:              alcohol-neon-pikachu
 User Access:      Full Access
 
 # raichu (prod)
 Platforms:        [x] iOS
 Name:             LazyTax
 Primary Language: English (U.S.)
-Bundle ID:        cloud.atomi.alcohol.neon
-SKU:              lazytax-raichu
+Bundle ID:        cloud.atomi.alcohol.neon.raichu
+SKU:              alcohol-neon-raichu
 User Access:      Full Access
 ```
 
@@ -155,18 +155,21 @@ KEY_ID    = __________     # the new key's ID
 ```
 # pichu (dev)
 App name:         LazyTax Dev
+Package name:     cloud.atomi.alcohol_neon.pichu   (ref only — locked in at Part 12)
 Default language: English (United States)
 App or game:      App
 Free or paid:     Free   (tick the declarations)
 
 # pikachu (stage)
 App name:         LazyTax Stage
+Package name:     cloud.atomi.alcohol_neon.pikachu   (ref only — locked in at Part 12)
 Default language: English (United States)
 App or game:      App
 Free or paid:     Free
 
 # raichu (prod)
 App name:         LazyTax
+Package name:     cloud.atomi.alcohol_neon.raichu   (ref only — locked in at Part 12)
 Default language: English (United States)
 App or game:      App
 Free or paid:     Free
@@ -177,11 +180,18 @@ Free or paid:     Free
 
 ---
 
-## PART 7 — Confirm Play App Signing (each app) _(DEFERRED — Play Store)_
+## PART 7 — Confirm Play App Signing (each app)
 
-1. Open each app → **Test and release** → **Setup** → **App signing** (under _App integrity_ in newer UI).
+1. Open each app → left sidebar **Protected with Play** (shield icon) → expand the **Play Store
+   protection** row (chevron ⌄) → find **Play app signing** in the service list. (Current UI; the old
+   **Setup → App signing** path is gone — signing is now a service nested under _Protected with Play →
+   Play Store protection_.)
 2. Confirm **Play App Signing is enabled** (default). You sign with the upload key (Part 9); Google
    holds the real app-signing key. Nothing to change.
+
+> ⚠️ For a **brand-new app with no AAB uploaded yet**, there's nothing to toggle — Play App Signing is
+> on by default and only fully activates (signing cert + SHA-1 appear) after the **first upload** (Part 12).
+> Seeing "nothing to confirm" here at this stage is expected.
 
 ---
 
@@ -190,7 +200,7 @@ Free or paid:     Free
 **In Google Cloud Console** (console.cloud.google.com — same Google account as Play):
 
 1. **APIs & Services → Library** → search **Google Play Android Developer API** → **Enable**.
-2. **IAM & Admin → Service Accounts → Create service account**: name `codemagic-lazytax-publish`
+2. **IAM & Admin → Service Accounts → Create service account**: name `codemagic-alcohol-neon-publish`
    → **Create and continue** → skip optional roles → **Done**.
 3. Open the service account → **Keys** → **Add key → Create new key → JSON** → **Create**.
    A `.json` downloads — ⚠️ **save it; this is `GOOGLE_PLAY_SERVICE_ACCOUNT_CREDENTIALS`.**
@@ -206,20 +216,20 @@ _Release to production_) → **Invite user**. (Activation can take up to ~24h.)
 Run locally (`keytool` ships with any JDK):
 
 ```bash
-keytool -genkeypair -v -keystore neon-upload.jks -storetype JKS \
-  -keyalg RSA -keysize 2048 -validity 10000 -alias neon-upload
+keytool -genkeypair -v -keystore atomi-upload.jks -storetype JKS \
+  -keyalg RSA -keysize 2048 -validity 10000 -alias atomi-upload
 ```
 
 Capture:
 
 ```
-KEYSTORE_FILE  = neon-upload.jks
+KEYSTORE_FILE  = atomi-upload.jks
 STORE_PASSWORD = __________
-KEY_ALIAS      = neon-upload
+KEY_ALIAS      = atomi-upload
 KEY_PASSWORD   = __________   (press Enter at the prompt to reuse the store password)
 ```
 
-> ⚠️ **Back up `neon-upload.jks` + both passwords offline.** Shared by all 3 apps; cannot be
+> ⚠️ **Back up `atomi-upload.jks` + both passwords offline.** Shared by all 3 apps; cannot be
 > re-downloaded from Codemagic. Losing it blocks all future Android updates.
 
 ---
@@ -243,9 +253,9 @@ API key:   upload AuthKey_<KEY_ID>.p8
 
 ```
 Reference name: lazytax_upload_keystore
-Keystore file:  upload neon-upload.jks
+Keystore file:  upload atomi-upload.jks
 Keystore pwd:   <STORE_PASSWORD>
-Key alias:      neon-upload
+Key alias:      atomi-upload
 Key pwd:        <KEY_PASSWORD>
 ```
 
@@ -266,13 +276,13 @@ Secret: [x]
 **10d — Per-landscape values** are NOT entered in the UI — they live in `codemagic.yaml` (Part 11), where
 each workflow/loop iteration sets its own. Reference table:
 
-|                      | pichu                          | pikachu                          | raichu                   |
-| -------------------- | ------------------------------ | -------------------------------- | ------------------------ |
-| `FLAVOR`             | pichu                          | pikachu                          | raichu                   |
-| `BUNDLE_ID_IOS`      | cloud.atomi.alcohol.neon.pichu | cloud.atomi.alcohol.neon.pikachu | cloud.atomi.alcohol.neon |
-| `PACKAGE_NAME`       | cloud.atomi.alcohol_neon.pichu | cloud.atomi.alcohol_neon.pikachu | cloud.atomi.alcohol_neon |
-| `APP_STORE_APPLE_ID` | _(pichu Apple ID, Part 4)_     | _(pikachu Apple ID)_             | _(raichu Apple ID)_      |
-| `GOOGLE_PLAY_TRACK`  | internal                       | qa-closed _(closed-track name)_  | production               |
+|                      | pichu                          | pikachu                          | raichu                          |
+| -------------------- | ------------------------------ | -------------------------------- | ------------------------------- |
+| `FLAVOR`             | pichu                          | pikachu                          | raichu                          |
+| `BUNDLE_ID_IOS`      | cloud.atomi.alcohol.neon.pichu | cloud.atomi.alcohol.neon.pikachu | cloud.atomi.alcohol.neon.raichu |
+| `PACKAGE_NAME`       | cloud.atomi.alcohol_neon.pichu | cloud.atomi.alcohol_neon.pikachu | cloud.atomi.alcohol_neon.raichu |
+| `APP_STORE_APPLE_ID` | _(pichu Apple ID, Part 4)_     | _(pikachu Apple ID)_             | _(raichu Apple ID)_             |
+| `GOOGLE_PLAY_TRACK`  | internal                       | qa-closed _(closed-track name)_  | production                      |
 
 The Apple IDs aren't secret, so they'll be hardcoded in the YAML. (Only the Play JSON needs to be a Codemagic secret.)
 
@@ -295,7 +305,7 @@ The Apple IDs aren't secret, so they'll be hardcoded in the YAML. (Only the Play
 2. **Rename the base bundle id** to `cloud.atomi.alcohol.neon` (currently `cloud.atomi.alcoholNeon`) — Runner target → Signing & Capabilities, all configs.
 3. **Duplicate build configs:** Project → Info → Configurations → duplicate Debug/Profile/Release into `*-pichu`, `*-pikachu`, `*-raichu`.
 4. **Create 3 shared schemes** named exactly `pichu`/`pikachu`/`raichu` (Product → Scheme → Manage Schemes → +, tick _Shared_); map each scheme's Run/Profile/Archive to its `-<flavor>` configs.
-5. **Per-config bundle id + name:** set `PRODUCT_BUNDLE_IDENTIFIER` per config (`…neon.pichu`/`…neon.pikachu`/`…neon`); add a user-defined `APP_DISPLAY_NAME` (`LazyTax Dev`/`LazyTax Stage`/`LazyTax`) and set Info.plist _Bundle display name_ = `$(APP_DISPLAY_NAME)`.
+5. **Per-config bundle id + name:** set `PRODUCT_BUNDLE_IDENTIFIER` per config (`…neon.pichu`/`…neon.pikachu`/`…neon.raichu`); add a user-defined `APP_DISPLAY_NAME` (`LazyTax Dev`/`LazyTax Stage`/`LazyTax`) and set Info.plist _Bundle display name_ = `$(APP_DISPLAY_NAME)`.
 6. **Register configs in `ios/Podfile`** project map: add `'Debug-pichu' => :debug, 'Profile-pichu' => :release, 'Release-pichu' => :release` (and pikachu/raichu).
    > Shortcut: `flutter_flavorizr` can generate steps 3–6; manual is more reliable on an existing project.
 

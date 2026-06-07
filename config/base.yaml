@@ -1,0 +1,19 @@
+# Base config — inherited by EVERY landscape, and the effective config for
+# `lapras` (local dev, which has no file of its own). The per-landscape files
+# (pichu/pikachu/raichu) override these keys; any key can also be overridden at
+# build time via --dart-define (NEON_ZINC_URL, NEON_LOGTO_ENDPOINT,
+# NEON_LOGTO_APP_ID, NEON_ZINC_RESOURCE, NEON_AIRWALLEX_ENV).
+
+zincBaseUrl: 'http://localhost:9003'
+logtoEndpoint: 'http://localhost:3301/'
+logtoAppId: 'REPLACE_WITH_NATIVE_LOGTO_APP_ID'
+zincResource: 'https://api.zinc.alcohol.lapras'
+airwallexEnv: 'demo'
+redirectUri: 'cloud.atomi.alcohol.neon.lapras://callback'
+scopes:
+  - openid
+  - profile
+  - offline_access
+  - email
+  - admin
+  - active

@@ -7,7 +7,9 @@ import 'features/root/root_view.dart';
 import 'session/session_controller.dart';
 import 'theme/app_theme.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await AppConfig.load();
   runApp(
     MultiProvider(
       providers: [

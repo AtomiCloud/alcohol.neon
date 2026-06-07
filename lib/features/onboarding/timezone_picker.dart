@@ -50,8 +50,10 @@ class _TimezonePickerState extends State<TimezonePicker> {
                       return ListTile(
                         title: Text(tz.replaceAll('_', ' ')),
                         trailing: selected
-                            ? Icon(Icons.check,
-                                color: Theme.of(context).colorScheme.primary)
+                            ? Icon(
+                                Icons.check,
+                                color: Theme.of(context).colorScheme.primary,
+                              )
                             : null,
                         onTap: () => Navigator.pop(context, tz),
                       );

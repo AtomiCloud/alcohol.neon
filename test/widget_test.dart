@@ -7,11 +7,30 @@ import 'package:alcohol_neon/config/landscape.dart';
 import 'package:alcohol_neon/core/problem.dart';
 
 void main() {
-  test('AppConfig.current resolves a landscape with defaults', () {
-    final config = AppConfig.current;
-    expect(Landscape.values.contains(config.landscape), isTrue);
-    expect(config.redirectUri, 'cloud.atomi.alcohol.neon://callback');
-    expect(config.logtoEndpoint, isNotEmpty);
+  // Needed so AppConfig can load the config/*.yaml assets via rootBundle.
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  test(
+    'AppConfig resolves landscape + layered config from its bundle id',
+    () async {
+      final config = await AppConfig.resolveForPackage(
+        'cloud.atomi.alcohol.neon.pichu',
+      );
+      expect(config.landscape, Landscape.pichu);
+      expect(config.redirectUri, 'cloud.atomi.alcohol.neon.pichu://callback');
+      expect(config.logtoEndpoint, contains('pichu')); // from pichu.yaml
+      expect(config.logtoAppId, 'k19tbzmnsndxnt1v6rfkm'); // from pichu.yaml
+      expect(config.scopes, contains('openid')); // inherited from base.yaml
+    },
+  );
+
+  test('AppConfig resolves raichu from its .raichu bundle id suffix', () async {
+    final config = await AppConfig.resolveForPackage(
+      'cloud.atomi.alcohol.neon.raichu',
+    );
+    expect(config.landscape, Landscape.raichu);
+    expect(config.redirectUri, 'cloud.atomi.alcohol.neon.raichu://callback');
+    expect(config.airwallexEnv, Environment.production); // overrides base demo
   });
 
   test('apiResources is empty when no zinc resource is configured', () {
@@ -36,9 +55,12 @@ void main() {
     expect(withoutResource.apiResources, isEmpty);
   });
 
-  test('AppConfig resolves an Airwallex environment per landscape', () {
-    final config = AppConfig.current;
-    expect(Environment.values.contains(config.airwallexEnv), isTrue);
+  test('AppConfig resolves an Airwallex environment per landscape', () async {
+    final config = await AppConfig.resolveForPackage(
+      'cloud.atomi.alcohol.neon.pikachu',
+    );
+    expect(config.landscape, Landscape.pikachu);
+    expect(config.airwallexEnv, Environment.production);
   });
 
   test('Result pattern matching', () {

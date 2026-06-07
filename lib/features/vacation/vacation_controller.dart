@@ -32,14 +32,15 @@ class VacationController extends ChangeNotifier {
   final VacationRepository _vacations;
 
   VacationController(SessionController session)
-      : userId = session.userId,
-        _vacations = session.vacations;
+    : userId = session.userId,
+      _vacations = session.vacations;
 
   VacationPhase _phase = VacationPhase.loading;
   Problem? _error;
   Problem? _actionError;
   List<VacationItem> _items = const [];
-  final Set<String> _busy = {}; // vacation ids with an in-flight delete/end-today
+  final Set<String> _busy =
+      {}; // vacation ids with an in-flight delete/end-today
 
   VacationPhase get phase => _phase;
   Problem? get error => _error;
@@ -61,7 +62,10 @@ class VacationController extends ChangeNotifier {
     final uid = userId;
     if (uid == null) {
       _error = const Problem(
-          type: 'neon:auth', title: 'Not signed in', status: 401);
+        type: 'neon:auth',
+        title: 'Not signed in',
+        status: 401,
+      );
       _phase = VacationPhase.error;
       notifyListeners();
       return;
@@ -163,16 +167,17 @@ class VacationController extends ChangeNotifier {
   }
 
   List<VacationItem> _decorate(List<VacationRes> list) {
-    final decorated =
-        list.map((v) => VacationItem(v, vacationStatusFor(v))).toList();
+    final decorated = list
+        .map((v) => VacationItem(v, vacationStatusFor(v)))
+        .toList();
     // No reliable persisted timestamp (createdAt is response-time UtcNow), so sort
     // by start date with active/upcoming first, ended last, then by start ascending.
     decorated.sort((a, b) {
       int rank(VacationStatus s) => switch (s) {
-            VacationStatus.active => 0,
-            VacationStatus.upcoming => 1,
-            VacationStatus.ended => 2,
-          };
+        VacationStatus.active => 0,
+        VacationStatus.upcoming => 1,
+        VacationStatus.ended => 2,
+      };
       final byRank = rank(a.status).compareTo(rank(b.status));
       if (byRank != 0) return byRank;
       final sa = tryParseStandardDate(a.res.startDate);
@@ -182,7 +187,6 @@ class VacationController extends ChangeNotifier {
     });
     return decorated;
   }
-
 }
 
 /// upcoming/active/ended for a window, computed against "today" (date-only). zinc

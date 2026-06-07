@@ -21,9 +21,9 @@ class DashboardController extends ChangeNotifier {
   final ExecutionRepository _executions;
 
   DashboardController(SessionController session)
-      : userId = session.userId,
-        _habits = session.habits,
-        _executions = session.executions;
+    : userId = session.userId,
+      _habits = session.habits,
+      _executions = session.executions;
 
   DashboardPhase _phase = DashboardPhase.loading;
   Problem? _error;
@@ -97,7 +97,8 @@ class DashboardController extends ChangeNotifier {
     }
   }
 
-  Future<void> complete(HabitOverviewHabitRes habit) => _act(habit, skip: false);
+  Future<void> complete(HabitOverviewHabitRes habit) =>
+      _act(habit, skip: false);
   Future<void> skip(HabitOverviewHabitRes habit) => _act(habit, skip: true);
 
   Future<void> _act(HabitOverviewHabitRes habit, {required bool skip}) async {

@@ -35,34 +35,40 @@ screens, with phased milestones. Derived from a full read of zinc's controllers 
 Base: `{landscape zinc URL}/api/v1`. Bearer token scoped to `alcohol-zinc`. Key endpoints:
 
 **Bootstrap / user**
+
 - `POST /User` `{ IdToken, AccessToken }` → create zinc user from Logto tokens (run after first sign-in)
 - `GET /User/Me/All` → profile (`Username, Email, EmailVerified, Active`)
 - `GET /Configuration/me` → `{ Timezone, DefaultCharityId }` (absent ⇒ needs onboarding)
 - `POST /Configuration` `{ Timezone, DefaultCharityId }` ; `PUT /Configuration/{id}` to update
 
 **Daily loop (core)**
+
 - `GET /Habit/{userId}/overview` → dashboard payload: `Habits[]` (name, days[7], stake, charity, status{currentStreak,maxStreak,isCompleteToday,week}, timeLeftToEodMinutes, version.id, totalDebt), plus `TotalDebt`, `UsedSkip`, `TotalSkip`
 - `POST /Habit/{userId}/{habitVersionId}/executions` `{ Notes? }` → complete (Status "succeeded")
 - `POST /Habit/{userId}/{habitVersionId}/executions/skip` `{ Notes? }` → skip (quota-limited)
 - `GET /Habit/{userId}/executions?date=yyyy-MM-dd` → executions for a day
 
 **Habit CRUD (versioned)**
+
 - `GET /Habit/{userId}` (list) ; `GET /Habit/{userId}/{id}` (current version)
 - `POST /Habit/{userId}` `{ Task, DaysOfWeek[], NotificationTime "HH:mm", Stake "10.50", CharityId, Timezone }`
 - `PUT /Habit/{userId}/{id}` `{ …, Enabled }` (creates a new version)
 - `DELETE /Habit/{userId}/{id}`
 
 **Charities / causes (public, no auth)**
+
 - `GET /Charity?name=&country=&causeKey=&limit=&skip=` ; `GET /Charity/{id}` ; `GET /Charity/supported-countries`
 - `GET /Causes?key=&name=`
 
 **Payments (Airwallex) — for staking**
+
 - `PUT /Payment/{userId}/customers` → `{ CustomerId, ClientSecret }`
 - `GET /Payment/{userId}/client-secret` → fresh `{ ClientSecret, CustomerId }`
 - `GET /Payment/{userId}/consent` → `{ HasPaymentConsent, ConsentId?, Status? }`
 - `DELETE /Payment/{userId}/consent` → revoke
 
 **Protections / vacation**
+
 - `GET /Protection/{userId}` → `{ Balance, Cap }` (freeze days)
 - `POST /Vacation/{userId}` `{ StartDate, EndDate, Timezone }` ; `GET /Vacation/{userId}?year=` ; `DELETE …/{id}` ; `PATCH …/{id}/end-today`
 
@@ -82,17 +88,17 @@ Base: `{landscape zinc URL}/api/v1`. Bearer token scoped to `alcohol-zinc`. Key 
 
 ## 5. Screens (argon → SwiftUI)
 
-| Screen | Source (argon) | Loads | Actions |
-|---|---|---|---|
-| **Sign in** | `/` + Logto | — | Logto browser sign-in (foundation) |
-| **Onboarding** | `/onboarding` | `GET /Configuration/me` (absent), charities | pick Timezone + default Charity → `POST /Configuration` |
-| **Dashboard** | `/app` | `GET /Habit/{userId}/overview` | complete (optimistic), skip, edit, delete, new; progress + streaks + debt + skips-left |
-| **New / Edit habit** | `/app/new`, `/app/edit/[id]` | config defaults, charity | form: task, days, time, stake, charity → `POST`/`PUT /Habit` |
-| **Charity picker** | `/charities` | `GET /Charity`, `/Causes` | search/filter by name/country/cause, select |
-| **Settings** | `/settings` | `GET /Configuration/me`, `/Payment/{userId}/consent` | update timezone/charity; set up / remove payment consent |
-| **Profile** | `/profile` | Logto claims, `/User/Me/All` | view info, sign out |
-| **Payment consent** | `/app/payment/callback` | Airwallex flow | collect consent, poll `/Payment/{userId}/consent` until VERIFIED |
-| **Protections / vacation** | dashboard stubs | `GET /Protection/{userId}`, `/Vacation` | view freezes; start/end vacation |
+| Screen                     | Source (argon)               | Loads                                                | Actions                                                                                |
+| -------------------------- | ---------------------------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| **Sign in**                | `/` + Logto                  | —                                                    | Logto browser sign-in (foundation)                                                     |
+| **Onboarding**             | `/onboarding`                | `GET /Configuration/me` (absent), charities          | pick Timezone + default Charity → `POST /Configuration`                                |
+| **Dashboard**              | `/app`                       | `GET /Habit/{userId}/overview`                       | complete (optimistic), skip, edit, delete, new; progress + streaks + debt + skips-left |
+| **New / Edit habit**       | `/app/new`, `/app/edit/[id]` | config defaults, charity                             | form: task, days, time, stake, charity → `POST`/`PUT /Habit`                           |
+| **Charity picker**         | `/charities`                 | `GET /Charity`, `/Causes`                            | search/filter by name/country/cause, select                                            |
+| **Settings**               | `/settings`                  | `GET /Configuration/me`, `/Payment/{userId}/consent` | update timezone/charity; set up / remove payment consent                               |
+| **Profile**                | `/profile`                   | Logto claims, `/User/Me/All`                         | view info, sign out                                                                    |
+| **Payment consent**        | `/app/payment/callback`      | Airwallex flow                                       | collect consent, poll `/Payment/{userId}/consent` until VERIFIED                       |
+| **Protections / vacation** | dashboard stubs              | `GET /Protection/{userId}`, `/Vacation`              | view freezes; start/end vacation                                                       |
 
 ---
 
@@ -114,7 +120,7 @@ From habit form → Charity picker (search/filter) → return selected `charityI
 
 ## 7. Milestones (vertical slices, each shippable/testable)
 
-- **M0 — Foundation** ✅ (auth, config, networking, shell). *Build-verify + Native Logto app are the gates.*
+- **M0 — Foundation** ✅ (auth, config, networking, shell). _Build-verify + Native Logto app are the gates._
 - **M1 — Bootstrap + Onboarding:** session/user model, `POST /User`, `GET /Configuration/me`, onboarding (timezone + default charity), charity picker (read-only). → signed-in users reach a configured state.
 - **M2 — Dashboard (daily loop):** overview DTOs + `HabitRepository`, dashboard UI (today/rest-day, streaks, progress, debt), **complete** (optimistic) + **skip**. → the core product.
 - **M3 — Habit CRUD:** create/edit/delete with the full form (task, days, time, stake, charity); versioning awareness.
@@ -130,8 +136,8 @@ Recommended order to build: **M1 → M2** first (gets a real, demoable daily loo
 
 ## 8. Open decisions / dependencies
 
-1. **Native Logto app** (BLOCKER for any sign-in) — register it; fill `logtoAppId` in `AppConfig`. *(User action.)*
-2. **Airwallex on iOS** — decide **Airwallex iOS SDK** (native consent UI, more work) vs **in-app web flow** (reuse the hosted page via `ASWebAuthenticationSession`, faster). Affects M6. *(Needs a decision; recommend starting with the web flow to ship, native SDK later.)*
+1. **Native Logto app** (BLOCKER for any sign-in) — register it; fill `logtoAppId` in `AppConfig`. _(User action.)_
+2. **Airwallex on iOS** — decide **Airwallex iOS SDK** (native consent UI, more work) vs **in-app web flow** (reuse the hosted page via `ASWebAuthenticationSession`, faster). Affects M6. _(Needs a decision; recommend starting with the web flow to ship, native SDK later.)_
 3. **Local notifications** — habits have a `NotificationTime`; decide whether reminders are local (scheduled on-device from the habit list) or server push. Local is simplest for v1.
 4. **State management depth** — `@Observable` view models + repositories is enough; revisit if it grows.
 5. **OpenAPI codegen** — zinc exposes OpenAPI; consider generating DTOs/clients later instead of hand-writing (argon does `pls generate:sdk`). For now hand-write the slice we need.

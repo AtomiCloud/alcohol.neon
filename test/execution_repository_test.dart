@@ -8,7 +8,8 @@ import 'package:flutter_test/flutter_test.dart';
 /// path ApiClient uses (jsonDecode → model.fromJson).
 void main() {
   test('HabitExecutionRes decodes required + optional fields (camelCase)', () {
-    final json = jsonDecode('''
+    final json =
+        jsonDecode('''
       {
         "id": "e1",
         "habitVersionId": "hv1",
@@ -18,7 +19,8 @@ void main() {
         "notes": "done early",
         "paymentProcessed": true
       }
-    ''') as Map<String, Object?>;
+    ''')
+            as Map<String, Object?>;
 
     final res = HabitExecutionRes.fromJson(json);
     expect(res.id, 'e1');
@@ -28,7 +30,8 @@ void main() {
   });
 
   test('HabitExecutionRes decodes with nulls; list decodes unwrapped', () {
-    final list = jsonDecode('''
+    final list =
+        jsonDecode('''
       [
         { "id": "e1", "habitVersionId": "hv1", "paymentProcessed": false },
         {
@@ -36,7 +39,8 @@ void main() {
           "status": "skipped", "paymentProcessed": false
         }
       ]
-    ''') as List<dynamic>;
+    ''')
+            as List<dynamic>;
 
     final executions = list
         .map((e) => HabitExecutionRes.fromJson(e as Map<String, Object?>))

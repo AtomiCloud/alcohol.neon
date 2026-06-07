@@ -9,7 +9,8 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   test('VacationRes decodes camelCase fields (dd-MM-yyyy dates)', () {
     // zinc serialises dates as dd-MM-yyyy (Utils.StandardDateFormat), NOT ISO.
-    final json = jsonDecode('''
+    final json =
+        jsonDecode('''
       {
         "id": "v1",
         "userId": "u1",
@@ -18,7 +19,8 @@ void main() {
         "timezone": "Asia/Singapore",
         "createdAt": "2026-05-01T00:00:00Z"
       }
-    ''') as Map<String, Object?>;
+    ''')
+            as Map<String, Object?>;
 
     final res = VacationRes.fromJson(json);
     expect(res.id, 'v1');
@@ -29,12 +31,14 @@ void main() {
   });
 
   test('VacationRes list decodes; optionals may be null', () {
-    final list = jsonDecode('''
+    final list =
+        jsonDecode('''
       [
         { "id": "v1", "startDate": "01-06-2026" },
         { "id": "v2" }
       ]
-    ''') as List<dynamic>;
+    ''')
+            as List<dynamic>;
 
     final vacations = list
         .map((e) => VacationRes.fromJson(e as Map<String, Object?>))

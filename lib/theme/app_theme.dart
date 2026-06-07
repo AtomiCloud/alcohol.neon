@@ -15,10 +15,26 @@ class AppColors {
 
   /// Per-card gradient top-borders (rotating), straight from argon's HabitCard.
   static const cardGradients = <List<Color>>[
-    [Color(0xFF3B82F6), Color(0xFF818CF8), Color(0xFFA855F7)], // blue→indigo→purple
-    [Color(0xFF34D399), Color(0xFF2DD4BF), Color(0xFF22D3EE)], // emerald→teal→cyan
-    [Color(0xFFFB923C), Color(0xFFE879F9), Color(0xFF8B5CF6)], // orange→fuchsia→violet
-    [Color(0xFFEC4899), Color(0xFFFB7185), Color(0xFFFB923C)], // pink→rose→orange
+    [
+      Color(0xFF3B82F6),
+      Color(0xFF818CF8),
+      Color(0xFFA855F7),
+    ], // blue→indigo→purple
+    [
+      Color(0xFF34D399),
+      Color(0xFF2DD4BF),
+      Color(0xFF22D3EE),
+    ], // emerald→teal→cyan
+    [
+      Color(0xFFFB923C),
+      Color(0xFFE879F9),
+      Color(0xFF8B5CF6),
+    ], // orange→fuchsia→violet
+    [
+      Color(0xFFEC4899),
+      Color(0xFFFB7185),
+      Color(0xFFFB923C),
+    ], // pink→rose→orange
   ];
 
   /// Stable gradient pick for a card, keyed by its id.
@@ -134,7 +150,10 @@ class AppTheme {
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(_cardRadius),
-          side: BorderSide(color: scheme.outlineVariant, width: isLight ? 1 : 0.5),
+          side: BorderSide(
+            color: scheme.outlineVariant,
+            width: isLight ? 1 : 0.5,
+          ),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
@@ -163,7 +182,10 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: scheme.surface,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 14,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(_ctrlRadius),
           borderSide: BorderSide(color: scheme.outlineVariant),

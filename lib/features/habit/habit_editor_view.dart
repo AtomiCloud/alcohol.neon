@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/app_loader.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/problem.dart';
@@ -47,7 +48,13 @@ const _weekDays = <(String, String)>[
 class _HabitEditorViewState extends State<HabitEditorView> {
   final _task = TextEditingController();
   final _stake = TextEditingController(text: '0');
-  final _days = <String>{'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'};
+  final _days = <String>{
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+  };
   TimeOfDay _time = const TimeOfDay(hour: 22, minute: 0);
   String? _charityId;
   String? _charityName;
@@ -180,7 +187,10 @@ class _HabitEditorViewState extends State<HabitEditorView> {
     if (uid == null) return;
     final tz = _session.config?.timezone ?? 'UTC';
     // zinc validates DaysOfWeek case-sensitively on update — keep canonical order.
-    final days = [for (final (key, _) in _weekDays) if (_days.contains(key)) key];
+    final days = [
+      for (final (key, _) in _weekDays)
+        if (_days.contains(key)) key,
+    ];
 
     setState(() {
       _saving = true;
@@ -192,8 +202,7 @@ class _HabitEditorViewState extends State<HabitEditorView> {
     // session's cached `/consent` GET, never the Logto claim.
     final stakeAmount = double.tryParse(_stakeWire) ?? 0;
     if (stakeAmount > 0 && !_session.hasPaymentConsent) {
-      final consent =
-          await ConsentService(_session).ensureConsent(context);
+      final consent = await ConsentService(_session).ensureConsent(context);
       if (!mounted) return;
       if (consent case Err(:final problem)) {
         setState(() {
@@ -255,11 +264,13 @@ class _HabitEditorViewState extends State<HabitEditorView> {
         content: const Text('This removes the habit. This cannot be undone.'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Delete')),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
         ],
       ),
     );
@@ -293,7 +304,7 @@ class _HabitEditorViewState extends State<HabitEditorView> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const AppLoader()
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
@@ -317,7 +328,8 @@ class _HabitEditorViewState extends State<HabitEditorView> {
                         label: Text(label),
                         selected: _days.contains(key),
                         onSelected: (on) => setState(
-                            () => on ? _days.add(key) : _days.remove(key)),
+                          () => on ? _days.add(key) : _days.remove(key),
+                        ),
                       ),
                   ],
                 ),
@@ -343,13 +355,18 @@ class _HabitEditorViewState extends State<HabitEditorView> {
                 const SizedBox(height: 8),
                 Card(
                   child: ListTile(
-                    leading: const Icon(Icons.attach_money, color: AppColors.money),
+                    leading: const Icon(
+                      Icons.attach_money,
+                      color: AppColors.money,
+                    ),
                     title: const Text('Stake'),
                     subtitle: Text(_stakeDisplay()),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () async {
-                      final picked =
-                          await showStakeSheet(context, initial: _stake.text);
+                      final picked = await showStakeSheet(
+                        context,
+                        initial: _stake.text,
+                      );
                       if (picked != null && mounted) {
                         setState(() => _stake.text = picked);
                       }
@@ -369,8 +386,9 @@ class _HabitEditorViewState extends State<HabitEditorView> {
                   const SizedBox(height: 12),
                   Text(
                     _error!.detail ?? _error!.title,
-                    style: theme.textTheme.bodySmall
-                        ?.copyWith(color: theme.colorScheme.error),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.error,
+                    ),
                   ),
                 ],
                 const SizedBox(height: 20),
@@ -380,7 +398,8 @@ class _HabitEditorViewState extends State<HabitEditorView> {
                       ? const SizedBox(
                           height: 20,
                           width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2))
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
                       : Text(widget.isEdit ? 'Save changes' : 'Create habit'),
                 ),
               ],

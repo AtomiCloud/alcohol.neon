@@ -17,29 +17,42 @@ class Problem implements Exception {
   });
 
   factory Problem.fromJson(Map<String, dynamic> json) => Problem(
-        type: json['type'] as String? ?? 'about:blank',
-        title: json['title'] as String? ?? 'Error',
-        status: (json['status'] as num?)?.toInt() ?? 0,
-        detail: json['detail'] as String?,
-        instance: json['instance'] as String?,
-      );
+    type: json['type'] as String? ?? 'about:blank',
+    title: json['title'] as String? ?? 'Error',
+    status: (json['status'] as num?)?.toInt() ?? 0,
+    detail: json['detail'] as String?,
+    instance: json['instance'] as String?,
+  );
 
   /// Locally-generated problems for failures that never reach the server.
-  factory Problem.local(String title,
-          {int status = 0, String? detail, String type = 'about:blank'}) =>
-      Problem(type: type, title: title, status: status, detail: detail);
+  factory Problem.local(
+    String title, {
+    int status = 0,
+    String? detail,
+    String type = 'about:blank',
+  }) => Problem(type: type, title: title, status: status, detail: detail);
 
-  static Problem network(Object error) =>
-      Problem.local('Network error', detail: error.toString(), type: 'neon:network');
+  static Problem network(Object error) => Problem.local(
+    'Network error',
+    detail: error.toString(),
+    type: 'neon:network',
+  );
 
-  static Problem decoding(Object error) =>
-      Problem.local('Unexpected response', detail: error.toString(), type: 'neon:decoding');
+  static Problem decoding(Object error) => Problem.local(
+    'Unexpected response',
+    detail: error.toString(),
+    type: 'neon:decoding',
+  );
 
-  static const unauthenticated =
-      Problem(type: 'neon:unauthenticated', title: 'Not signed in', status: 401);
+  static const unauthenticated = Problem(
+    type: 'neon:unauthenticated',
+    title: 'Not signed in',
+    status: 401,
+  );
 
   @override
-  String toString() => 'Problem($status $title${detail != null ? ': $detail' : ''})';
+  String toString() =>
+      'Problem($status $title${detail != null ? ': $detail' : ''})';
 }
 
 /// Minimal `Result` type — `Ok` on success, `Err` carrying a [Problem] on failure.

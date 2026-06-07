@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/app_loader.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:provider/provider.dart';
 
@@ -138,7 +139,8 @@ class _SettingsViewState extends State<SettingsView> {
     if (cfg == null) return false;
     final charityId = _charityId;
     if (charityId == null || charityId.isEmpty) return false;
-    final changed = _timezone != cfg.principal.timezone ||
+    final changed =
+        _timezone != cfg.principal.timezone ||
         charityId != cfg.principal.defaultCharityId;
     return changed && !_saving;
   }
@@ -159,9 +161,9 @@ class _SettingsViewState extends State<SettingsView> {
           _consent = session.consent ?? _consent;
           _consentBusy = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Payment method set up')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Payment method set up')));
       case Err(:final problem):
         setState(() {
           _consentBusy = false;
@@ -222,9 +224,9 @@ class _SettingsViewState extends State<SettingsView> {
       _consent = session.consent ?? _consent;
       _consentBusy = false;
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Payment method removed')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Payment method removed')));
   }
 
   Future<void> _save() async {
@@ -254,9 +256,9 @@ class _SettingsViewState extends State<SettingsView> {
         // undo the successful save.
         await session.refreshConfig();
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Settings saved')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Settings saved')));
         Navigator.of(context).pop();
       case Err(:final problem):
         setState(() {
@@ -271,10 +273,10 @@ class _SettingsViewState extends State<SettingsView> {
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const AppLoader()
           : _loadError != null
-              ? _ErrorRetry(problem: _loadError!, onRetry: _load)
-              : _content(context),
+          ? _ErrorRetry(problem: _loadError!, onRetry: _load)
+          : _content(context),
     );
   }
 
@@ -283,8 +285,10 @@ class _SettingsViewState extends State<SettingsView> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Text('Manage your account preferences',
-            style: theme.textTheme.titleMedium),
+        Text(
+          'Manage your account preferences',
+          style: theme.textTheme.titleMedium,
+        ),
         const SizedBox(height: 16),
         _FieldCard(
           icon: Icons.public,
@@ -315,8 +319,9 @@ class _SettingsViewState extends State<SettingsView> {
           const SizedBox(height: 12),
           Text(
             _saveError!.detail ?? _saveError!.title,
-            style: theme.textTheme.bodySmall
-                ?.copyWith(color: theme.colorScheme.error),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.error,
+            ),
           ),
         ],
         const SizedBox(height: 24),
@@ -326,7 +331,8 @@ class _SettingsViewState extends State<SettingsView> {
               ? const SizedBox(
                   height: 20,
                   width: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2))
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
               : const Text('Save changes'),
         ),
       ],
@@ -360,13 +366,19 @@ class _FieldCard extends StatelessWidget {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(value,
-                style: theme.textTheme.bodyMedium
-                    ?.copyWith(color: theme.colorScheme.onSurface)),
+            Text(
+              value,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
             const SizedBox(height: 2),
-            Text(subtitle,
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: theme.colorScheme.outline)),
+            Text(
+              subtitle,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
           ],
         ),
         isThreeLine: true,
@@ -409,7 +421,8 @@ class _ConsentCard extends StatelessWidget {
           ? 'Payment consent is active.'
           : 'Payment consent is active ($status).';
     } else {
-      detail = 'No payment consent on file. Set it up to enable stakes and '
+      detail =
+          'No payment consent on file. Set it up to enable stakes and '
           'donations.';
     }
     return Card(
@@ -419,7 +432,9 @@ class _ConsentCard extends StatelessWidget {
           ListTile(
             leading: Icon(
               has ? Icons.verified_user : Icons.gpp_maybe,
-              color: has ? Colors.green.shade700 : theme.colorScheme.outline,
+              color: has
+                  ? Colors.green.shade700
+                  : theme.colorScheme.onSurfaceVariant,
             ),
             title: const Text('Payment consent'),
             subtitle: Text(detail),
@@ -430,8 +445,9 @@ class _ConsentCard extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: Text(
                 error!.detail ?? error!.title,
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: theme.colorScheme.error),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.error,
+                ),
               ),
             ),
           Padding(
@@ -448,18 +464,19 @@ class _ConsentCard extends StatelessWidget {
                       ),
                     )
                   : has
-                      ? TextButton.icon(
-                          onPressed: onRemove,
-                          icon: const Icon(Icons.delete_outline),
-                          style: TextButton.styleFrom(
-                              foregroundColor: theme.colorScheme.error),
-                          label: const Text('Remove'),
-                        )
-                      : FilledButton.icon(
-                          onPressed: onSetUp,
-                          icon: const Icon(Icons.add_card),
-                          label: const Text('Set up payment method'),
-                        ),
+                  ? TextButton.icon(
+                      onPressed: onRemove,
+                      icon: const Icon(Icons.delete_outline),
+                      style: TextButton.styleFrom(
+                        foregroundColor: theme.colorScheme.error,
+                      ),
+                      label: const Text('Remove'),
+                    )
+                  : FilledButton.icon(
+                      onPressed: onSetUp,
+                      icon: const Icon(Icons.add_card),
+                      label: const Text('Set up payment method'),
+                    ),
             ),
           ),
         ],

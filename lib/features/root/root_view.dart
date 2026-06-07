@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/app_loader.dart';
 import 'package:provider/provider.dart';
 
 import '../../auth/auth_service.dart';
@@ -14,7 +15,7 @@ class RootView extends StatelessWidget {
     final status = context.watch<AuthService>().status;
     switch (status) {
       case AuthStatus.loading:
-        return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        return const Scaffold(body: AppLoader());
       case AuthStatus.unauthenticated:
         return const SignInView();
       case AuthStatus.authenticated:
@@ -39,16 +40,23 @@ class _AuthFailedView extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(problem?.title ?? 'Sign-in failed',
-                  style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                problem?.title ?? 'Sign-in failed',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               if (problem?.detail != null) ...[
                 const SizedBox(height: 8),
-                Text(problem!.detail!,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodySmall),
+                Text(
+                  problem!.detail!,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
               ],
               const SizedBox(height: 16),
-              FilledButton(onPressed: auth.signIn, child: const Text('Try again')),
+              FilledButton(
+                onPressed: auth.signIn,
+                child: const Text('Try again'),
+              ),
             ],
           ),
         ),

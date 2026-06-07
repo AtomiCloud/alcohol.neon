@@ -28,8 +28,10 @@ class ConfigRepository {
   }) {
     return _api.post(
       _base,
-      CreateConfigurationReq(timezone: timezone, defaultCharityId: defaultCharityId)
-          .toJson(),
+      CreateConfigurationReq(
+        timezone: timezone,
+        defaultCharityId: defaultCharityId,
+      ).toJson(),
       (j) => ConfigurationPrincipalRes.fromJson(j as Map<String, Object?>),
     );
   }

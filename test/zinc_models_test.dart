@@ -12,7 +12,8 @@ import 'package:flutter_test/flutter_test.dart';
 /// (jsonDecode → model.fromJson).
 void main() {
   test('ConfigurationRes decodes principal + charity (camelCase)', () {
-    final json = jsonDecode('''
+    final json =
+        jsonDecode('''
       {
         "principal": {
           "id": "c1", "userId": "u1",
@@ -20,7 +21,8 @@ void main() {
         },
         "charity": { "id": "ch1", "name": "Red Cross", "countries": ["SG"] }
       }
-    ''') as Map<String, Object?>;
+    ''')
+            as Map<String, Object?>;
 
     final res = ConfigurationRes.fromJson(json);
     expect(res.principal.timezone, 'Asia/Singapore');
@@ -30,12 +32,14 @@ void main() {
   });
 
   test('Charity list decodes unwrapped principals', () {
-    final list = jsonDecode('''
+    final list =
+        jsonDecode('''
       [
         { "id": "ch1", "name": "A", "countries": ["SG", "MY"], "logoUrl": "x" },
         { "id": "ch2", "name": "B" }
       ]
-    ''') as List<dynamic>;
+    ''')
+            as List<dynamic>;
 
     final charities = list
         .map((e) => CharityPrincipalRes.fromJson(e as Map<String, Object?>))
@@ -47,14 +51,16 @@ void main() {
   });
 
   test('UserRes wraps principal; required bools decode', () {
-    final json = jsonDecode('''
+    final json =
+        jsonDecode('''
       {
         "principal": {
           "id": "u1", "username": "bob", "email": "b@x.io",
           "emailVerified": true, "active": true
         }
       }
-    ''') as Map<String, Object?>;
+    ''')
+            as Map<String, Object?>;
 
     final res = UserRes.fromJson(json);
     expect(res.principal, isA<UserPrincipalRes>());

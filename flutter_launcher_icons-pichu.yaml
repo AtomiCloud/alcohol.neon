@@ -1,0 +1,12 @@
+# Per-flavor launcher icon (pichu / dev) — pink "Pichu" banner + mascot.
+# `dart run flutter_launcher_icons` writes this into android/app/src/pichu/res,
+# which overrides the default icon for the pichu build only. The in-app logo and
+# the splash screen keep using assets/brand/logo.png (untouched).
+flutter_launcher_icons:
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  background_color_ios: '#FFFFFF'
+  image_path: 'assets/brand/icon-pichu.png'
+  adaptive_icon_background: '#FFFFFF'
+  adaptive_icon_foreground: 'assets/brand/icon-pichu.png'

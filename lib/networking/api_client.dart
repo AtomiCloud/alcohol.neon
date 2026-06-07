@@ -23,32 +23,35 @@ class ApiClient {
     T Function(dynamic json) decode, {
     bool requiresAuth = true,
     Map<String, dynamic>? query,
-  }) =>
-      _send('GET', path, null, decode, requiresAuth: requiresAuth, query: query);
+  }) => _send(
+    'GET',
+    path,
+    null,
+    decode,
+    requiresAuth: requiresAuth,
+    query: query,
+  );
 
   Future<Result<T>> post<T>(
     String path,
     Object? body,
     T Function(dynamic json) decode, {
     bool requiresAuth = true,
-  }) =>
-      _send('POST', path, body, decode, requiresAuth: requiresAuth);
+  }) => _send('POST', path, body, decode, requiresAuth: requiresAuth);
 
   Future<Result<T>> put<T>(
     String path,
     Object? body,
     T Function(dynamic json) decode, {
     bool requiresAuth = true,
-  }) =>
-      _send('PUT', path, body, decode, requiresAuth: requiresAuth);
+  }) => _send('PUT', path, body, decode, requiresAuth: requiresAuth);
 
   Future<Result<T>> patch<T>(
     String path,
     Object? body,
     T Function(dynamic json) decode, {
     bool requiresAuth = true,
-  }) =>
-      _send('PATCH', path, body, decode, requiresAuth: requiresAuth);
+  }) => _send('PATCH', path, body, decode, requiresAuth: requiresAuth);
 
   /// DELETE — most zinc deletes return no body, so this resolves to `Result<void>`
   /// (success carries no value). Handled separately since there's nothing to decode.
@@ -64,17 +67,27 @@ class ApiClient {
 
     http.Response res;
     try {
-      res = await _client.delete(baseUrl.resolve(path),
-          headers: headers, body: encoded);
+      res = await _client.delete(
+        baseUrl.resolve(path),
+        headers: headers,
+        body: encoded,
+      );
     } catch (e) {
       return Err(Problem.network(e));
     }
     if (res.statusCode < 200 || res.statusCode >= 300) {
       try {
-        return Err(Problem.fromJson(jsonDecode(res.body) as Map<String, dynamic>));
+        return Err(
+          Problem.fromJson(jsonDecode(res.body) as Map<String, dynamic>),
+        );
       } catch (_) {
-        return Err(Problem.local('Request failed',
-            status: res.statusCode, detail: res.body.isEmpty ? null : res.body));
+        return Err(
+          Problem.local(
+            'Request failed',
+            status: res.statusCode,
+            detail: res.body.isEmpty ? null : res.body,
+          ),
+        );
       }
     }
     return const Ok(null);
@@ -90,11 +103,13 @@ class ApiClient {
   }) async {
     var uri = baseUrl.resolve(path);
     if (query != null && query.isNotEmpty) {
-      uri = uri.replace(queryParameters: {
-        ...uri.queryParameters,
-        for (final e in query.entries)
-          if (e.value != null) e.key: '${e.value}',
-      });
+      uri = uri.replace(
+        queryParameters: {
+          ...uri.queryParameters,
+          for (final e in query.entries)
+            if (e.value != null) e.key: '${e.value}',
+        },
+      );
     }
 
     final headers = await _headers(requiresAuth: requiresAuth);
@@ -102,9 +117,11 @@ class ApiClient {
     // zinc actions bind [FromBody]; a bodyless POST/PUT/PATCH (e.g. optional-notes
     // complete/skip) must still send application/json or the server returns 415.
     // Send an empty object in that case.
-    final hasBodyVerb = method == 'POST' || method == 'PUT' || method == 'PATCH';
-    final encoded =
-        body != null ? jsonEncode(body) : (hasBodyVerb ? '{}' : null);
+    final hasBodyVerb =
+        method == 'POST' || method == 'PUT' || method == 'PATCH';
+    final encoded = body != null
+        ? jsonEncode(body)
+        : (hasBodyVerb ? '{}' : null);
     if (encoded != null) headers['Content-Type'] = 'application/json';
 
     http.Response res;
@@ -140,10 +157,17 @@ class ApiClient {
   Result<T> _handle<T>(http.Response res, T Function(dynamic json) decode) {
     if (res.statusCode < 200 || res.statusCode >= 300) {
       try {
-        return Err(Problem.fromJson(jsonDecode(res.body) as Map<String, dynamic>));
+        return Err(
+          Problem.fromJson(jsonDecode(res.body) as Map<String, dynamic>),
+        );
       } catch (_) {
-        return Err(Problem.local('Request failed',
-            status: res.statusCode, detail: res.body.isEmpty ? null : res.body));
+        return Err(
+          Problem.local(
+            'Request failed',
+            status: res.statusCode,
+            detail: res.body.isEmpty ? null : res.body,
+          ),
+        );
       }
     }
     try {

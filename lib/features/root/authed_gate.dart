@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/app_loader.dart';
 import 'package:provider/provider.dart';
 
 import '../../auth/auth_service.dart';
@@ -31,7 +32,7 @@ class _AuthedGateState extends State<AuthedGate> {
     switch (session.phase) {
       case SessionPhase.idle:
       case SessionPhase.bootstrapping:
-        return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        return const Scaffold(body: AppLoader());
       case SessionPhase.needsOnboarding:
         return const OnboardingView();
       case SessionPhase.ready:
@@ -56,8 +57,10 @@ class _BootstrapError extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(problem?.title ?? 'Something went wrong',
-                  style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                problem?.title ?? 'Something went wrong',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               if (problem?.detail != null) ...[
                 const SizedBox(height: 8),
                 Text(problem!.detail!, textAlign: TextAlign.center),

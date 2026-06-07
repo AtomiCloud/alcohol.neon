@@ -10,12 +10,14 @@ import 'package:flutter_test/flutter_test.dart';
 /// (jsonDecode → model.fromJson).
 void main() {
   test('Cause list decodes unwrapped principals', () {
-    final list = jsonDecode('''
+    final list =
+        jsonDecode('''
       [
         { "id": "c1", "key": "education", "name": "Education" },
         { "id": "c2", "key": "health" }
       ]
-    ''') as List<dynamic>;
+    ''')
+            as List<dynamic>;
 
     final causes = list
         .map((e) => CausePrincipalRes.fromJson(e as Map<String, Object?>))
@@ -27,11 +29,13 @@ void main() {
   });
 
   test('CauseRes wraps principal', () {
-    final json = jsonDecode('''
+    final json =
+        jsonDecode('''
       {
         "principal": { "id": "c1", "key": "education", "name": "Education" }
       }
-    ''') as Map<String, Object?>;
+    ''')
+            as Map<String, Object?>;
 
     final res = CauseRes.fromJson(json);
     expect(res.principal, isA<CausePrincipalRes>());

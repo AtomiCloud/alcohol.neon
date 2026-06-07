@@ -1,0 +1,10 @@
+# Per-flavor launcher icon (raichu / prod) — clean mascot, no banner.
+# `dart run flutter_launcher_icons` writes this into android/app/src/raichu/res.
+flutter_launcher_icons:
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  background_color_ios: '#FFFFFF'
+  image_path: 'assets/brand/icon-raichu.png'
+  adaptive_icon_background: '#FFFFFF'
+  adaptive_icon_foreground: 'assets/brand/icon-raichu.png'

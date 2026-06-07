@@ -1,0 +1,7 @@
+# pichu (dev) — overrides config/base.yaml
+zincBaseUrl: 'https://api.zinc.alcohol.pichu.cluster.atomi.cloud'
+logtoEndpoint: 'https://api.lithium.alcohol.pichu.cluster.atomi.cloud/'
+logtoAppId: 'k19tbzmnsndxnt1v6rfkm'
+zincResource: 'https://api.zinc.alcohol.pichu'
+redirectUri: 'cloud.atomi.alcohol.neon.pichu://callback'
+airwallexEnv: 'demo'

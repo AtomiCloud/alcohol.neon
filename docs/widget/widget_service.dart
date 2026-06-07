@@ -33,12 +33,23 @@ class WidgetService {
         total++;
         final isDone = h.status.isCompleteToday;
         if (isDone) done++;
-        items.add({'time': _hm(h.notificationTime), 'name': h.name ?? 'Habit', 'done': isDone});
+        items.add({
+          'time': _hm(h.notificationTime),
+          'name': h.name ?? 'Habit',
+          'done': isDone,
+        });
       }
-      items.sort((a, b) => (a['time'] as String? ?? '99:99')
-          .compareTo(b['time'] as String? ?? '99:99'));
-      final payload = jsonEncode(
-          {'date': _ymd(DateTime.now()), 'done': done, 'total': total, 'items': items});
+      items.sort(
+        (a, b) => (a['time'] as String? ?? '99:99').compareTo(
+          b['time'] as String? ?? '99:99',
+        ),
+      );
+      final payload = jsonEncode({
+        'date': _ymd(DateTime.now()),
+        'done': done,
+        'total': total,
+        'items': items,
+      });
       await HomeWidget.saveWidgetData<String>(_dataKey, payload);
       await HomeWidget.updateWidget(iOSName: _kind);
     } catch (_) {

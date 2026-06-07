@@ -1,0 +1,7 @@
+# raichu (prod) — overrides config/base.yaml
+zincBaseUrl: 'https://api.zinc.alcohol.raichu.cluster.atomi.cloud'
+logtoEndpoint: 'https://api.lithium.alcohol.raichu.cluster.atomi.cloud/'
+logtoAppId: 'xs57ue7owv8ehw9oq0izm'
+zincResource: 'https://api.zinc.alcohol.raichu'
+redirectUri: 'cloud.atomi.alcohol.neon.raichu://callback'
+airwallexEnv: 'production'

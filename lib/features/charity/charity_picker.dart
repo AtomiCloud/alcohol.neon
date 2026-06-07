@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../../widgets/app_loader.dart';
 
 import '../../core/problem.dart';
 import '../../data/cause_repository.dart';
@@ -102,8 +103,9 @@ class _CharityBrowseState extends State<CharityBrowse> {
       if (mounted && causesRes is Ok<List<CausePrincipalRes>>) {
         // Sort by full hierarchical name so parents group above their children.
         final sorted = [...causesRes.value]
-          ..sort((a, b) =>
-              (a.name ?? a.key ?? '').compareTo(b.name ?? b.key ?? ''));
+          ..sort(
+            (a, b) => (a.name ?? a.key ?? '').compareTo(b.name ?? b.key ?? ''),
+          );
         setState(() => _causes = sorted);
       }
     }
@@ -246,7 +248,7 @@ class _CharityBrowseState extends State<CharityBrowse> {
       return _ErrorRetry(problem: _error!, onRetry: _search);
     }
     if (_results == null) {
-      return const Center(child: CircularProgressIndicator());
+      return const AppLoader();
     }
     final items = _results!;
     if (items.isEmpty) {
@@ -301,8 +303,11 @@ class _CauseLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final segments =
-        name.split(' > ').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+    final segments = name
+        .split(' > ')
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
     final depth = segments.isEmpty ? 0 : segments.length - 1;
     final leaf = segments.isEmpty ? name : segments.last;
     return Padding(

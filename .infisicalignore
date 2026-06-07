@@ -1,0 +1,4 @@
+# infisical scan allowlist — false positives.
+# CocoaPods Podfile.lock / Dart pubspec.lock store dependency checksums
+# (hex hashes) that get misclassified as "generic-api-key" — not secrets.
+037e07a73543d3cf45d120c45e13dc9a2b97a78e:ios/Podfile.lock:generic-api-key:35

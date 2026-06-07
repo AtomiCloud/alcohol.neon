@@ -1,7 +1,21 @@
 version: '3'
+includes:
+  secret: tasks/Taskfile.secret.yaml
 
 # Run with `task <name>` (or the `pls` alias). Mirrors alcohol.argon's task layout.
 tasks:
+  # ── Template (AtomiCloud upstream) ───────────────────────────────────────
+  setup:
+    desc: Setup the repository
+    cmds:
+      - ./scripts/ci/setup.sh
+      - ./scripts/local/secrets.sh
+  lint:
+    desc: Lints the whole code-base
+    cmds:
+      - pre-commit run --all-files
+
+  # ── Project-specific (alcohol.neon) ──────────────────────────────────────
   generate:sdk:
     desc: Regenerate the zinc Dart DTOs from its OpenAPI spec (models-only)
     summary: |
@@ -14,11 +28,6 @@ tasks:
       Usage: pls generate:sdk -- [SPEC_URL]
     cmds:
       - ./scripts/generate-sdk.sh {{ .CLI_ARGS | default "https://api.zinc.alcohol.pichu.cluster.atomi.cloud/swagger/v1/swagger.json" }}
-
-  analyze:
-    desc: Static analysis
-    cmds:
-      - flutter analyze
 
   test:
     desc: Run unit tests

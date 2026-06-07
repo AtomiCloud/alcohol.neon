@@ -1,3 +1,10 @@
+## [1.0.3](https://github.com/AtomiCloud/alcohol.neon/compare/v1.0.2...v1.0.3) (2026-06-07)
+
+
+### 🐛 Bug Fixes 🐛
+
+* **ci:** build Android on mac_mini_m2 ([9c9c41d](https://github.com/AtomiCloud/alcohol.neon/commit/9c9c41d9c8d05adb9d3db783b0dd83859daa1606))
+
 ## [1.0.2](https://github.com/AtomiCloud/alcohol.neon/compare/v1.0.1...v1.0.2) (2026-06-07)
 
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/app_loader.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:provider/provider.dart';
 
@@ -272,7 +273,7 @@ class _SettingsViewState extends State<SettingsView> {
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const AppLoader()
           : _loadError != null
           ? _ErrorRetry(problem: _loadError!, onRetry: _load)
           : _content(context),
@@ -375,7 +376,7 @@ class _FieldCard extends StatelessWidget {
             Text(
               subtitle,
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.outline,
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -431,7 +432,9 @@ class _ConsentCard extends StatelessWidget {
           ListTile(
             leading: Icon(
               has ? Icons.verified_user : Icons.gpp_maybe,
-              color: has ? Colors.green.shade700 : theme.colorScheme.outline,
+              color: has
+                  ? Colors.green.shade700
+                  : theme.colorScheme.onSurfaceVariant,
             ),
             title: const Text('Payment consent'),
             subtitle: Text(detail),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/app_loader.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/problem.dart';
@@ -81,7 +82,7 @@ class _CharityDetailViewState extends State<CharityDetailView> {
     }
     final c = _charity;
     if (c == null) {
-      return const Center(child: CircularProgressIndicator());
+      return const AppLoader();
     }
 
     final theme = Theme.of(context);

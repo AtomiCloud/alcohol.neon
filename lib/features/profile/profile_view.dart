@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import '../../widgets/app_loader.dart';
 import 'package:provider/provider.dart';
 
 import '../../auth/auth_service.dart';
+import '../dev/dev_config_view.dart';
 import '../../core/problem.dart';
 import '../../generated/zinc/models/user_principal_res.dart';
 import '../../session/session_controller.dart';
@@ -25,10 +29,30 @@ class _ProfileViewState extends State<ProfileView> {
   bool _loading = true;
   Problem? _error;
 
+  // Secret dev-menu entry: 7 taps on the name, then the dev password.
+  int _nameTaps = 0;
+  Timer? _tapReset;
+
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _tapReset?.cancel();
+    super.dispose();
+  }
+
+  void _onNameTap() {
+    _tapReset?.cancel();
+    _tapReset = Timer(const Duration(seconds: 2), () => _nameTaps = 0);
+    if (++_nameTaps >= 7) {
+      _nameTaps = 0;
+      _tapReset?.cancel();
+      openDevConfig(context);
+    }
   }
 
   Future<void> _load() async {
@@ -75,7 +99,7 @@ class _ProfileViewState extends State<ProfileView> {
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const AppLoader()
           : _error != null
           ? _ErrorRetry(problem: _error!, onRetry: _load)
           : _content(context),
@@ -116,16 +140,20 @@ class _ProfileViewState extends State<ProfileView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    displayName,
-                    style: theme.textTheme.titleLarge,
-                    overflow: TextOverflow.ellipsis,
+                  GestureDetector(
+                    onTap: _onNameTap,
+                    behavior: HitTestBehavior.opaque,
+                    child: Text(
+                      displayName,
+                      style: theme.textTheme.titleLarge,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                   if (email.isNotEmpty)
                     Text(
                       email,
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.outline,
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -202,7 +230,7 @@ class _FieldCard extends StatelessWidget {
             Text(
               label,
               style: theme.textTheme.labelMedium?.copyWith(
-                color: theme.colorScheme.outline,
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 4),
@@ -211,7 +239,7 @@ class _FieldCard extends StatelessWidget {
             Text(
               subtitle,
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.outline,
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
           ],

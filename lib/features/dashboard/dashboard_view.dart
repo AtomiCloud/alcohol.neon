@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/app_loader.dart';
 import 'package:provider/provider.dart';
 
 import '../../theme/app_theme.dart';
@@ -112,9 +113,7 @@ class _DashboardScaffold extends StatelessWidget {
             )
           : null,
       body: switch (c.phase) {
-        DashboardPhase.loading => const Center(
-          child: CircularProgressIndicator(),
-        ),
+        DashboardPhase.loading => const AppLoader(),
         DashboardPhase.error => _ErrorRetry(
           message: c.error?.detail ?? c.error?.title ?? 'Could not load habits',
           onRetry: c.load,
@@ -593,6 +592,11 @@ class _HabitCard extends StatelessWidget {
         ),
         const SizedBox(width: 8),
         OutlinedButton(
+          // The theme's default minimumSize is Size.fromHeight(50) == infinite
+          // min width, which is fine for a full-width button but crashes layout
+          // ("BoxConstraints forces an infinite width") for a non-flex child in
+          // a Row. Pin a bounded min width so Skip sizes to its content.
+          style: OutlinedButton.styleFrom(minimumSize: const Size(88, 50)),
           onPressed: canSkip ? () => controller.skip(habit) : null,
           child: const Text('Skip'),
         ),

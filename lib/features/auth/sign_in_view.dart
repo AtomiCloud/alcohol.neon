@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../auth/auth_service.dart';
+import '../../config/landscape.dart';
+import '../dev/dev_config_view.dart';
 
 /// Signed-out screen. Kicks off Logto's browser-based sign-in.
 class SignInView extends StatefulWidget {
@@ -14,10 +18,32 @@ class SignInView extends StatefulWidget {
 class _SignInViewState extends State<SignInView> {
   bool _signingIn = false;
 
+  // Secret dev-menu entry: 7 taps on the logo (resets after a 2s pause).
+  int _logoTaps = 0;
+  Timer? _tapReset;
+
+  void _onLogoTap() {
+    _tapReset?.cancel();
+    _tapReset = Timer(const Duration(seconds: 2), () => _logoTaps = 0);
+    if (++_logoTaps >= 7) {
+      _logoTaps = 0;
+      _tapReset?.cancel();
+      openDevConfig(context, requirePassword: false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _tapReset?.cancel();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.read<AuthService>();
-    final outline = Theme.of(context).colorScheme.outline;
+    // onSurfaceVariant stays readable in dark mode; `outline` (~#333) vanishes.
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    final isProd = auth.config.landscape == Landscape.raichu;
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -25,10 +51,14 @@ class _SignInViewState extends State<SignInView> {
           child: Column(
             children: [
               const Spacer(),
-              Image.asset(
-                'assets/brand/logo.png',
-                height: 112,
-                semanticLabel: 'LazyTax logo',
+              GestureDetector(
+                onTap: _onLogoTap,
+                behavior: HitTestBehavior.opaque,
+                child: Image.asset(
+                  'assets/brand/logo.png',
+                  height: 112,
+                  semanticLabel: 'LazyTax logo',
+                ),
               ),
               const SizedBox(height: 16),
               Text(
@@ -43,7 +73,7 @@ class _SignInViewState extends State<SignInView> {
                 textAlign: TextAlign.center,
                 style: Theme.of(
                   context,
-                ).textTheme.bodyLarge?.copyWith(color: outline),
+                ).textTheme.bodyLarge?.copyWith(color: muted),
               ),
               const Spacer(),
               SizedBox(
@@ -66,12 +96,14 @@ class _SignInViewState extends State<SignInView> {
                 ),
               ),
               const SizedBox(height: 12),
-              Text(
-                'Environment: ${auth.config.landscape.name}',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: outline),
-              ),
+              // Env label on every landscape except prod (raichu).
+              if (!isProd)
+                Text(
+                  'Environment: ${auth.config.landscape.name}',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: muted),
+                ),
             ],
           ),
         ),

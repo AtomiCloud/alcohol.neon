@@ -50,6 +50,12 @@ dependencies:
   timezone: ^0.10.0
   # App's own bundle id at runtime → AppConfig selects the landscape (bundle-id-as-marker).
   package_info_plus: ^8.0.0
+  # Parse the layered config/*.yaml at startup.
+  yaml: ^3.1.2
+  # Persist dev-menu config overrides to an app-private JSON file.
+  path_provider: ^2.1.5
+  # Lottie loading animation (the sloth loader, shared with argon).
+  lottie: ^3.1.2
 
 # Pin path_provider_foundation below the version that adopted Flutter's experimental
 # native-assets/FFI (objective_c), which doesn't build cleanly under the nixpkgs Flutter
@@ -72,6 +78,10 @@ dev_dependencies:
   swagger_parser: ^1.43.1
   build_runner: ^2.15.0
   json_serializable: ^6.14.0
+  # iOS flavor generation (schemes + per-flavor bundle ids). Run ONLY the iOS
+  # processors so it never touches the hand-built Android flavors:
+  #   flutter pub run flutter_flavorizr -p ios:xcconfig,ios:buildConfig,ios:plist,ios:schema
+  flutter_flavorizr: ^2.2.3
 
 # App-icon generation. Run: dart run flutter_launcher_icons
 # iOS icons can't be transparent, so the transparent logo is flattened onto a background.
@@ -83,6 +93,33 @@ flutter_launcher_icons:
   background_color_ios: '#FFFFFF'
   adaptive_icon_background: '#FFFFFF'
   adaptive_icon_foreground: 'assets/brand/logo.png'
+
+# iOS flavors. Android flavors are hand-maintained in android/app/build.gradle.kts,
+# so only run flutter_flavorizr's iOS processors (see the dev_dependency note).
+# iOS bundle ids match the App Store Connect apps + the Logto callback schemes.
+flavorizr:
+  flavors:
+    pichu:
+      app:
+        name: 'LazyTax (Pichu)'
+      ios:
+        bundleId: 'cloud.atomi.alcohol.neon.pichu'
+      android:
+        applicationId: 'cloud.atomi.alcohol_neon.pichu'
+    pikachu:
+      app:
+        name: 'LazyTax (Pikachu)'
+      ios:
+        bundleId: 'cloud.atomi.alcohol.neon.pikachu'
+      android:
+        applicationId: 'cloud.atomi.alcohol_neon.pikachu'
+    raichu:
+      app:
+        name: 'LazyTax'
+      ios:
+        bundleId: 'cloud.atomi.alcohol.neon.raichu'
+      android:
+        applicationId: 'cloud.atomi.alcohol_neon.raichu'
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -96,6 +133,11 @@ flutter:
 
   assets:
     - assets/brand/
+    - assets/animations/
+    - config/base.yaml
+    - config/pichu.yaml
+    - config/pikachu.yaml
+    - config/raichu.yaml
 
   # To add assets to your application, add an assets section, like this:
   # assets:

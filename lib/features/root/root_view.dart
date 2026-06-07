@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/app_loader.dart';
 import 'package:provider/provider.dart';
 
 import '../../auth/auth_service.dart';
@@ -14,7 +15,7 @@ class RootView extends StatelessWidget {
     final status = context.watch<AuthService>().status;
     switch (status) {
       case AuthStatus.loading:
-        return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        return const Scaffold(body: AppLoader());
       case AuthStatus.unauthenticated:
         return const SignInView();
       case AuthStatus.authenticated:

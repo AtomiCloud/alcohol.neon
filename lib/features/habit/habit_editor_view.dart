@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/app_loader.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/problem.dart';
@@ -303,7 +304,7 @@ class _HabitEditorViewState extends State<HabitEditorView> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const AppLoader()
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [

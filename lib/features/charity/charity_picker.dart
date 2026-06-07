@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../../widgets/app_loader.dart';
 
 import '../../core/problem.dart';
 import '../../data/cause_repository.dart';
@@ -247,7 +248,7 @@ class _CharityBrowseState extends State<CharityBrowse> {
       return _ErrorRetry(problem: _error!, onRetry: _search);
     }
     if (_results == null) {
-      return const Center(child: CircularProgressIndicator());
+      return const AppLoader();
     }
     final items = _results!;
     if (items.isEmpty) {

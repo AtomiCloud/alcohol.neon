@@ -7,13 +7,30 @@ import 'package:alcohol_neon/config/landscape.dart';
 import 'package:alcohol_neon/core/problem.dart';
 
 void main() {
-  test('AppConfig resolves landscape + defaults from its bundle id', () {
-    final config = AppConfig.resolveForPackage(
-      'cloud.atomi.alcohol.neon.pichu',
+  // Needed so AppConfig can load the config/*.yaml assets via rootBundle.
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  test(
+    'AppConfig resolves landscape + layered config from its bundle id',
+    () async {
+      final config = await AppConfig.resolveForPackage(
+        'cloud.atomi.alcohol.neon.pichu',
+      );
+      expect(config.landscape, Landscape.pichu);
+      expect(config.redirectUri, 'cloud.atomi.alcohol.neon.pichu://callback');
+      expect(config.logtoEndpoint, contains('pichu')); // from pichu.yaml
+      expect(config.logtoAppId, 'k19tbzmnsndxnt1v6rfkm'); // from pichu.yaml
+      expect(config.scopes, contains('openid')); // inherited from base.yaml
+    },
+  );
+
+  test('AppConfig resolves raichu from its .raichu bundle id suffix', () async {
+    final config = await AppConfig.resolveForPackage(
+      'cloud.atomi.alcohol.neon.raichu',
     );
-    expect(config.landscape, Landscape.pichu);
-    expect(config.redirectUri, 'cloud.atomi.alcohol.neon://callback');
-    expect(config.logtoEndpoint, isNotEmpty);
+    expect(config.landscape, Landscape.raichu);
+    expect(config.redirectUri, 'cloud.atomi.alcohol.neon.raichu://callback');
+    expect(config.airwallexEnv, Environment.production); // overrides base demo
   });
 
   test('apiResources is empty when no zinc resource is configured', () {
@@ -38,12 +55,12 @@ void main() {
     expect(withoutResource.apiResources, isEmpty);
   });
 
-  test('AppConfig resolves an Airwallex environment per landscape', () {
-    final config = AppConfig.resolveForPackage(
+  test('AppConfig resolves an Airwallex environment per landscape', () async {
+    final config = await AppConfig.resolveForPackage(
       'cloud.atomi.alcohol.neon.pikachu',
     );
     expect(config.landscape, Landscape.pikachu);
-    expect(Environment.values.contains(config.airwallexEnv), isTrue);
+    expect(config.airwallexEnv, Environment.production);
   });
 
   test('Result pattern matching', () {

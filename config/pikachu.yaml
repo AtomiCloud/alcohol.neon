@@ -1,0 +1,7 @@
+# pikachu (stage) — overrides config/base.yaml
+zincBaseUrl: 'https://api.zinc.alcohol.pikachu.cluster.atomi.cloud'
+logtoEndpoint: 'https://api.lithium.alcohol.pikachu.cluster.atomi.cloud/'
+logtoAppId: 'vprclp36pfsi3cedlzv42'
+zincResource: 'https://api.zinc.alcohol.pikachu'
+redirectUri: 'cloud.atomi.alcohol.neon.pikachu://callback'
+airwallexEnv: 'production'

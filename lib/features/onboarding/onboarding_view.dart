@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/app_loader.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:provider/provider.dart';
 
@@ -107,7 +108,7 @@ class _OnboardingViewState extends State<OnboardingView> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(body: AppLoader());
     }
     final theme = Theme.of(context);
     final canSubmit = _timezone != null && _charity?.id != null && !_submitting;
@@ -126,7 +127,7 @@ class _OnboardingViewState extends State<OnboardingView> {
             'Your timezone sets when each day ends. Your default charity receives '
             'stakes from missed habits — you can change both later.',
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.outline,
+              color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 24),

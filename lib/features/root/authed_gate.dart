@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/app_loader.dart';
 import 'package:provider/provider.dart';
 
 import '../../auth/auth_service.dart';
@@ -31,7 +32,7 @@ class _AuthedGateState extends State<AuthedGate> {
     switch (session.phase) {
       case SessionPhase.idle:
       case SessionPhase.bootstrapping:
-        return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        return const Scaffold(body: AppLoader());
       case SessionPhase.needsOnboarding:
         return const OnboardingView();
       case SessionPhase.ready:

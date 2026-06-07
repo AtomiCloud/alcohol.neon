@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/app_loader.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:provider/provider.dart';
 
@@ -193,7 +194,7 @@ class _VacationCreateViewState extends State<VacationCreateView> {
   @override
   Widget build(BuildContext context) {
     if (_loadingTz) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(body: AppLoader());
     }
     final theme = Theme.of(context);
     final canSubmit =

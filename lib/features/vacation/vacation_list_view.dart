@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/app_loader.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/date_format.dart';
@@ -53,9 +54,7 @@ class _VacationScaffold extends StatelessWidget {
             )
           : null,
       body: switch (c.phase) {
-        VacationPhase.loading => const Center(
-          child: CircularProgressIndicator(),
-        ),
+        VacationPhase.loading => const AppLoader(),
         VacationPhase.error => _ErrorRetry(
           message:
               c.error?.detail ?? c.error?.title ?? 'Could not load vacations',

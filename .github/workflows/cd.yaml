@@ -26,6 +26,11 @@ concurrency:
   group: cd-${{ github.ref }}
   cancel-in-progress: false
 
+# Least privilege: jobs only read the repo (checkout) and upload artifacts.
+# Store publishing uses service-account creds, not GITHUB_TOKEN.
+permissions:
+  contents: read
+
 jobs:
   # Compute the build matrix: all 3 flavors on a tag, just the chosen one on a
   # manual run. (matrix can't be referenced in a job-level `if`, so we filter the
@@ -74,7 +79,13 @@ jobs:
       CERTIFICATE_PRIVATE_KEY: ${{ secrets.CERTIFICATE_PRIVATE_KEY }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
+      # NOTE: these mobile jobs run OUTSIDE the nix shell on purpose — a sanctioned
+      # exception to the "all tools via nix" policy. See docs/developer/standard/nix.md
+      # and docs/github-actions-release.md for why (nix C/C++ toolchain hijacks Xcode).
+      #
       # macOS ships openrsync, which ignores --chmod → read-only Flutter.framework
       # → lipo fails. GNU rsync (Homebrew) fixes it; put it ahead of /usr/bin.
       - name: Install GNU rsync
@@ -156,6 +167,8 @@ jobs:
       FLAVOR: ${{ matrix.flavor }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-java@v4
         with:

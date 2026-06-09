@@ -77,10 +77,15 @@ app.*.map.json
 *.p12
 *.pem
 *.key
+signingkey
+*.p8
+AuthKey_*.p8
 *.dev.vars
 .dev.vars
 secrets.*
 *.secret
+*.env
+release-secrets.env
 
 # Cloud service-account keys — NEVER commit
 grand-hangar-498620-q5-1ef3ec32bf70.json

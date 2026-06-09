@@ -1,6 +1,12 @@
 # alcohol.neon — Mobile Release Strategy (App Store + Play Store, 3 Landscapes)
 
-> Scope: Flutter (iOS 17+/Android) app `alcohol.neon`, part of AtomiCloud's "alcohol" product. Three published channels mapped to AtomiCloud landscapes: **pichu** (dev), **pikachu** (stage), **raichu** (prod). CI = **Codemagic**. Apple Developer Program and Google Play Console already paid for.
+> ⚠️ **CI tool superseded (2026-06):** the pipeline has migrated from Codemagic to **GitHub Actions**
+> (`.github/workflows/cd.yaml`); `codemagic.yaml` has been removed. The store-identity, signing, and
+> channel-strategy content below is still accurate — but wherever this doc says "Codemagic CI",
+> "Codemagic env group", or "Codemagic workflow", read it as the equivalent GHA job + org-level
+> GitHub Actions secret. The operational runbook is now [github-actions-release.md](github-actions-release.md).
+
+> Scope: Flutter (iOS 17+/Android) app `alcohol.neon`, part of AtomiCloud's "alcohol" product. Three published channels mapped to AtomiCloud landscapes: **pichu** (dev), **pikachu** (stage), **raichu** (prod). CI = **GitHub Actions** (was Codemagic). Apple Developer Program and Google Play Console already paid for.
 >
 > Status note: the foundation PR (#2, `feat: foundation`) scaffolds the Flutter iOS/Android project, `AppConfig`, the `Landscape` enum, and `--dart-define` config injection — assume it is merged to `main`. There is **no `codemagic.yaml`, no real signing config, and no per-flavor setup yet** (Android release currently signs with debug keys; iOS has no signing config). This document is written so the identity/signing/CI scheme is baked in before the first store upload rather than retrofitted.
 >

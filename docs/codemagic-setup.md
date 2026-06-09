@@ -1,7 +1,15 @@
-# LazyTax (alcohol.neon) — Codemagic + Store Setup Runbook
+# LazyTax (alcohol.neon) — Store Setup Runbook (was: Codemagic)
+
+> ⚠️ **Codemagic has been replaced by GitHub Actions** (`.github/workflows/cd.yaml`); `codemagic.yaml`
+> is removed. **Parts 3–9 (store identities, ASC API key, keystore, Play service account) are still
+> the source of truth** — those records are reused by the GHA pipeline. **Part 10 (loading credentials
+> into Codemagic) is obsolete:** the same materials now live as org-level GitHub Actions secrets
+> (synced from Infisical `raichu`) — see [github-actions-release.md](github-actions-release.md) for the
+> secret names and the build/publish flow.
 
 Step-by-step setup for shipping **3 channels** of the LazyTax app (codename _neon_) to the
-App Store and Play Store, with Codemagic automating signing + publishing.
+App Store and Play Store. Signing + publishing is automated by GitHub Actions (these parts cover the
+one-time Apple/Google **identity** setup the pipeline depends on).
 
 - **pichu** = dev → **TestFlight internal + Play internal** (not public)
 - **pikachu** = stage → **TestFlight external + Play closed** (not public)

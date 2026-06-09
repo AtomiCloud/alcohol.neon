@@ -287,6 +287,16 @@ existing-group // my-org
 
 **If a binary cannot be packaged in nix** (e.g., it's only available via `npm install` or another non-nix package manager), either add the path via `.envrc` `PATH_add` (if its existence is repo-declared), or use downstream task runners to invoke it explicitly (e.g., `npx`, `pnpm exec`).
 
+**Exception — mobile release CI/CD (`.github/workflows/cd.yaml`):** the iOS/Android build+sign+publish
+jobs deliberately do **not** run inside the nix shell. The nix dev shell exports a full C/C++ stdenv that
+hijacks Xcode's iOS build (`scripts/flutter-ios.sh` exists to unwind this locally), and the
+flutter-on-nix toolchain carries platform gotchas (the `path_provider_foundation` pin, openrsync vs GNU
+rsync). Those jobs therefore use a standalone Flutter (`subosito/flutter-action`) plus the runner's system
+Xcode/Android SDK, and install a couple of CI-only tools outside nix (`brew install rsync`, `pipx install
+codemagic-cli-tools`). This is the one sanctioned deviation from "all binaries via nix" — local
+development and the lint/test/release jobs still use nix. See
+[github-actions-release.md](../../github-actions-release.md) for the rationale.
+
 ## Usage Commands
 
 | Action            | Command                        |

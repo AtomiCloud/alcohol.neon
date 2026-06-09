@@ -125,8 +125,14 @@ flutter pub run flutter_launcher_icons   # regenerate launcher icons from assets
 ## Release channels
 
 3 channels map to landscapes — pichu (dev), pikachu (stage), raichu (prod) — as 3 bundle ids,
-built/signed/published via Codemagic. See [docs/release-strategy.md](docs/release-strategy.md) and
-[docs/codemagic-setup.md](docs/codemagic-setup.md).
+built/signed/published by **GitHub Actions** (`.github/workflows/cd.yaml`) on every `v*.*.*` tag
+(semantic-release cuts these on `main`): iOS → TestFlight, Android → Play internal; prod (raichu)
+promotion to the public App Store / Play production stays a manual gate. Signing secrets live as
+org-level GitHub Actions secrets (synced from Infisical `raichu`). See
+[docs/github-actions-release.md](docs/github-actions-release.md) for the runbook,
+[docs/release-strategy.md](docs/release-strategy.md) for the channel strategy, and
+[docs/codemagic-setup.md](docs/codemagic-setup.md) for the store/identity setup.
+**Codemagic has been removed** — `codemagic.yaml` is gone; the migration to GHA is the current pipeline.
 
 ## Known setup dependency
 

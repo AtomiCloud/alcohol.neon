@@ -1,12 +1,232 @@
 name: CD
+
+# Build, sign, and publish all 3 LazyTax (alcohol.neon) flavors on every v*.*.*
+# tag (semantic-release cuts these on main) — iOS → TestFlight, Android → Play
+# internal. Replaces Codemagic; signing material comes from org-level GitHub
+# Actions secrets (synced from Infisical raichu). raichu (prod) uploads to
+# TestFlight / Play internal automatically; promotion to the public App Store /
+# Play production stays MANUAL.
+#
+# Manual runs: use the "Run workflow" button (workflow_dispatch) and pick a
+# flavor to smoke-test a single channel without cutting a release.
+
 on:
   push:
     tags:
       - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      flavor:
+        description: Flavor to build (manual runs only)
+        type: choice
+        default: pichu
+        options: [pichu, pikachu, raichu]
+
+concurrency:
+  group: cd-${{ github.ref }}
+  cancel-in-progress: false
+
+# Least privilege: jobs only read the repo (checkout) and upload artifacts.
+# Store publishing uses service-account creds, not GITHUB_TOKEN.
+permissions:
+  contents: read
+
 jobs:
-  placeholder:
-    name: Placeholder CD
+  # Compute the build matrix: all 3 flavors on a tag, just the chosen one on a
+  # manual run. (matrix can't be referenced in a job-level `if`, so we filter the
+  # matrix itself instead of spinning up — and skipping — idle macOS runners.)
+  setup:
+    name: Resolve matrix
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set.outputs.matrix }}
     steps:
-      - name: Placeholder Step
-        run: echo "Placeholder step ${{ github.ref_name }}"
+      - id: set
+        env:
+          EVENT: ${{ github.event_name }}
+          SEL: ${{ github.event.inputs.flavor }}
+        run: |
+          set -euo pipefail
+          ALL='[
+            {"flavor":"pichu","bundle_id":"cloud.atomi.alcohol.neon.pichu","apple_id":"6777280038","package_name":"cloud.atomi.alcohol_neon.pichu"},
+            {"flavor":"pikachu","bundle_id":"cloud.atomi.alcohol.neon.pikachu","apple_id":"6777280047","package_name":"cloud.atomi.alcohol_neon.pikachu"},
+            {"flavor":"raichu","bundle_id":"cloud.atomi.alcohol.neon.raichu","apple_id":"6777280099","package_name":"cloud.atomi.alcohol_neon.raichu"}
+          ]'
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            FILTERED=$(echo "$ALL" | jq -c --arg f "$SEL" '[.[] | select(.flavor==$f)]')
+          else
+            FILTERED=$(echo "$ALL" | jq -c '.')
+          fi
+          echo "matrix={\"include\":$FILTERED}" >> "$GITHUB_OUTPUT"
+
+  # ── iOS → TestFlight ─────────────────────────────────────────────────────────
+  ios:
+    name: iOS ${{ matrix.flavor }}
+    needs: setup
+    runs-on: nscloud-macos-sequoia-arm64-6x14
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
+    env:
+      FLAVOR: ${{ matrix.flavor }}
+      BUNDLE_ID: ${{ matrix.bundle_id }}
+      APP_STORE_APPLE_ID: ${{ matrix.apple_id }}
+      # codemagic-cli-tools reads these by convention.
+      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.APP_STORE_CONNECT_KEY_IDENTIFIER }}
+      APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+      CERTIFICATE_PRIVATE_KEY: ${{ secrets.CERTIFICATE_PRIVATE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      # NOTE: these mobile jobs run OUTSIDE the nix shell on purpose — a sanctioned
+      # exception to the "all tools via nix" policy. See docs/developer/standard/nix.md
+      # and docs/github-actions-release.md for why (nix C/C++ toolchain hijacks Xcode).
+      #
+      # macOS ships openrsync, which ignores --chmod → read-only Flutter.framework
+      # → lipo fails. GNU rsync (Homebrew) fixes it; put it ahead of /usr/bin.
+      - name: Install GNU rsync
+        run: |
+          set -euo pipefail
+          brew install rsync
+          echo "/opt/homebrew/bin" >> "$GITHUB_PATH"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install codemagic-cli-tools
+        run: pipx install codemagic-cli-tools
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Pod install
+        run: |
+          set -euo pipefail
+          cd ios && pod install
+
+      - name: Set up code signing (create + fetch the app_store profile)
+        run: |
+          set -euo pipefail
+          keychain initialize
+          # Reuses the existing Apple Distribution cert that matches
+          # CERTIFICATE_PRIVATE_KEY; --create only mints one if none matches.
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --certificate-key @env:CERTIFICATE_PRIVATE_KEY \
+            --create
+          keychain add-certificates
+          xcode-project use-profiles --export-options-plist "$HOME/export_options.plist"
+
+      - name: Build signed IPA
+        run: |
+          set -euo pipefail
+          LATEST=$(app-store-connect get-latest-build-number "$APP_STORE_APPLE_ID" || echo 0)
+          BUILD_NUMBER=$(( ${LATEST:-0} + 1 ))
+          # Version name = release tag (v1.2.3 -> 1.2.3). Empty on manual runs
+          # (not a tag) → flag dropped and pubspec's version is used.
+          BUILD_NAME=""
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then BUILD_NAME="${GITHUB_REF_NAME#v}"; fi
+          flutter build ipa --release \
+            --flavor "$FLAVOR" \
+            ${BUILD_NAME:+--build-name="$BUILD_NAME"} \
+            --build-number="$BUILD_NUMBER" \
+            --export-options-plist="$HOME/export_options.plist"
+
+      - name: Publish to TestFlight
+        run: |
+          set -euo pipefail
+          app-store-connect publish \
+            --path "build/ios/ipa/*.ipa" \
+            --testflight
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ipa-${{ matrix.flavor }}
+          path: build/ios/ipa/*.ipa
+          if-no-files-found: warn
+
+  # ── Android → Google Play (internal track) ───────────────────────────────────
+  android:
+    name: Android ${{ matrix.flavor }}
+    needs: setup
+    runs-on:
+      - nscloud-ubuntu-22.04-amd64-32x64-with-cache
+      - nscloud-cache-size-50gb
+      - nscloud-cache-tag-atomi-nix-store-cache
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
+    env:
+      FLAVOR: ${{ matrix.flavor }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Decode upload keystore + write key.properties
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          KS="$GITHUB_WORKSPACE/android/app/upload-keystore.jks"
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$KS"
+          # Consumed by the existing key.properties path in android/app/build.gradle.kts.
+          cat > "$GITHUB_WORKSPACE/android/key.properties" <<EOF
+          storeFile=$KS
+          storePassword=$ANDROID_KEYSTORE_PASSWORD
+          keyAlias=$ANDROID_KEY_ALIAS
+          keyPassword=$ANDROID_KEY_PASSWORD
+          EOF
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Build signed AAB
+        run: |
+          set -euo pipefail
+          # versionCode = run_number (monotonic, unique per Play app).
+          BUILD_NAME=""
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then BUILD_NAME="${GITHUB_REF_NAME#v}"; fi
+          flutter build appbundle --release \
+            --flavor "$FLAVOR" \
+            ${BUILD_NAME:+--build-name="$BUILD_NAME"} \
+            --build-number="${{ github.run_number }}"
+
+      - name: Publish to Play internal track
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: ${{ matrix.package_name }}
+          releaseFiles: build/app/outputs/bundle/${{ matrix.flavor }}Release/*.aab
+          track: internal
+          status: completed
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aab-${{ matrix.flavor }}
+          path: |
+            build/app/outputs/bundle/${{ matrix.flavor }}Release/*.aab
+            build/app/outputs/mapping/${{ matrix.flavor }}Release/mapping.txt
+          if-no-files-found: warn

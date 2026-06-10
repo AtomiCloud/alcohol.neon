@@ -32,6 +32,11 @@ keyAlias=$ANDROID_KEY_ALIAS
 keyPassword=$ANDROID_KEY_PASSWORD
 EOF
 
+# Run the Kotlin compiler in-process. The forked Kotlin compile daemon intermittently dies on
+# the CI runner ("daemon terminated unexpectedly on startup … No such file or directory"),
+# failing :compileKotlin nondeterministically; in-process removes the daemon entirely.
+printf '\nkotlin.compiler.execution.strategy=in-process\n' >>"$GITHUB_WORKSPACE/android/gradle.properties"
+
 flutter pub get
 
 # versionCode = highest existing Play build number (across all tracks) + 1. Mirrors the iOS

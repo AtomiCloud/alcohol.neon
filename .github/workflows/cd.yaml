@@ -84,6 +84,16 @@ jobs:
         with:
           namespacelabs: 'false'
 
+      # App Store Connect requires the iOS 26 SDK (Xcode 26+). The runner's default
+      # /Applications/Xcode.app is older (iOS 18 SDK), so point the build at the newest
+      # installed Xcode. scripts/flutter-ios.sh + the IPA re-export honour DEVELOPER_DIR_OVERRIDE.
+      - name: Select newest Xcode
+        run: |
+          set -euo pipefail
+          XCODE=$(printf '%s\n' /Applications/Xcode*.app | sort -V | tail -1)
+          echo "Selected $XCODE"
+          echo "DEVELOPER_DIR_OVERRIDE=$XCODE/Contents/Developer" >> "$GITHUB_ENV"
+
       # codemagic-cli-tools isn't in nixpkgs; install it with the nix-provided pipx
       # (cached) into ~/.local/bin, then expose it to later steps.
       - name: Install codemagic-cli-tools

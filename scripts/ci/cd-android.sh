@@ -32,10 +32,11 @@ keyAlias=$ANDROID_KEY_ALIAS
 keyPassword=$ANDROID_KEY_PASSWORD
 EOF
 
-# Run the Kotlin compiler in-process. The forked Kotlin compile daemon intermittently dies on
-# the CI runner ("daemon terminated unexpectedly on startup … No such file or directory"),
-# failing :compileKotlin nondeterministically; in-process removes the daemon entirely.
-printf '\nkotlin.compiler.execution.strategy=in-process\n' >>"$GITHUB_WORKSPACE/android/gradle.properties"
+# The Kotlin compile worker/daemon intermittently dies on the CI runner ("daemon terminated
+# unexpectedly on startup … No such file or directory"), failing :compileKotlin
+# nondeterministically. Ask Kotlin to run in-process (best effort) — and the build is retried
+# below to absorb the flake when the daemon still loses the race.
+printf '\nkotlin.compiler.execution.strategy=in-process\norg.gradle.workers.max=1\n' >>"$GITHUB_WORKSPACE/android/gradle.properties"
 
 flutter pub get
 
@@ -52,4 +53,16 @@ if [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
   build_args+=(--build-name="${GITHUB_REF_NAME#v}")
 fi
 
-flutter build appbundle "${build_args[@]}"
+# Retry to absorb the intermittent Kotlin compile-daemon crash (see above).
+attempts=3
+for attempt in $(seq 1 "$attempts"); do
+  if flutter build appbundle "${build_args[@]}"; then
+    break
+  fi
+  if [ "$attempt" -eq "$attempts" ]; then
+    echo "appbundle build failed after $attempts attempts" >&2
+    exit 1
+  fi
+  echo "appbundle build attempt $attempt failed; cleaning Kotlin daemon state and retrying…" >&2
+  rm -rf "${HOME}/.kotlin/daemon" 2>/dev/null || true
+done

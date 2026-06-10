@@ -105,8 +105,13 @@ jobs:
       - name: Build signed IPA
         run: nix develop .#cd-ios -c ./scripts/ci/cd-ios.sh
 
+      # Upload only (no --testflight): the build lands in TestFlight for INTERNAL testers once
+      # Apple finishes processing — no beta-review submission needed. --testflight additionally
+      # waits for processing to submit for EXTERNAL beta review, which flakily times out on
+      # Apple's side and fails the job even though the upload succeeded. External/public
+      # promotion stays a manual gate (see docs/release-strategy.md).
       - name: Publish to TestFlight
-        run: app-store-connect publish --path "build/ios/ipa/*.ipa" --testflight
+        run: app-store-connect publish --path "build/ios/ipa/*.ipa"
 
       - uses: actions/upload-artifact@v4
         with:

@@ -2,16 +2,17 @@
 set -euo pipefail
 
 # Builds + signs a single iOS flavor into a release IPA (build/ios/ipa/*.ipa).
-# Toolchain (flutter, CocoaPods, GNU rsync, codemagic-cli-tools) is provisioned by the
-# workflow; this script owns the imperative build/sign logic so it stays runnable locally:
+# Runs INSIDE the nix dev shell (`nix develop .#cd-ios -c ./scripts/ci/cd-ios.sh`) so the
+# toolchain (flutter, CocoaPods, GNU rsync, pipx) comes from the shared nix cache. pipx-installed
+# codemagic-cli-tools (keychain/app-store-connect/xcode-project) are on PATH via ~/.local/bin:
 #
-#   FLAVOR=pichu BUNDLE_ID=cloud.atomi.alcohol.neon.pichu APP_STORE_APPLE_ID=6777280038 \
-#   APP_STORE_CONNECT_ISSUER_ID=... APP_STORE_CONNECT_KEY_IDENTIFIER=... \
-#   APP_STORE_CONNECT_PRIVATE_KEY=... CERTIFICATE_PRIVATE_KEY=... \
-#   ./scripts/ci/cd-ios.sh
+#   nix develop .#cd-ios -c env FLAVOR=pichu BUNDLE_ID=cloud.atomi.alcohol.neon.pichu \
+#   APP_STORE_APPLE_ID=6777280038 APP_STORE_CONNECT_ISSUER_ID=... ... ./scripts/ci/cd-ios.sh
 #
-# NOTE: deliberately NOT run inside the nix dev shell — nix hijacks the C/C++ toolchain and
-# breaks xcodebuild (see docs/github-actions-release.md "How signing works (no nix)").
+# NOTE: nix exports a C/C++ stdenv that hijacks xcodebuild, so the actual `flutter build ipa`
+# goes through scripts/flutter-ios.sh, which strips the nix toolchain vars and points
+# DEVELOPER_DIR at real Xcode. pub get / pod install / the codemagic signing calls don't drive
+# clang/ld, so they run directly.
 #
 # Env:
 #   FLAVOR                            flutter flavor
@@ -49,4 +50,5 @@ if [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
   build_args+=(--build-name="${GITHUB_REF_NAME#v}")
 fi
 
-flutter build ipa "${build_args[@]}"
+# Use the wrapper (not raw `flutter`) so xcodebuild gets Apple's toolchain, not nix's.
+./scripts/flutter-ios.sh build ipa "${build_args[@]}"

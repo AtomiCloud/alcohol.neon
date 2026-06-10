@@ -2,15 +2,15 @@
 set -euo pipefail
 
 # Builds + signs a single Android flavor into a release AAB
-# (build/app/outputs/bundle/<flavor>Release/*.aab). Toolchain (JDK, flutter, Android SDK,
-# codemagic-cli-tools) is provisioned by the workflow; this script owns the build/sign logic
-# so it stays runnable locally:
+# (build/app/outputs/bundle/<flavor>Release/*.aab). Runs INSIDE the nix dev shell
+# (`nix develop .#cd-android -c ./scripts/ci/cd-android.sh`) so flutter + Android SDK + JDK come
+# from the shared nix cache (the shell sets ANDROID_SDK_ROOT/ANDROID_HOME/JAVA_HOME).
+# pipx-installed codemagic-cli-tools (google-play) is on PATH via ~/.local/bin:
 #
-#   FLAVOR=pichu PACKAGE_NAME=cloud.atomi.alcohol_neon.pichu \
-#   GOOGLE_PLAY_SERVICE_ACCOUNT_CREDENTIALS="$(cat sa.json)" \
-#   ANDROID_KEYSTORE_BASE64=... ANDROID_KEYSTORE_PASSWORD=... \
-#   ANDROID_KEY_ALIAS=... ANDROID_KEY_PASSWORD=... GITHUB_WORKSPACE="$PWD" \
-#   ./scripts/ci/cd-android.sh
+#   nix develop .#cd-android -c env FLAVOR=pichu PACKAGE_NAME=cloud.atomi.alcohol_neon.pichu \
+#   GOOGLE_PLAY_SERVICE_ACCOUNT_CREDENTIALS="$(cat sa.json)" ANDROID_KEYSTORE_BASE64=... \
+#   ANDROID_KEYSTORE_PASSWORD=... ANDROID_KEY_ALIAS=... ANDROID_KEY_PASSWORD=... \
+#   GITHUB_WORKSPACE="$PWD" ./scripts/ci/cd-android.sh
 #
 # Env:
 #   FLAVOR                                  flutter flavor

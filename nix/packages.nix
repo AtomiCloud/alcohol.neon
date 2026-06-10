@@ -6,6 +6,13 @@
   pkgs-android,
 }:
 let
+  # pipx 1.8.0 in nixpkgs currently fails its test suite (a `packaging`-lib
+  # formatting regression in tests/test_package_specifier.py, not a runtime bug),
+  # which breaks the build on darwin. Skip the test phase — we only need the CLI.
+  pipx = pkgs-2605.pipx.overridePythonAttrs (_: {
+    doCheck = false;
+    doInstallCheck = false;
+  });
   androidComposition = pkgs-android.androidenv.composeAndroidPackages {
     platformVersions = [
       "33"
@@ -65,6 +72,10 @@ let
           resvg
           jdk17
           ;
+      }
+      // {
+        # pipx with its broken test phase disabled (see top of file).
+        inherit pipx;
       }
     );
 

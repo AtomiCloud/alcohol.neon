@@ -47,27 +47,31 @@ To regenerate the secret bundle, see the validated source material in Infisical 
 local `signingkey` (cert key) and `atomi-upload.jks` (keystore). All three are gitignored; **never
 commit them**.
 
-## How signing works (no nix)
+## How signing works (nix-cached toolchain)
 
-The CI mobile builds deliberately **do not use the nix dev shell** — nix hijacks the C/C++ toolchain
-(see `scripts/flutter-ios.sh`) and carries flutter-on-nix gotchas. Following the ci-cd-workflows
-convention, `cd.yaml` is a thin task runner: it provisions the toolchain, then the imperative
-build/sign logic lives in `scripts/ci/cd-{matrix,ios,android}.sh` (runnable locally with the same
-env vars). Instead:
+Following the ci-cd-workflows convention, `cd.yaml` is a thin task runner: `AtomiCloud/actions.setup-nix`
+restores the **shared nix store cache** (`nscloud-cache-tag-atomi-nix-store-cache`), and the imperative
+build/sign logic lives in `scripts/ci/cd-{matrix,ios,android}.sh`, run inside a per-platform nix dev
+shell so flutter, Android SDK, JDK, CocoaPods, GNU rsync, and pipx are all cached (no per-run
+`brew`/`apt`/flutter-action downloads). The shells are defined in `nix/shells.nix`:
 
-- **iOS** (`scripts/ci/cd-ios.sh`)**:** `subosito/flutter-action` (stable) + the runner's system
-  Xcode + `codemagic-cli-tools` (`keychain`, `app-store-connect`, `xcode-project`). The runner has no
-  `pipx`, so it is installed first (`brew install rsync pipx`; `~/.local/bin` is added to `PATH`),
-  then `pipx install codemagic-cli-tools`. GNU rsync is installed via Homebrew (macOS openrsync
-  ignores `--chmod` → read-only framework → lipo fails). Signing mirrors the old Codemagic script:
-  `keychain initialize` → `app-store-connect fetch-signing-files … --create` →
+- `.#cd-ios` — flutter + CocoaPods + GNU rsync + pipx.
+- `.#cd-android` — flutter + Android SDK + JDK + pipx, with `ANDROID_SDK_ROOT`/`ANDROID_HOME`/`JAVA_HOME`.
+
+`codemagic-cli-tools` is **not** in nixpkgs, so each job installs it with the nix-provided `pipx`
+(`nix develop .#<shell> -c pipx install codemagic-cli-tools`) into `~/.local/bin` (added to `PATH`).
+
+- **iOS** (`nix develop .#cd-ios -c ./scripts/ci/cd-ios.sh`)**:** nix exports a C/C++ stdenv that
+  hijacks `xcodebuild`, so the actual `flutter build ipa` is run through `scripts/flutter-ios.sh`,
+  which strips the nix toolchain vars and points `DEVELOPER_DIR` at real Xcode. GNU rsync comes from
+  nix (macOS openrsync ignores `--chmod` → read-only framework → lipo fails). Signing mirrors the old
+  Codemagic script: `keychain initialize` → `app-store-connect fetch-signing-files … --create` →
   `keychain add-certificates` → `xcode-project use-profiles --export-options-plist`.
-- **Android** (`scripts/ci/cd-android.sh`)**:** `setup-java@17` + `subosito/flutter-action` +
-  `android-actions/setup-android` + `codemagic-cli-tools` (installed via `apt-get install pipx` →
-  `pipx install codemagic-cli-tools`, for the `google-play get-latest-build-number` versionCode
-  query). The keystore is decoded to `android/app/upload-keystore.jks` and a `android/key.properties`
-  is written — this hits the **existing** `key.properties` path in `android/app/build.gradle.kts` (no
-  gradle change).
+- **Android** (`nix develop .#cd-android -c ./scripts/ci/cd-android.sh`)**:** flutter + Android SDK +
+  JDK17 from nix; `codemagic-cli-tools` provides `google-play get-latest-build-number` for the
+  versionCode query. The keystore is decoded to `android/app/upload-keystore.jks` and a
+  `android/key.properties` is written — this hits the **existing** `key.properties` path in
+  `android/app/build.gradle.kts` (no gradle change).
 
 ## Versioning
 

@@ -15,9 +15,10 @@ with env;
   # so the toolchain comes from the shared nix store cache). Split per platform so the
   # macOS iOS runner doesn't pull the Android SDK closure.
   cd-ios = pkgs.mkShell {
-    # flutter + CocoaPods (darwin) + GNU rsync + pipx. iOS builds go through
-    # scripts/flutter-ios.sh, which un-hijacks the nix C/C++ toolchain for xcodebuild.
-    buildInputs = mobile ++ system;
+    # flutter + CocoaPods (darwin) + GNU rsync + pipx, plus a ruby carrying the xcodeproj
+    # gem (codemagic's `xcode-project use-profiles` needs it; system ruby lacks it). iOS
+    # builds go through scripts/flutter-ios.sh, which un-hijacks the nix C/C++ toolchain.
+    buildInputs = mobile ++ system ++ [ packages.ruby-xcodeproj ];
     inherit shellHook;
   };
 

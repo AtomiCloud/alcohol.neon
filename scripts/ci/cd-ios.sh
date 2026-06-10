@@ -38,9 +38,17 @@ app-store-connect fetch-signing-files "$BUNDLE_ID" \
 keychain add-certificates
 xcode-project use-profiles --export-options-plist "$HOME/export_options.plist"
 
-# Build number = latest TestFlight build + 1; resilient to the first-ever build (echo 0).
+# CFBundleVersion must be strictly higher than every previously uploaded build. Base it on
+# get-latest-build-number + 1, but that figure lags while a freshly uploaded build is still
+# processing on Apple's side — re-running then recomputes a colliding number ("bundle version
+# must be higher than the previously uploaded version"). Take the max with the monotonic CI run
+# number so back-to-back runs never collide with an in-flight build.
 LATEST=$(app-store-connect get-latest-build-number "$APP_STORE_APPLE_ID" || echo 0)
 BUILD_NUMBER=$((${LATEST:-0} + 1))
+RUN_NUMBER=${GITHUB_RUN_NUMBER:-0}
+if [ "$RUN_NUMBER" -gt "$BUILD_NUMBER" ]; then
+  BUILD_NUMBER=$RUN_NUMBER
+fi
 
 # Version name = release tag (v1.2.3 -> 1.2.3). On non-tag (manual) runs the flag is dropped
 # and pubspec's version is used.

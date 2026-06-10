@@ -76,7 +76,10 @@ shell so flutter, Android SDK, JDK, CocoaPods, GNU rsync, and pipx are all cache
 ## Versioning
 
 - **Version name** = the tag (`v1.2.3` → `1.2.3`). Omitted on manual runs (pubspec version used).
-- **iOS build number** = `app-store-connect get-latest-build-number <apple_id>` + 1.
+- **iOS build number** = `max(app-store-connect get-latest-build-number <apple_id> + 1,
+github.run_number)`. The `get-latest` figure lags while a freshly uploaded build is still
+  processing on Apple's side, so the monotonic CI run number guards against colliding with an
+  in-flight build on back-to-back runs.
 - **Android versionCode** = `google-play get-latest-build-number --package-name <pkg>` + 1 — the
   highest existing build number across **all** Play tracks, incremented. This mirrors the iOS
   scheme and coordinates with releases from the prior (Codemagic) pipeline; a bare counter (e.g.

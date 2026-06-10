@@ -1,3 +1,10 @@
+## [1.1.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.0.5...v1.1.0) (2026-06-09)
+
+
+### ✨ Features ✨
+
+* trigger release ([0b694a5](https://github.com/AtomiCloud/alcohol.neon/commit/0b694a53f54d88e731f15a8b7a4dfd895027ccd1))
+
 ## [1.0.5](https://github.com/AtomiCloud/alcohol.neon/compare/v1.0.4...v1.0.5) (2026-06-07)
 
 

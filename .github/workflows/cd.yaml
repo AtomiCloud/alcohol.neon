@@ -180,7 +180,7 @@ jobs:
           channel: stable
           cache: true
 
-      - uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v4
 
       - name: Decode upload keystore + write key.properties
         env:

@@ -50,5 +50,36 @@ if [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
   build_args+=(--build-name="${GITHUB_REF_NAME#v}")
 fi
 
-# Use the wrapper (not raw `flutter`) so xcodebuild gets Apple's toolchain, not nix's.
+# Build through the wrapper (not raw `flutter`) so xcodebuild gets Apple's toolchain, not nix's.
+#
+# Split archive from export: the archive build needs nix's GNU rsync (macOS openrsync ignores
+# --chmod, so nix's read-only Flutter.framework stays read-only → lipo fails), but
+# xcodebuild's *export* step fails with "exportArchive Copy failed" when GNU rsync shadows
+# Apple's rsync. So let flutter build the archive (GNU rsync on PATH), then re-export the
+# archive ourselves with Apple's rsync (/usr/bin first) if flutter's own export didn't produce
+# an IPA.
+set +e
 ./scripts/flutter-ios.sh build ipa "${build_args[@]}"
+build_rc=$?
+set -e
+
+if ls build/ios/ipa/*.ipa >/dev/null 2>&1; then
+  echo "IPA produced by flutter build ipa."
+elif [ -d build/ios/archive/Runner.xcarchive ]; then
+  echo "flutter export step failed (rc=$build_rc); re-exporting archive with Apple's toolchain…"
+  # Strip the nix C/C++ toolchain vars and put /usr/bin first so xcodebuild's export uses
+  # Apple's rsync + clang (mirrors scripts/flutter-ios.sh's scrubbing).
+  while IFS= read -r v; do unset "$v"; done < <(env | sed -n 's/^\(NIX_[A-Za-z0-9_]*\)=.*/\1/p')
+  unset CC CXX LD AR NM RANLIB OBJCOPY OBJDUMP STRIP CPP CXXCPP \
+    SDKROOT MACOSX_DEPLOYMENT_TARGET LIBRARY_PATH DYLD_LIBRARY_PATH \
+    CPATH C_INCLUDE_PATH CPLUS_INCLUDE_PATH
+  export DEVELOPER_DIR="${DEVELOPER_DIR_OVERRIDE:-/Applications/Xcode.app/Contents/Developer}"
+  export PATH="/usr/bin:/bin:/usr/sbin:/sbin:${PATH}"
+  xcodebuild -exportArchive \
+    -archivePath build/ios/archive/Runner.xcarchive \
+    -exportPath build/ios/ipa \
+    -exportOptionsPlist "$HOME/export_options.plist"
+else
+  echo "iOS archive was not produced (rc=$build_rc)" >&2
+  exit "${build_rc:-1}"
+fi

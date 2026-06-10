@@ -7,6 +7,11 @@ name: CD
 # TestFlight / Play internal automatically; promotion to the public App Store /
 # Play production stays MANUAL.
 #
+# Per the ci-cd-workflows convention, GitHub Actions is just a task runner: the
+# imperative build/sign logic lives in scripts/ci/cd-*.sh and is runnable locally
+# (these mobile jobs deliberately run OUTSIDE the nix shell — a sanctioned
+# exception; nix hijacks the C/C++ toolchain. See docs/github-actions-release.md).
+#
 # Manual runs: use the "Run workflow" button (workflow_dispatch) and pick a
 # flavor to smoke-test a single channel without cutting a release.
 
@@ -41,23 +46,14 @@ jobs:
     outputs:
       matrix: ${{ steps.set.outputs.matrix }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - id: set
         env:
           EVENT: ${{ github.event_name }}
           SEL: ${{ github.event.inputs.flavor }}
-        run: |
-          set -euo pipefail
-          ALL='[
-            {"flavor":"pichu","bundle_id":"cloud.atomi.alcohol.neon.pichu","apple_id":"6777280038","package_name":"cloud.atomi.alcohol_neon.pichu"},
-            {"flavor":"pikachu","bundle_id":"cloud.atomi.alcohol.neon.pikachu","apple_id":"6777280047","package_name":"cloud.atomi.alcohol_neon.pikachu"},
-            {"flavor":"raichu","bundle_id":"cloud.atomi.alcohol.neon.raichu","apple_id":"6777280099","package_name":"cloud.atomi.alcohol_neon.raichu"}
-          ]'
-          if [ "$EVENT" = "workflow_dispatch" ]; then
-            FILTERED=$(echo "$ALL" | jq -c --arg f "$SEL" '[.[] | select(.flavor==$f)]')
-          else
-            FILTERED=$(echo "$ALL" | jq -c '.')
-          fi
-          echo "matrix={\"include\":$FILTERED}" >> "$GITHUB_OUTPUT"
+        run: echo "matrix=$(./scripts/ci/cd-matrix.sh)" >> "$GITHUB_OUTPUT"
 
   # ── iOS → TestFlight ─────────────────────────────────────────────────────────
   ios:
@@ -82,17 +78,15 @@ jobs:
         with:
           persist-credentials: false
 
-      # NOTE: these mobile jobs run OUTSIDE the nix shell on purpose — a sanctioned
-      # exception to the "all tools via nix" policy. See docs/developer/standard/nix.md
-      # and docs/github-actions-release.md for why (nix C/C++ toolchain hijacks Xcode).
-      #
       # macOS ships openrsync, which ignores --chmod → read-only Flutter.framework
       # → lipo fails. GNU rsync (Homebrew) fixes it; put it ahead of /usr/bin.
-      - name: Install GNU rsync
+      # pipx is needed to install codemagic-cli-tools (not preinstalled on the runner).
+      - name: Install GNU rsync + pipx
         run: |
           set -euo pipefail
-          brew install rsync
+          brew install rsync pipx
           echo "/opt/homebrew/bin" >> "$GITHUB_PATH"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - uses: subosito/flutter-action@v2
         with:
@@ -102,48 +96,11 @@ jobs:
       - name: Install codemagic-cli-tools
         run: pipx install codemagic-cli-tools
 
-      - name: Flutter pub get
-        run: flutter pub get
-
-      - name: Pod install
-        run: |
-          set -euo pipefail
-          cd ios && pod install
-
-      - name: Set up code signing (create + fetch the app_store profile)
-        run: |
-          set -euo pipefail
-          keychain initialize
-          # Reuses the existing Apple Distribution cert that matches
-          # CERTIFICATE_PRIVATE_KEY; --create only mints one if none matches.
-          app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_STORE \
-            --certificate-key @env:CERTIFICATE_PRIVATE_KEY \
-            --create
-          keychain add-certificates
-          xcode-project use-profiles --export-options-plist "$HOME/export_options.plist"
-
       - name: Build signed IPA
-        run: |
-          set -euo pipefail
-          LATEST=$(app-store-connect get-latest-build-number "$APP_STORE_APPLE_ID" || echo 0)
-          BUILD_NUMBER=$(( ${LATEST:-0} + 1 ))
-          # Version name = release tag (v1.2.3 -> 1.2.3). Empty on manual runs
-          # (not a tag) → flag dropped and pubspec's version is used.
-          BUILD_NAME=""
-          if [ "$GITHUB_REF_TYPE" = "tag" ]; then BUILD_NAME="${GITHUB_REF_NAME#v}"; fi
-          flutter build ipa --release \
-            --flavor "$FLAVOR" \
-            ${BUILD_NAME:+--build-name="$BUILD_NAME"} \
-            --build-number="$BUILD_NUMBER" \
-            --export-options-plist="$HOME/export_options.plist"
+        run: ./scripts/ci/cd-ios.sh
 
       - name: Publish to TestFlight
-        run: |
-          set -euo pipefail
-          app-store-connect publish \
-            --path "build/ios/ipa/*.ipa" \
-            --testflight
+        run: app-store-connect publish --path "build/ios/ipa/*.ipa" --testflight
 
       - uses: actions/upload-artifact@v4
         with:
@@ -165,6 +122,13 @@ jobs:
       matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
     env:
       FLAVOR: ${{ matrix.flavor }}
+      PACKAGE_NAME: ${{ matrix.package_name }}
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      # Read by codemagic-cli-tools `google-play` for the versionCode query.
+      GOOGLE_PLAY_SERVICE_ACCOUNT_CREDENTIALS: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -182,37 +146,17 @@ jobs:
 
       - uses: android-actions/setup-android@v3
 
-      - name: Decode upload keystore + write key.properties
-        env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      # codemagic-cli-tools provides `google-play get-latest-build-number` (used by
+      # cd-android.sh to compute versionCode). pipx isn't preinstalled on the Linux runner.
+      - name: Install codemagic-cli-tools
         run: |
           set -euo pipefail
-          KS="$GITHUB_WORKSPACE/android/app/upload-keystore.jks"
-          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$KS"
-          # Consumed by the existing key.properties path in android/app/build.gradle.kts.
-          cat > "$GITHUB_WORKSPACE/android/key.properties" <<EOF
-          storeFile=$KS
-          storePassword=$ANDROID_KEYSTORE_PASSWORD
-          keyAlias=$ANDROID_KEY_ALIAS
-          keyPassword=$ANDROID_KEY_PASSWORD
-          EOF
-
-      - name: Flutter pub get
-        run: flutter pub get
+          sudo apt-get update && sudo apt-get install -y pipx
+          pipx install codemagic-cli-tools
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Build signed AAB
-        run: |
-          set -euo pipefail
-          # versionCode = run_number (monotonic, unique per Play app).
-          BUILD_NAME=""
-          if [ "$GITHUB_REF_TYPE" = "tag" ]; then BUILD_NAME="${GITHUB_REF_NAME#v}"; fi
-          flutter build appbundle --release \
-            --flavor "$FLAVOR" \
-            ${BUILD_NAME:+--build-name="$BUILD_NAME"} \
-            --build-number="${{ github.run_number }}"
+        run: ./scripts/ci/cd-android.sh
 
       - name: Publish to Play internal track
         uses: r0adkll/upload-google-play@v1

@@ -1,0 +1,14 @@
+name: ⚡ Reusable Test
+on:
+  workflow_call:
+jobs:
+  test:
+    name: Test
+    runs-on:
+      - nscloud-ubuntu-22.04-amd64-32x64-with-cache
+      - nscloud-cache-size-50gb
+      - nscloud-cache-tag-atomi-nix-store-cache
+    steps:
+      - uses: AtomiCloud/actions.setup-nix@v2
+      - name: Run tests
+        run: nix develop .#ci -c ./scripts/ci/test.sh

@@ -50,22 +50,34 @@ commit them**.
 ## How signing works (no nix)
 
 The CI mobile builds deliberately **do not use the nix dev shell** — nix hijacks the C/C++ toolchain
-(see `scripts/flutter-ios.sh`) and carries flutter-on-nix gotchas. Instead:
+(see `scripts/flutter-ios.sh`) and carries flutter-on-nix gotchas. Following the ci-cd-workflows
+convention, `cd.yaml` is a thin task runner: it provisions the toolchain, then the imperative
+build/sign logic lives in `scripts/ci/cd-{matrix,ios,android}.sh` (runnable locally with the same
+env vars). Instead:
 
-- **iOS:** `subosito/flutter-action` (stable) + the runner's system Xcode + `pipx install
-codemagic-cli-tools` (`keychain`, `app-store-connect`, `xcode-project`). GNU rsync is installed via
-  Homebrew (macOS openrsync ignores `--chmod` → read-only framework → lipo fails). Signing mirrors the
-  old Codemagic script: `keychain initialize` → `app-store-connect fetch-signing-files … --create` →
+- **iOS** (`scripts/ci/cd-ios.sh`)**:** `subosito/flutter-action` (stable) + the runner's system
+  Xcode + `codemagic-cli-tools` (`keychain`, `app-store-connect`, `xcode-project`). The runner has no
+  `pipx`, so it is installed first (`brew install rsync pipx`; `~/.local/bin` is added to `PATH`),
+  then `pipx install codemagic-cli-tools`. GNU rsync is installed via Homebrew (macOS openrsync
+  ignores `--chmod` → read-only framework → lipo fails). Signing mirrors the old Codemagic script:
+  `keychain initialize` → `app-store-connect fetch-signing-files … --create` →
   `keychain add-certificates` → `xcode-project use-profiles --export-options-plist`.
-- **Android:** `setup-java@17` + `subosito/flutter-action` + `android-actions/setup-android`. The
-  keystore is decoded to `android/app/upload-keystore.jks` and a `android/key.properties` is written —
-  this hits the **existing** `key.properties` path in `android/app/build.gradle.kts` (no gradle change).
+- **Android** (`scripts/ci/cd-android.sh`)**:** `setup-java@17` + `subosito/flutter-action` +
+  `android-actions/setup-android` + `codemagic-cli-tools` (installed via `apt-get install pipx` →
+  `pipx install codemagic-cli-tools`, for the `google-play get-latest-build-number` versionCode
+  query). The keystore is decoded to `android/app/upload-keystore.jks` and a `android/key.properties`
+  is written — this hits the **existing** `key.properties` path in `android/app/build.gradle.kts` (no
+  gradle change).
 
 ## Versioning
 
 - **Version name** = the tag (`v1.2.3` → `1.2.3`). Omitted on manual runs (pubspec version used).
 - **iOS build number** = `app-store-connect get-latest-build-number <apple_id>` + 1.
-- **Android versionCode** = `github.run_number` (monotonic; unique per Play app).
+- **Android versionCode** = `google-play get-latest-build-number --package-name <pkg>` + 1 — the
+  highest existing build number across **all** Play tracks, incremented. This mirrors the iOS
+  scheme and coordinates with releases from the prior (Codemagic) pipeline; a bare counter (e.g.
+  `github.run_number`) can land at or below an existing release, and Play then rejects the rollout
+  with _"does not allow any existing users to upgrade to the newly added APKs"_ (`apkNoUpgradePaths`).
 
 ## Running it
 

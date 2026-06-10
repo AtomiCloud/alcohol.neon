@@ -76,7 +76,13 @@ jobs:
       APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
       CERTIFICATE_PRIVATE_KEY: ${{ secrets.CERTIFICATE_PRIVATE_KEY }}
     steps:
+      # macOS can't use the Namespace `/nix` cache path (`sudo mkdir /nix` fails on the
+      # read-only root volume); namespacelabs:false uses the DeterminateSystems installer,
+      # which creates the /nix APFS volume properly. Toolchain comes pre-built from the
+      # nix binary substituters (cache.nixos.org / nix-community).
       - uses: AtomiCloud/actions.setup-nix@v2
+        with:
+          namespacelabs: 'false'
 
       # codemagic-cli-tools isn't in nixpkgs; install it with the nix-provided pipx
       # (cached) into ~/.local/bin, then expose it to later steps.

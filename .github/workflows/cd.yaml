@@ -8,11 +8,13 @@ name: CD
 # Play production stays MANUAL.
 #
 # Per the ci-cd-workflows convention, GitHub Actions is just a task runner: the
-# toolchain comes from the shared nix store cache via AtomiCloud/actions.setup-nix,
-# and the imperative build/sign logic lives in scripts/ci/cd-*.sh (run inside
-# `nix develop .#cd-ios|.#cd-android`, so flutter/Android SDK/JDK/CocoaPods/pipx are
-# all cached). iOS builds go through scripts/flutter-ios.sh, which un-hijacks the
-# nix C/C++ toolchain so xcodebuild uses real Xcode (see docs/github-actions-release.md).
+# toolchain is served by nix and the imperative build/sign logic lives in
+# scripts/ci/cd-*.sh (run inside `nix develop .#cd-ios|.#cd-android`, so
+# flutter/Android SDK/JDK/CocoaPods/pipx are all cached). Android restores the shared
+# /nix store cache via AtomiCloud/actions.setup-nix; macOS can't mount /nix, so the
+# iOS job keeps a local nix binary cache on a Namespace cache volume instead. iOS
+# builds go through scripts/flutter-ios.sh, which un-hijacks the nix C/C++ toolchain
+# so xcodebuild uses real Xcode (see docs/github-actions-release.md).
 #
 # Manual runs: use the "Run workflow" button (workflow_dispatch) and pick a
 # flavor to smoke-test a single channel without cutting a release.
@@ -61,7 +63,10 @@ jobs:
   ios:
     name: iOS ${{ matrix.flavor }}
     needs: setup
-    runs-on: nscloud-macos-sequoia-arm64-6x14
+    runs-on:
+      - nscloud-macos-sequoia-arm64-6x14-with-cache
+      - nscloud-cache-size-50gb
+      - nscloud-cache-tag-atomi-nix-darwin-cache
     timeout-minutes: 60
     strategy:
       fail-fast: false
@@ -76,13 +81,37 @@ jobs:
       APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
       CERTIFICATE_PRIVATE_KEY: ${{ secrets.CERTIFICATE_PRIVATE_KEY }}
     steps:
-      # macOS can't use the Namespace `/nix` cache path (`sudo mkdir /nix` fails on the
-      # read-only root volume); namespacelabs:false uses the DeterminateSystems installer,
-      # which creates the /nix APFS volume properly. Toolchain comes pre-built from the
-      # nix binary substituters (cache.nixos.org / nix-community).
-      - uses: AtomiCloud/actions.setup-nix@v2
+      - uses: actions/checkout@v4
         with:
-          namespacelabs: 'false'
+          persist-credentials: false
+
+      # macOS can't host the Namespace cache volume at /nix itself (on macOS the cache
+      # action mounts via symlink, and the sealed APFS root forbids creating /nix — same
+      # reason AtomiCloud/actions.setup-nix's Namespace path is Linux-only). Instead,
+      # persist a LOCAL nix BINARY CACHE on the volume: warm runs substitute the dev-shell
+      # closure from NVMe instead of re-downloading it from cache.nixos.org each run, and
+      # the "Push nix store" step below writes new paths back. pub + CocoaPods caches ride
+      # the same volume. Must run after checkout; the volume commits only when the job
+      # succeeds, and idle volumes expire after ~14 days (first run after a quiet spell is
+      # cold again).
+      - uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          path: |
+            /tmp/nix-cache
+            ~/.pub-cache
+            ~/.cocoapods
+
+      # Same installer + substituters as setup-nix's macOS path (which can't take extra
+      # substituters — hence inlined), plus the local file:// cache. priority=10 makes the
+      # volume win over the remote caches; require-sigs=false because `nix copy`-ed local
+      # paths are unsigned; fallback=true skips past cache misses.
+      - uses: DeterminateSystems/nix-installer-action@main
+        with:
+          extra-conf: |
+            fallback = true
+            require-sigs = false
+            extra-substituters = file:///tmp/nix-cache?priority=10 https://nix-community.cachix.org?priority=41 https://numtide.cachix.org?priority=42
+            extra-trusted-public-keys = nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs= numtide.cachix.org-1:2ps1kLBUWjxIneOy1Ik6cQjb41X0iXVXeHigGmycPPE=
 
       # App Store Connect requires the iOS 26 SDK (Xcode 26+). The runner's default
       # /Applications/Xcode.app is older (iOS 18 SDK), so point the build at the newest
@@ -105,6 +134,15 @@ jobs:
       - name: Build signed IPA
         run: nix develop .#cd-ios -c ./scripts/ci/cd-ios.sh
 
+      # Write the realized dev-shell closure to the cache volume so the next run substitutes
+      # it from NVMe. Incremental: paths already in the cache are skipped, so warm runs cost
+      # seconds. (The shell is already built by the steps above; `nix build` just prints it.)
+      - name: Push nix store to cache volume
+        run: |
+          set -euo pipefail
+          nix copy --to 'file:///tmp/nix-cache?compression=zstd' \
+            "$(nix build .#devShells.aarch64-darwin.cd-ios --print-out-paths --no-link)"
+
       # Upload only (no --testflight): the build lands in TestFlight for INTERNAL testers once
       # Apple finishes processing — no beta-review submission needed. --testflight additionally
       # waits for processing to submit for EXTERNAL beta review, which flakily times out on
@@ -123,9 +161,10 @@ jobs:
   android:
     name: Android ${{ matrix.flavor }}
     needs: setup
-    # Keep the larger runner: gradle/R8/NDK release builds need the headroom.
+    # 8 GB runner: cd-android.sh right-sizes the Gradle JVM (the project's dev-machine
+    # -Xmx8G would leave no headroom here) and forces Kotlin in-process compilation.
     runs-on:
-      - nscloud-ubuntu-22.04-amd64-32x64-with-cache
+      - nscloud-ubuntu-22.04-amd64-4x8-with-cache
       - nscloud-cache-size-50gb
       - nscloud-cache-tag-atomi-nix-store-cache
     timeout-minutes: 60

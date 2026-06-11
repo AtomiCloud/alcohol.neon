@@ -49,11 +49,22 @@ commit them**.
 
 ## How signing works (nix-cached toolchain)
 
-Following the ci-cd-workflows convention, `cd.yaml` is a thin task runner: `AtomiCloud/actions.setup-nix`
-restores the **shared nix store cache** (`nscloud-cache-tag-atomi-nix-store-cache`), and the imperative
+Following the ci-cd-workflows convention, `cd.yaml` is a thin task runner: the imperative
 build/sign logic lives in `scripts/ci/cd-{matrix,ios,android}.sh`, run inside a per-platform nix dev
 shell so flutter, Android SDK, JDK, CocoaPods, GNU rsync, and pipx are all cached (no per-run
-`brew`/`apt`/flutter-action downloads). The shells are defined in `nix/shells.nix`:
+`brew`/`apt`/flutter-action downloads). Caching differs per platform:
+
+- **Android (Linux):** `AtomiCloud/actions.setup-nix` restores the **shared nix store cache**
+  (`nscloud-cache-tag-atomi-nix-store-cache`) — warm runs start with `/nix` already populated.
+- **iOS (macOS):** the Namespace `/nix` cache path can't work on macOS (the cache action mounts via
+  symlink and the sealed APFS root forbids creating `/nix`), so the job mounts a Namespace cache
+  volume at `/tmp/nix-cache` (tag `atomi-nix-darwin-cache`, plus `~/.pub-cache` / `~/.cocoapods`)
+  and uses it as a **local `file://` binary cache**: nix is installed fresh each run
+  (DeterminateSystems installer), but the `.#cd-ios` closure substitutes from NVMe; a final
+  `nix copy` step writes new store paths back. The volume only commits when the job succeeds, and
+  idle volumes expire after ~14 days, so the first run after a quiet spell is cold again.
+
+The shells are defined in `nix/shells.nix`:
 
 - `.#cd-ios` — flutter + CocoaPods + GNU rsync + pipx.
 - `.#cd-android` — flutter + Android SDK + JDK + pipx, with `ANDROID_SDK_ROOT`/`ANDROID_HOME`/`JAVA_HOME`.
@@ -71,7 +82,12 @@ shell so flutter, Android SDK, JDK, CocoaPods, GNU rsync, and pipx are all cache
   JDK17 from nix; `codemagic-cli-tools` provides `google-play get-latest-build-number` for the
   versionCode query. The keystore is decoded to `android/app/upload-keystore.jks` and a
   `android/key.properties` is written — this hits the **existing** `key.properties` path in
-  `android/app/build.gradle.kts` (no gradle change).
+  `android/app/build.gradle.kts` (no gradle change). The script also writes
+  `~/.gradle/gradle.properties` with `kotlin.compiler.execution.strategy=in-process` and a
+  right-sized `org.gradle.jvmargs` (-Xmx4g) — GRADLE_USER_HOME is the only properties scope that
+  reaches the flutter_tools **included build** (where a KGP 2.0.x daemon-startup race, KT-69929,
+  was intermittently killing `:<engine-rev>:compileKotlin` on the 8 GB runner), and it overrides
+  the project's dev-machine `-Xmx8G` in CI only.
 
 ## Versioning
 

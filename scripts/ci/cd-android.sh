@@ -32,11 +32,20 @@ keyAlias=$ANDROID_KEY_ALIAS
 keyPassword=$ANDROID_KEY_PASSWORD
 EOF
 
-# The Kotlin compile worker/daemon intermittently dies on the CI runner ("daemon terminated
-# unexpectedly on startup … No such file or directory"), failing :compileKotlin
-# nondeterministically. Ask Kotlin to run in-process (best effort) — and the build is retried
-# below to absorb the flake when the daemon still loses the race.
-printf '\nkotlin.compiler.execution.strategy=in-process\norg.gradle.workers.max=1\n' >>"$GITHUB_WORKSPACE/android/gradle.properties"
+# Kotlin daemon flake fix (KT-69929/KT-72530): the nixpkgs flutter wrapper compiles
+# flutter_tools' Gradle plugin as a synthetic INCLUDED build (~/.cache/flutter/
+# nix-flutter-tools-gradle/<engine-rev>) whose kotlin-dsl pulls KGP 2.0.x, which has a
+# daemon-startup race that intermittently kills :<engine-rev>:compileKotlin ("daemon has
+# terminated unexpectedly … No such file or directory"). Properties in android/
+# gradle.properties never reach included builds; GRADLE_USER_HOME properties apply to every
+# build in the invocation, so force in-process compilation (no Kotlin daemon at all) here.
+# Also right-size the Gradle daemon for this runner: the project's -Xmx8G (fine for dev
+# machines) leaves no headroom on the 8 GB CI box, and the Kotlin daemon would inherit it.
+mkdir -p "$HOME/.gradle"
+cat >>"$HOME/.gradle/gradle.properties" <<'EOF'
+kotlin.compiler.execution.strategy=in-process
+org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g -XX:ReservedCodeCacheSize=320m
+EOF
 
 flutter pub get
 
@@ -53,16 +62,4 @@ if [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
   build_args+=(--build-name="${GITHUB_REF_NAME#v}")
 fi
 
-# Retry to absorb the intermittent Kotlin compile-daemon crash (see above).
-attempts=3
-for attempt in $(seq 1 "$attempts"); do
-  if flutter build appbundle "${build_args[@]}"; then
-    break
-  fi
-  if [ "$attempt" -eq "$attempts" ]; then
-    echo "appbundle build failed after $attempts attempts" >&2
-    exit 1
-  fi
-  echo "appbundle build attempt $attempt failed; cleaning Kotlin daemon state and retrying…" >&2
-  rm -rf "${HOME}/.kotlin/daemon" 2>/dev/null || true
-done
+flutter build appbundle "${build_args[@]}"

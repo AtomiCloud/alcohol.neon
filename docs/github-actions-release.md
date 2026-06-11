@@ -57,12 +57,13 @@ shell so flutter, Android SDK, JDK, CocoaPods, GNU rsync, and pipx are all cache
 - **Android (Linux):** `AtomiCloud/actions.setup-nix` restores the **shared nix store cache**
   (`nscloud-cache-tag-atomi-nix-store-cache`) — warm runs start with `/nix` already populated.
 - **iOS (macOS):** the Namespace `/nix` cache path can't work on macOS (the cache action mounts via
-  symlink and the sealed APFS root forbids creating `/nix`), so the job mounts a Namespace cache
-  volume at `/tmp/nix-cache` (tag `atomi-nix-darwin-cache`, plus `~/.pub-cache` / `~/.cocoapods`)
-  and uses it as a **local `file://` binary cache**: nix is installed fresh each run
-  (DeterminateSystems installer), but the `.#cd-ios` closure substitutes from NVMe; a final
-  `nix copy` step writes new store paths back. The volume only commits when the job succeeds, and
-  idle volumes expire after ~14 days, so the first run after a quiet spell is cold again.
+  symlink and the sealed APFS root forbids creating `/nix`), so `setup-nix@v3` mounts a Namespace
+  cache volume at `/tmp/nix-cache` (tag `atomi-nix-darwin-cache`) and uses it as a **local
+  `file://` binary cache**: nix is installed fresh each run (DeterminateSystems installer), but
+  the dev-shell closure substitutes from NVMe, and a post hook pushes the realized devShell
+  closures back at end of job (on success). `~/.pub-cache` / `~/.cocoapods` ride a cache volume
+  too. The volume only commits when the job succeeds, and idle volumes expire after ~14 days, so
+  the first run after a quiet spell is cold again.
 
 The shells are defined in `nix/shells.nix`:
 

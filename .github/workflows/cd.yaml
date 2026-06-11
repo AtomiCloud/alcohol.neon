@@ -81,37 +81,22 @@ jobs:
       APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
       CERTIFICATE_PRIVATE_KEY: ${{ secrets.CERTIFICATE_PRIVATE_KEY }}
     steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
+      # macOS can't host the Namespace cache volume at /nix itself (sealed APFS root), so
+      # setup-nix@v3 mounts the volume at /tmp/nix-cache and uses it as a local file://
+      # nix binary cache: warm runs substitute the dev-shell closure from NVMe instead of
+      # re-downloading it from cache.nixos.org, and a post hook pushes the realized
+      # devShell closures back at end of job (on success). Needs the -with-cache runner
+      # labels above; the volume commits only when the job succeeds, and idle volumes
+      # expire after ~14 days (first run after a quiet spell is cold again).
+      - uses: AtomiCloud/actions.setup-nix@v3
 
-      # macOS can't host the Namespace cache volume at /nix itself (on macOS the cache
-      # action mounts via symlink, and the sealed APFS root forbids creating /nix — same
-      # reason AtomiCloud/actions.setup-nix's Namespace path is Linux-only). Instead,
-      # persist a LOCAL nix BINARY CACHE on the volume: warm runs substitute the dev-shell
-      # closure from NVMe instead of re-downloading it from cache.nixos.org each run, and
-      # the "Push nix store" step below writes new paths back. pub + CocoaPods caches ride
-      # the same volume. Must run after checkout; the volume commits only when the job
-      # succeeds, and idle volumes expire after ~14 days (first run after a quiet spell is
-      # cold again).
+      # pub + CocoaPods caches ride a cache volume too. Must run after checkout (which
+      # setup-nix does).
       - uses: namespacelabs/nscloud-cache-action@v1
         with:
           path: |
-            /tmp/nix-cache
             ~/.pub-cache
             ~/.cocoapods
-
-      # Same installer + substituters as setup-nix's macOS path (which can't take extra
-      # substituters — hence inlined), plus the local file:// cache. priority=10 makes the
-      # volume win over the remote caches; require-sigs=false because `nix copy`-ed local
-      # paths are unsigned; fallback=true skips past cache misses.
-      - uses: DeterminateSystems/nix-installer-action@main
-        with:
-          extra-conf: |
-            fallback = true
-            require-sigs = false
-            extra-substituters = file:///tmp/nix-cache?priority=10 https://nix-community.cachix.org?priority=41 https://numtide.cachix.org?priority=42
-            extra-trusted-public-keys = nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs= numtide.cachix.org-1:2ps1kLBUWjxIneOy1Ik6cQjb41X0iXVXeHigGmycPPE=
 
       # App Store Connect requires the iOS 26 SDK (Xcode 26+). The runner's default
       # /Applications/Xcode.app is older (iOS 18 SDK), so point the build at the newest
@@ -133,15 +118,6 @@ jobs:
 
       - name: Build signed IPA
         run: nix develop .#cd-ios -c ./scripts/ci/cd-ios.sh
-
-      # Write the realized dev-shell closure to the cache volume so the next run substitutes
-      # it from NVMe. Incremental: paths already in the cache are skipped, so warm runs cost
-      # seconds. (The shell is already built by the steps above; `nix build` just prints it.)
-      - name: Push nix store to cache volume
-        run: |
-          set -euo pipefail
-          nix copy --to 'file:///tmp/nix-cache?compression=zstd' \
-            "$(nix build .#devShells.aarch64-darwin.cd-ios --print-out-paths --no-link)"
 
       # Upload only (no --testflight): the build lands in TestFlight for INTERNAL testers once
       # Apple finishes processing — no beta-review submission needed. --testflight additionally
@@ -181,7 +157,7 @@ jobs:
       # Read by codemagic-cli-tools `google-play` for the versionCode query.
       GOOGLE_PLAY_SERVICE_ACCOUNT_CREDENTIALS: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
     steps:
-      - uses: AtomiCloud/actions.setup-nix@v2
+      - uses: AtomiCloud/actions.setup-nix@v3
 
       # codemagic-cli-tools isn't in nixpkgs; install it with the nix-provided pipx
       # (cached) into ~/.local/bin (provides `google-play` for the versionCode query).

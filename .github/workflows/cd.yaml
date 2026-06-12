@@ -1,14 +1,8 @@
 name: CD
 
-# Build, sign, and publish all 3 LazyTax (alcohol.neon) flavors on every v*.*.*
-# tag (semantic-release cuts these on main) — iOS → TestFlight, Android → Play
-# internal. Replaces Codemagic; signing material comes from org-level GitHub
-# Actions secrets (synced from Infisical raichu). raichu (prod) uploads to
-# TestFlight / Play internal automatically; promotion to the public App Store /
-# Play production stays MANUAL.
-#
-# Manual runs: use the "Run workflow" button (workflow_dispatch) and pick a
-# flavor to smoke-test a single channel without cutting a release.
+# Build, sign, and publish the 3 flavors on every v*.*.* tag — iOS → TestFlight,
+# Android → Play internal; promotion to the public stores stays manual. A manual
+# dispatch smoke-tests a single flavor. See docs/github-actions-release.md.
 
 on:
   push:
@@ -26,44 +20,35 @@ concurrency:
   group: cd-${{ github.ref }}
   cancel-in-progress: false
 
-# Least privilege: jobs only read the repo (checkout) and upload artifacts.
-# Store publishing uses service-account creds, not GITHUB_TOKEN.
 permissions:
   contents: read
 
 jobs:
-  # Compute the build matrix: all 3 flavors on a tag, just the chosen one on a
-  # manual run. (matrix can't be referenced in a job-level `if`, so we filter the
-  # matrix itself instead of spinning up — and skipping — idle macOS runners.)
+  # All 3 flavors on a tag, just the chosen one on a manual run — filtered in the
+  # matrix itself, since a job-level `if` can't reference the matrix.
   setup:
     name: Resolve matrix
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set.outputs.matrix }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - id: set
         env:
           EVENT: ${{ github.event_name }}
           SEL: ${{ github.event.inputs.flavor }}
-        run: |
-          set -euo pipefail
-          ALL='[
-            {"flavor":"pichu","bundle_id":"cloud.atomi.alcohol.neon.pichu","apple_id":"6777280038","package_name":"cloud.atomi.alcohol_neon.pichu"},
-            {"flavor":"pikachu","bundle_id":"cloud.atomi.alcohol.neon.pikachu","apple_id":"6777280047","package_name":"cloud.atomi.alcohol_neon.pikachu"},
-            {"flavor":"raichu","bundle_id":"cloud.atomi.alcohol.neon.raichu","apple_id":"6777280099","package_name":"cloud.atomi.alcohol_neon.raichu"}
-          ]'
-          if [ "$EVENT" = "workflow_dispatch" ]; then
-            FILTERED=$(echo "$ALL" | jq -c --arg f "$SEL" '[.[] | select(.flavor==$f)]')
-          else
-            FILTERED=$(echo "$ALL" | jq -c '.')
-          fi
-          echo "matrix={\"include\":$FILTERED}" >> "$GITHUB_OUTPUT"
+        run: echo "matrix=$(./scripts/ci/cd-matrix.sh)" >> "$GITHUB_OUTPUT"
 
   # ── iOS → TestFlight ─────────────────────────────────────────────────────────
   ios:
     name: iOS ${{ matrix.flavor }}
     needs: setup
-    runs-on: nscloud-macos-sequoia-arm64-6x14
+    runs-on:
+      - nscloud-macos-sequoia-arm64-6x14-with-cache
+      - nscloud-cache-size-50gb
+      - nscloud-cache-tag-atomi-nix-darwin-cache
     timeout-minutes: 60
     strategy:
       fail-fast: false
@@ -78,72 +63,39 @@ jobs:
       APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
       CERTIFICATE_PRIVATE_KEY: ${{ secrets.CERTIFICATE_PRIVATE_KEY }}
     steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
+      # On macOS, setup-nix serves nix from a file:// cache on the Namespace cache
+      # volume — requires the -with-cache runner labels above.
+      - uses: AtomiCloud/actions.setup-nix@v3
 
-      # NOTE: these mobile jobs run OUTSIDE the nix shell on purpose — a sanctioned
-      # exception to the "all tools via nix" policy. See docs/developer/standard/nix.md
-      # and docs/github-actions-release.md for why (nix C/C++ toolchain hijacks Xcode).
-      #
-      # macOS ships openrsync, which ignores --chmod → read-only Flutter.framework
-      # → lipo fails. GNU rsync (Homebrew) fixes it; put it ahead of /usr/bin.
-      - name: Install GNU rsync
+      # Must run after checkout (done by setup-nix).
+      - uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          path: |
+            ~/.pub-cache
+            ~/.cocoapods
+
+      # App Store Connect requires the newest SDK; the runner's default Xcode is older.
+      - name: Select newest Xcode
         run: |
           set -euo pipefail
-          brew install rsync
-          echo "/opt/homebrew/bin" >> "$GITHUB_PATH"
+          XCODE=$(printf '%s\n' /Applications/Xcode*.app | sort -V | tail -1)
+          echo "Selected $XCODE"
+          echo "DEVELOPER_DIR_OVERRIDE=$XCODE/Contents/Developer" >> "$GITHUB_ENV"
 
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-
+      # Not in nixpkgs; installed into ~/.local/bin via the nix-provided pipx.
       - name: Install codemagic-cli-tools
-        run: pipx install codemagic-cli-tools
-
-      - name: Flutter pub get
-        run: flutter pub get
-
-      - name: Pod install
         run: |
           set -euo pipefail
-          cd ios && pod install
-
-      - name: Set up code signing (create + fetch the app_store profile)
-        run: |
-          set -euo pipefail
-          keychain initialize
-          # Reuses the existing Apple Distribution cert that matches
-          # CERTIFICATE_PRIVATE_KEY; --create only mints one if none matches.
-          app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_STORE \
-            --certificate-key @env:CERTIFICATE_PRIVATE_KEY \
-            --create
-          keychain add-certificates
-          xcode-project use-profiles --export-options-plist "$HOME/export_options.plist"
+          nix develop .#cd-ios -c pipx install codemagic-cli-tools
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Build signed IPA
-        run: |
-          set -euo pipefail
-          LATEST=$(app-store-connect get-latest-build-number "$APP_STORE_APPLE_ID" || echo 0)
-          BUILD_NUMBER=$(( ${LATEST:-0} + 1 ))
-          # Version name = release tag (v1.2.3 -> 1.2.3). Empty on manual runs
-          # (not a tag) → flag dropped and pubspec's version is used.
-          BUILD_NAME=""
-          if [ "$GITHUB_REF_TYPE" = "tag" ]; then BUILD_NAME="${GITHUB_REF_NAME#v}"; fi
-          flutter build ipa --release \
-            --flavor "$FLAVOR" \
-            ${BUILD_NAME:+--build-name="$BUILD_NAME"} \
-            --build-number="$BUILD_NUMBER" \
-            --export-options-plist="$HOME/export_options.plist"
+        run: nix develop .#cd-ios -c ./scripts/ci/cd-ios.sh
 
+      # No --testflight: it waits on Apple processing to submit for EXTERNAL beta review
+      # and flakily times out; internal testers get the build from a plain upload.
       - name: Publish to TestFlight
-        run: |
-          set -euo pipefail
-          app-store-connect publish \
-            --path "build/ios/ipa/*.ipa" \
-            --testflight
+        run: app-store-connect publish --path "build/ios/ipa/*.ipa"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -155,8 +107,9 @@ jobs:
   android:
     name: Android ${{ matrix.flavor }}
     needs: setup
+    # 8 GB runner — cd-android.sh sizes the Gradle JVM for it.
     runs-on:
-      - nscloud-ubuntu-22.04-amd64-32x64-with-cache
+      - nscloud-ubuntu-22.04-amd64-4x8-with-cache
       - nscloud-cache-size-50gb
       - nscloud-cache-tag-atomi-nix-store-cache
     timeout-minutes: 60
@@ -165,54 +118,25 @@ jobs:
       matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
     env:
       FLAVOR: ${{ matrix.flavor }}
+      PACKAGE_NAME: ${{ matrix.package_name }}
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      # Read by codemagic-cli-tools `google-play` for the versionCode query.
+      GOOGLE_PLAY_SERVICE_ACCOUNT_CREDENTIALS: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
     steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
+      - uses: AtomiCloud/actions.setup-nix@v3
 
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-
-      - uses: android-actions/setup-android@v3
-
-      - name: Decode upload keystore + write key.properties
-        env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      # Not in nixpkgs; provides `google-play` for the versionCode query.
+      - name: Install codemagic-cli-tools
         run: |
           set -euo pipefail
-          KS="$GITHUB_WORKSPACE/android/app/upload-keystore.jks"
-          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$KS"
-          # Consumed by the existing key.properties path in android/app/build.gradle.kts.
-          cat > "$GITHUB_WORKSPACE/android/key.properties" <<EOF
-          storeFile=$KS
-          storePassword=$ANDROID_KEYSTORE_PASSWORD
-          keyAlias=$ANDROID_KEY_ALIAS
-          keyPassword=$ANDROID_KEY_PASSWORD
-          EOF
-
-      - name: Flutter pub get
-        run: flutter pub get
+          nix develop .#cd-android -c pipx install codemagic-cli-tools
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Build signed AAB
-        run: |
-          set -euo pipefail
-          # versionCode = run_number (monotonic, unique per Play app).
-          BUILD_NAME=""
-          if [ "$GITHUB_REF_TYPE" = "tag" ]; then BUILD_NAME="${GITHUB_REF_NAME#v}"; fi
-          flutter build appbundle --release \
-            --flavor "$FLAVOR" \
-            ${BUILD_NAME:+--build-name="$BUILD_NAME"} \
-            --build-number="${{ github.run_number }}"
+        run: nix develop .#cd-android -c ./scripts/ci/cd-android.sh
 
       - name: Publish to Play internal track
         uses: r0adkll/upload-google-play@v1

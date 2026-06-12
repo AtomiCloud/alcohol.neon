@@ -6,6 +6,17 @@
   pkgs-android,
 }:
 let
+  # pipx 1.8.0 in nixpkgs currently fails its test suite (a `packaging`-lib
+  # formatting regression in tests/test_package_specifier.py, not a runtime bug),
+  # which breaks the build on darwin. Skip the test phase — we only need the CLI.
+  pipx = pkgs-2605.pipx.overridePythonAttrs (_: {
+    doCheck = false;
+    doInstallCheck = false;
+  });
+  # codemagic-cli-tools' `xcode-project use-profiles` shells out to ruby and needs the
+  # `xcodeproj` gem. The macOS runner's system ruby lacks it, so provide a ruby that has it
+  # (shadows /usr/bin/ruby on PATH in the .#cd-ios shell).
+  ruby-xcodeproj = pkgs-unstable.ruby.withPackages (ps: [ ps.xcodeproj ]);
   androidComposition = pkgs-android.androidenv.composeAndroidPackages {
     platformVersions = [
       "33"
@@ -66,6 +77,10 @@ let
           jdk17
           ;
       }
+      // {
+        # pipx with its broken test phase disabled (see top of file).
+        inherit pipx;
+      }
     );
 
     nix-unstable = (
@@ -84,4 +99,4 @@ let
   };
 in
 with all;
-atomipkgs // nix-2605 // nix-unstable // nix-android
+atomipkgs // nix-2605 // nix-unstable // nix-android // { inherit ruby-xcodeproj; }

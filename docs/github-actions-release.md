@@ -47,25 +47,61 @@ To regenerate the secret bundle, see the validated source material in Infisical 
 local `signingkey` (cert key) and `atomi-upload.jks` (keystore). All three are gitignored; **never
 commit them**.
 
-## How signing works (no nix)
+## How signing works (nix-cached toolchain)
 
-The CI mobile builds deliberately **do not use the nix dev shell** — nix hijacks the C/C++ toolchain
-(see `scripts/flutter-ios.sh`) and carries flutter-on-nix gotchas. Instead:
+Following the ci-cd-workflows convention, `cd.yaml` is a thin task runner: the imperative
+build/sign logic lives in `scripts/ci/cd-{matrix,ios,android}.sh`, run inside a per-platform nix dev
+shell so flutter, Android SDK, JDK, CocoaPods, GNU rsync, and pipx are all cached (no per-run
+`brew`/`apt`/flutter-action downloads). Caching differs per platform:
 
-- **iOS:** `subosito/flutter-action` (stable) + the runner's system Xcode + `pipx install
-codemagic-cli-tools` (`keychain`, `app-store-connect`, `xcode-project`). GNU rsync is installed via
-  Homebrew (macOS openrsync ignores `--chmod` → read-only framework → lipo fails). Signing mirrors the
-  old Codemagic script: `keychain initialize` → `app-store-connect fetch-signing-files … --create` →
+- **Android (Linux):** `AtomiCloud/actions.setup-nix` restores the **shared nix store cache**
+  (`nscloud-cache-tag-atomi-nix-store-cache`) — warm runs start with `/nix` already populated.
+- **iOS (macOS):** the Namespace `/nix` cache path can't work on macOS (the cache action mounts via
+  symlink and the sealed APFS root forbids creating `/nix`), so `setup-nix@v3` mounts a Namespace
+  cache volume at `/tmp/nix-cache` (tag `atomi-nix-darwin-cache`) and uses it as a **local
+  `file://` binary cache**: nix is installed fresh each run (DeterminateSystems installer), but
+  the dev-shell closure substitutes from NVMe, and a post hook pushes the realized devShell
+  closures back at end of job (on success). `~/.pub-cache` / `~/.cocoapods` ride a cache volume
+  too. The volume only commits when the job succeeds, and idle volumes expire after ~14 days, so
+  the first run after a quiet spell is cold again.
+
+The shells are defined in `nix/shells.nix`:
+
+- `.#cd-ios` — flutter + CocoaPods + GNU rsync + pipx.
+- `.#cd-android` — flutter + Android SDK + JDK + pipx, with `ANDROID_SDK_ROOT`/`ANDROID_HOME`/`JAVA_HOME`.
+
+`codemagic-cli-tools` is **not** in nixpkgs, so each job installs it with the nix-provided `pipx`
+(`nix develop .#<shell> -c pipx install codemagic-cli-tools`) into `~/.local/bin` (added to `PATH`).
+
+- **iOS** (`nix develop .#cd-ios -c ./scripts/ci/cd-ios.sh`)**:** nix exports a C/C++ stdenv that
+  hijacks `xcodebuild`, so the actual `flutter build ipa` is run through `scripts/flutter-ios.sh`,
+  which strips the nix toolchain vars and points `DEVELOPER_DIR` at real Xcode. GNU rsync comes from
+  nix (macOS openrsync ignores `--chmod` → read-only framework → lipo fails). Signing mirrors the old
+  Codemagic script: `keychain initialize` → `app-store-connect fetch-signing-files … --create` →
   `keychain add-certificates` → `xcode-project use-profiles --export-options-plist`.
-- **Android:** `setup-java@17` + `subosito/flutter-action` + `android-actions/setup-android`. The
-  keystore is decoded to `android/app/upload-keystore.jks` and a `android/key.properties` is written —
-  this hits the **existing** `key.properties` path in `android/app/build.gradle.kts` (no gradle change).
+- **Android** (`nix develop .#cd-android -c ./scripts/ci/cd-android.sh`)**:** flutter + Android SDK +
+  JDK17 from nix; `codemagic-cli-tools` provides `google-play get-latest-build-number` for the
+  versionCode query. The keystore is decoded to `android/app/upload-keystore.jks` and a
+  `android/key.properties` is written — this hits the **existing** `key.properties` path in
+  `android/app/build.gradle.kts` (no gradle change). The script also writes
+  `~/.gradle/gradle.properties` with `kotlin.compiler.execution.strategy=in-process` and a
+  right-sized `org.gradle.jvmargs` (-Xmx4g) — GRADLE_USER_HOME is the only properties scope that
+  reaches the flutter_tools **included build** (where a KGP 2.0.x daemon-startup race, KT-69929,
+  was intermittently killing `:<engine-rev>:compileKotlin` on the 8 GB runner), and it overrides
+  the project's dev-machine `-Xmx8G` in CI only.
 
 ## Versioning
 
 - **Version name** = the tag (`v1.2.3` → `1.2.3`). Omitted on manual runs (pubspec version used).
-- **iOS build number** = `app-store-connect get-latest-build-number <apple_id>` + 1.
-- **Android versionCode** = `github.run_number` (monotonic; unique per Play app).
+- **iOS build number** = `max(app-store-connect get-latest-build-number <apple_id> + 1,
+github.run_number)`. The `get-latest` figure lags while a freshly uploaded build is still
+  processing on Apple's side, so the monotonic CI run number guards against colliding with an
+  in-flight build on back-to-back runs.
+- **Android versionCode** = `google-play get-latest-build-number --package-name <pkg>` + 1 — the
+  highest existing build number across **all** Play tracks, incremented. This mirrors the iOS
+  scheme and coordinates with releases from the prior (Codemagic) pipeline; a bare counter (e.g.
+  `github.run_number`) can land at or below an existing release, and Play then rejects the rollout
+  with _"does not allow any existing users to upgrade to the newly added APKs"_ (`apkNoUpgradePaths`).
 
 ## Running it
 

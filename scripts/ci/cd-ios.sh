@@ -1,18 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Builds + signs a single iOS flavor into a release IPA (build/ios/ipa/*.ipa).
-# Runs INSIDE the nix dev shell (`nix develop .#cd-ios -c ./scripts/ci/cd-ios.sh`) so the
-# toolchain (flutter, CocoaPods, GNU rsync, pipx) comes from the shared nix cache. pipx-installed
-# codemagic-cli-tools (keychain/app-store-connect/xcode-project) are on PATH via ~/.local/bin:
-#
-#   nix develop .#cd-ios -c env FLAVOR=pichu BUNDLE_ID=cloud.atomi.alcohol.neon.pichu \
-#   APP_STORE_APPLE_ID=6777280038 APP_STORE_CONNECT_ISSUER_ID=... ... ./scripts/ci/cd-ios.sh
-#
-# NOTE: nix exports a C/C++ stdenv that hijacks xcodebuild, so the actual `flutter build ipa`
-# goes through scripts/flutter-ios.sh, which strips the nix toolchain vars and points
-# DEVELOPER_DIR at real Xcode. pub get / pod install / the codemagic signing calls don't drive
-# clang/ld, so they run directly.
+# Builds + signs one iOS flavor into a release IPA. Runs inside `nix develop .#cd-ios`;
+# the build itself goes through scripts/flutter-ios.sh, which un-hijacks the nix C/C++
+# toolchain so xcodebuild uses real Xcode. See docs/github-actions-release.md.
 #
 # Env:
 #   FLAVOR                            flutter flavor
@@ -38,11 +29,8 @@ app-store-connect fetch-signing-files "$BUNDLE_ID" \
 keychain add-certificates
 xcode-project use-profiles --export-options-plist "$HOME/export_options.plist"
 
-# CFBundleVersion must be strictly higher than every previously uploaded build. Base it on
-# get-latest-build-number + 1, but that figure lags while a freshly uploaded build is still
-# processing on Apple's side — re-running then recomputes a colliding number ("bundle version
-# must be higher than the previously uploaded version"). Take the max with the monotonic CI run
-# number so back-to-back runs never collide with an in-flight build.
+# CFBundleVersion must top every previous upload, but get-latest-build-number lags while a
+# fresh upload is still processing — max with the CI run number so reruns never collide.
 LATEST=$(app-store-connect get-latest-build-number "$APP_STORE_APPLE_ID" || echo 0)
 BUILD_NUMBER=$((${LATEST:-0} + 1))
 RUN_NUMBER=${GITHUB_RUN_NUMBER:-0}
@@ -50,22 +38,16 @@ if [ "$RUN_NUMBER" -gt "$BUILD_NUMBER" ]; then
   BUILD_NUMBER=$RUN_NUMBER
 fi
 
-# Version name = release tag (v1.2.3 -> 1.2.3). On non-tag (manual) runs the flag is dropped
-# and pubspec's version is used.
+# Version name = release tag; manual runs fall back to pubspec's version.
 build_args=(--release --flavor "$FLAVOR" --build-number="$BUILD_NUMBER"
   --export-options-plist="$HOME/export_options.plist")
 if [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
   build_args+=(--build-name="${GITHUB_REF_NAME#v}")
 fi
 
-# Build through the wrapper (not raw `flutter`) so xcodebuild gets Apple's toolchain, not nix's.
-#
-# Split archive from export: the archive build needs nix's GNU rsync (macOS openrsync ignores
-# --chmod, so nix's read-only Flutter.framework stays read-only → lipo fails), but
-# xcodebuild's *export* step fails with "exportArchive Copy failed" when GNU rsync shadows
-# Apple's rsync. So let flutter build the archive (GNU rsync on PATH), then re-export the
-# archive ourselves with Apple's rsync (/usr/bin first) if flutter's own export didn't produce
-# an IPA.
+# The archive needs nix's GNU rsync (openrsync ignores --chmod → lipo fails), but
+# xcodebuild's export needs Apple's rsync — so let flutter's export fail and re-export
+# the archive with Apple's toolchain below.
 set +e
 ./scripts/flutter-ios.sh build ipa "${build_args[@]}"
 build_rc=$?
@@ -75,8 +57,7 @@ if ls build/ios/ipa/*.ipa >/dev/null 2>&1; then
   echo "IPA produced by flutter build ipa."
 elif [ -d build/ios/archive/Runner.xcarchive ]; then
   echo "flutter export step failed (rc=$build_rc); re-exporting archive with Apple's toolchain…"
-  # Strip the nix C/C++ toolchain vars and put /usr/bin first so xcodebuild's export uses
-  # Apple's rsync + clang (mirrors scripts/flutter-ios.sh's scrubbing).
+  # Strip nix toolchain vars, /usr/bin first (mirrors scripts/flutter-ios.sh).
   while IFS= read -r v; do unset "$v"; done < <(env | sed -n 's/^\(NIX_[A-Za-z0-9_]*\)=.*/\1/p')
   unset CC CXX LD AR NM RANLIB OBJCOPY OBJDUMP STRIP CPP CXXCPP \
     SDKROOT MACOSX_DEPLOYMENT_TARGET LIBRARY_PATH DYLD_LIBRARY_PATH \

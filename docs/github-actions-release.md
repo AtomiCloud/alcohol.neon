@@ -49,9 +49,11 @@ commit them**.
 
 ## How signing works (nix-cached toolchain)
 
-Following the ci-cd-workflows convention, `cd.yaml` is a thin task runner: the imperative
-build/sign logic lives in `scripts/ci/cd-{matrix,ios,android}.sh`, run inside a per-platform nix dev
-shell so flutter, Android SDK, JDK, CocoaPods, GNU rsync, and pipx are all cached (no per-run
+Following the ci-cd-workflows convention, `cd.yaml` only resolves the flavor matrix and fans out
+to the per-platform reusable workflows (`⚡reusable-cd-ios.yaml` / `⚡reusable-cd-android.yaml`,
+called with `secrets: inherit`); the imperative build/sign logic lives in
+`scripts/ci/cd-{matrix,ios,android}.sh`, run inside a per-platform nix dev shell so flutter,
+Android SDK, JDK, CocoaPods, GNU rsync, and pipx are all cached (no per-run
 `brew`/`apt`/flutter-action downloads). Caching differs per platform:
 
 - **Android (Linux):** `AtomiCloud/actions.setup-nix` restores the **shared nix store cache**

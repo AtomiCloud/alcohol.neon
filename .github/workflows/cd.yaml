@@ -41,116 +41,27 @@ jobs:
           SEL: ${{ github.event.inputs.flavor }}
         run: echo "matrix=$(./scripts/ci/cd-matrix.sh)" >> "$GITHUB_OUTPUT"
 
-  # ── iOS → TestFlight ─────────────────────────────────────────────────────────
   ios:
     name: iOS ${{ matrix.flavor }}
     needs: setup
-    runs-on:
-      - nscloud-macos-sequoia-arm64-6x14-with-cache
-      - nscloud-cache-size-50gb
-      - nscloud-cache-tag-atomi-nix-darwin-cache
-    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
-    env:
-      FLAVOR: ${{ matrix.flavor }}
-      BUNDLE_ID: ${{ matrix.bundle_id }}
-      APP_STORE_APPLE_ID: ${{ matrix.apple_id }}
-      # codemagic-cli-tools reads these by convention.
-      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-      APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.APP_STORE_CONNECT_KEY_IDENTIFIER }}
-      APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
-      CERTIFICATE_PRIVATE_KEY: ${{ secrets.CERTIFICATE_PRIVATE_KEY }}
-    steps:
-      # On macOS, setup-nix serves nix from a file:// cache on the Namespace cache
-      # volume — requires the -with-cache runner labels above.
-      - uses: AtomiCloud/actions.setup-nix@v3
+    uses: ./.github/workflows/⚡reusable-cd-ios.yaml
+    with:
+      flavor: ${{ matrix.flavor }}
+      bundle-id: ${{ matrix.bundle_id }}
+      apple-id: ${{ matrix.apple_id }}
+    secrets: inherit
 
-      # Must run after checkout (done by setup-nix).
-      - uses: namespacelabs/nscloud-cache-action@v1
-        with:
-          path: |
-            ~/.pub-cache
-            ~/.cocoapods
-
-      # App Store Connect requires the newest SDK; the runner's default Xcode is older.
-      - name: Select newest Xcode
-        run: |
-          set -euo pipefail
-          XCODE=$(printf '%s\n' /Applications/Xcode*.app | sort -V | tail -1)
-          echo "Selected $XCODE"
-          echo "DEVELOPER_DIR_OVERRIDE=$XCODE/Contents/Developer" >> "$GITHUB_ENV"
-
-      # Not in nixpkgs; installed into ~/.local/bin via the nix-provided pipx.
-      - name: Install codemagic-cli-tools
-        run: |
-          set -euo pipefail
-          nix develop .#cd-ios -c pipx install codemagic-cli-tools
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-
-      - name: Build signed IPA
-        run: nix develop .#cd-ios -c ./scripts/ci/cd-ios.sh
-
-      # No --testflight: it waits on Apple processing to submit for EXTERNAL beta review
-      # and flakily times out; internal testers get the build from a plain upload.
-      - name: Publish to TestFlight
-        run: app-store-connect publish --path "build/ios/ipa/*.ipa"
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ipa-${{ matrix.flavor }}
-          path: build/ios/ipa/*.ipa
-          if-no-files-found: warn
-
-  # ── Android → Google Play (internal track) ───────────────────────────────────
   android:
     name: Android ${{ matrix.flavor }}
     needs: setup
-    # 8 GB runner — cd-android.sh sizes the Gradle JVM for it.
-    runs-on:
-      - nscloud-ubuntu-22.04-amd64-4x8-with-cache
-      - nscloud-cache-size-50gb
-      - nscloud-cache-tag-atomi-nix-store-cache
-    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
-    env:
-      FLAVOR: ${{ matrix.flavor }}
-      PACKAGE_NAME: ${{ matrix.package_name }}
-      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-      # Read by codemagic-cli-tools `google-play` for the versionCode query.
-      GOOGLE_PLAY_SERVICE_ACCOUNT_CREDENTIALS: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
-    steps:
-      - uses: AtomiCloud/actions.setup-nix@v3
-
-      # Not in nixpkgs; provides `google-play` for the versionCode query.
-      - name: Install codemagic-cli-tools
-        run: |
-          set -euo pipefail
-          nix develop .#cd-android -c pipx install codemagic-cli-tools
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-
-      - name: Build signed AAB
-        run: nix develop .#cd-android -c ./scripts/ci/cd-android.sh
-
-      - name: Publish to Play internal track
-        uses: r0adkll/upload-google-play@v1
-        with:
-          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
-          packageName: ${{ matrix.package_name }}
-          releaseFiles: build/app/outputs/bundle/${{ matrix.flavor }}Release/*.aab
-          track: internal
-          status: completed
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: aab-${{ matrix.flavor }}
-          path: |
-            build/app/outputs/bundle/${{ matrix.flavor }}Release/*.aab
-            build/app/outputs/mapping/${{ matrix.flavor }}Release/mapping.txt
-          if-no-files-found: warn
+    uses: ./.github/workflows/⚡reusable-cd-android.yaml
+    with:
+      flavor: ${{ matrix.flavor }}
+      package-name: ${{ matrix.package_name }}
+    secrets: inherit

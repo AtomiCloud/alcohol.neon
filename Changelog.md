@@ -1,3 +1,10 @@
+## [1.2.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.1.0...v1.2.0) (2026-06-12)
+
+
+### ✨ Features ✨
+
+* extract mobile CD into reusable platform workflows ([36403a6](https://github.com/AtomiCloud/alcohol.neon/commit/36403a6dbf854b5430b6baeab54a3b03daa45061))
+
 ## [1.1.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.0.5...v1.1.0) (2026-06-09)
 
 

@@ -29,6 +29,10 @@ class _ProfileViewState extends State<ProfileView> {
   bool _loading = true;
   Problem? _error;
 
+  // Account-deletion action state (separate from the page-load _error above).
+  bool _deleting = false;
+  Problem? _deleteError;
+
   // Secret dev-menu entry: 7 taps on the name, then the dev password.
   int _nameTaps = 0;
   Timer? _tapReset;
@@ -93,6 +97,62 @@ class _ProfileViewState extends State<ProfileView> {
   // AuthService is a ChangeNotifier and RootView reacts to its status — just sign
   // out and let the shell swap to the signed-out experience (no manual nav).
   void _signOut() => context.read<AuthService>().signOut();
+
+  /// Permanently deletes the account after an explicit irreversible confirmation.
+  /// On success we sign out — RootView reacts to the status change and swaps to the
+  /// signed-in/locked-out shell. A 409 means deletion is blocked by outstanding debt;
+  /// we surface the server's message inline rather than a raw error.
+  Future<void> _deleteAccount() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete account?'),
+        content: const Text(
+          'This permanently deletes your account and sign-in — your profile, habits, '
+          'history, vacations, freeze balances, payment details and settings. There '
+          'is no grace period and it cannot be undone.\n\n'
+          'Past charity-donation records are kept for accounting, with your personal '
+          'details removed.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete account'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    final session = context.read<SessionController>();
+    final auth = context.read<AuthService>();
+    setState(() {
+      _deleting = true;
+      _deleteError = null;
+    });
+
+    final res = await session.users.deleteMe();
+    if (!mounted) return;
+
+    switch (res) {
+      case Ok():
+        // Account + Logto identity are gone server-side; clear the local session.
+        // RootView swaps to the signed-out shell, disposing this screen.
+        auth.signOut();
+      case Err(:final problem):
+        setState(() {
+          _deleting = false;
+          _deleteError = problem;
+        });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -195,13 +255,42 @@ class _ProfileViewState extends State<ProfileView> {
         ),
         const SizedBox(height: 24),
         OutlinedButton.icon(
-          onPressed: _signOut,
+          onPressed: _deleting ? null : _signOut,
           icon: const Icon(Icons.logout),
           label: const Text('Sign out'),
           style: OutlinedButton.styleFrom(
             foregroundColor: theme.colorScheme.error,
           ),
         ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: _deleting ? null : _deleteAccount,
+          icon: _deleting
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.delete_forever),
+          label: Text(_deleting ? 'Deleting…' : 'Delete account'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: theme.colorScheme.error,
+            side: BorderSide(color: theme.colorScheme.error),
+          ),
+        ),
+        if (_deleteError != null) ...[
+          const SizedBox(height: 12),
+          Text(
+            _deleteError!.status == 409
+                ? (_deleteError!.detail ??
+                      'You have an outstanding debt. Please settle it before '
+                          'deleting your account.')
+                : (_deleteError!.detail ?? _deleteError!.title),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.error,
+            ),
+          ),
+        ],
       ],
     );
   }

@@ -32,4 +32,12 @@ class UserRepository {
       (j) => UserRes.fromJson(j as Map<String, Object?>),
     );
   }
+
+  /// Permanently deletes the signed-in user's own account (`DELETE /User/Me`).
+  /// zinc takes the user id from the token (never a param), hard-deletes all personal
+  /// data, anonymize-retains the donation ledger, and purges the Logto identity. Returns
+  /// `Err` with a 409 `Problem` when deletion is blocked by an outstanding debt.
+  Future<Result<void>> deleteMe() {
+    return _api.delete('$_base/Me');
+  }
 }

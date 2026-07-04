@@ -8,15 +8,11 @@ part 'error_info.g.dart';
 
 @JsonSerializable()
 class ErrorInfo {
-  const ErrorInfo({
-    this.schema,
-    this.id,
-    this.title,
-    this.version,
-  });
-  
-  factory ErrorInfo.fromJson(Map<String, Object?> json) => _$ErrorInfoFromJson(json);
-  
+  const ErrorInfo({this.schema, this.id, this.title, this.version});
+
+  factory ErrorInfo.fromJson(Map<String, Object?> json) =>
+      _$ErrorInfoFromJson(json);
+
   final dynamic schema;
   final String? id;
   final String? title;

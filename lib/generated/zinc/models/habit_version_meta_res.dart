@@ -13,9 +13,10 @@ class HabitVersionMetaRes {
     required this.isActive,
     this.id,
   });
-  
-  factory HabitVersionMetaRes.fromJson(Map<String, Object?> json) => _$HabitVersionMetaResFromJson(json);
-  
+
+  factory HabitVersionMetaRes.fromJson(Map<String, Object?> json) =>
+      _$HabitVersionMetaResFromJson(json);
+
   final String? id;
   final int version;
   final bool isActive;

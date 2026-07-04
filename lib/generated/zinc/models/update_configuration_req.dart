@@ -8,13 +8,11 @@ part 'update_configuration_req.g.dart';
 
 @JsonSerializable()
 class UpdateConfigurationReq {
-  const UpdateConfigurationReq({
-    this.timezone,
-    this.defaultCharityId,
-  });
-  
-  factory UpdateConfigurationReq.fromJson(Map<String, Object?> json) => _$UpdateConfigurationReqFromJson(json);
-  
+  const UpdateConfigurationReq({this.timezone, this.defaultCharityId});
+
+  factory UpdateConfigurationReq.fromJson(Map<String, Object?> json) =>
+      _$UpdateConfigurationReqFromJson(json);
+
   final String? timezone;
   final String? defaultCharityId;
 

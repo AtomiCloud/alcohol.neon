@@ -321,9 +321,9 @@ class _SettingsViewState extends State<SettingsView> {
           label: 'Subscription',
           value: 'View your plan',
           subtitle: 'See your current plan and manage it.',
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const SubscriptionView()),
-          ),
+          onTap: () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const SubscriptionView())),
         ),
         if (_saveError != null) ...[
           const SizedBox(height: 12),

@@ -10,12 +10,11 @@ part 'user_res.g.dart';
 
 @JsonSerializable()
 class UserRes {
-  const UserRes({
-    required this.principal,
-  });
-  
-  factory UserRes.fromJson(Map<String, Object?> json) => _$UserResFromJson(json);
-  
+  const UserRes({required this.principal});
+
+  factory UserRes.fromJson(Map<String, Object?> json) =>
+      _$UserResFromJson(json);
+
   final UserPrincipalRes principal;
 
   Map<String, Object?> toJson() => _$UserResToJson(this);

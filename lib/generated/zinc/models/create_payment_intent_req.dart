@@ -13,9 +13,10 @@ class CreatePaymentIntentReq {
     this.currency,
     this.description,
   });
-  
-  factory CreatePaymentIntentReq.fromJson(Map<String, Object?> json) => _$CreatePaymentIntentReqFromJson(json);
-  
+
+  factory CreatePaymentIntentReq.fromJson(Map<String, Object?> json) =>
+      _$CreatePaymentIntentReqFromJson(json);
+
   final double amount;
   final String? currency;
   final String? description;

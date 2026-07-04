@@ -8,14 +8,11 @@ part 'cause_principal_res.g.dart';
 
 @JsonSerializable()
 class CausePrincipalRes {
-  const CausePrincipalRes({
-    this.id,
-    this.key,
-    this.name,
-  });
-  
-  factory CausePrincipalRes.fromJson(Map<String, Object?> json) => _$CausePrincipalResFromJson(json);
-  
+  const CausePrincipalRes({this.id, this.key, this.name});
+
+  factory CausePrincipalRes.fromJson(Map<String, Object?> json) =>
+      _$CausePrincipalResFromJson(json);
+
   final String? id;
   final String? key;
   final String? name;

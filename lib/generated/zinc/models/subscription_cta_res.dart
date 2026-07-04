@@ -8,13 +8,11 @@ part 'subscription_cta_res.g.dart';
 
 @JsonSerializable()
 class SubscriptionCtaRes {
-  const SubscriptionCtaRes({
-    this.variant,
-    this.tier,
-  });
-  
-  factory SubscriptionCtaRes.fromJson(Map<String, Object?> json) => _$SubscriptionCtaResFromJson(json);
-  
+  const SubscriptionCtaRes({this.variant, this.tier});
+
+  factory SubscriptionCtaRes.fromJson(Map<String, Object?> json) =>
+      _$SubscriptionCtaResFromJson(json);
+
   final String? variant;
   final String? tier;
 

@@ -8,13 +8,11 @@ part 'award_weekly_res.g.dart';
 
 @JsonSerializable()
 class AwardWeeklyRes {
-  const AwardWeeklyRes({
-    required this.awards,
-    this.userId,
-  });
-  
-  factory AwardWeeklyRes.fromJson(Map<String, Object?> json) => _$AwardWeeklyResFromJson(json);
-  
+  const AwardWeeklyRes({required this.awards, this.userId});
+
+  factory AwardWeeklyRes.fromJson(Map<String, Object?> json) =>
+      _$AwardWeeklyResFromJson(json);
+
   final String? userId;
   final int awards;
 

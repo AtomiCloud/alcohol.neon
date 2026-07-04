@@ -16,9 +16,10 @@ class HabitStatusRes {
     required this.isCompleteToday,
     required this.week,
   });
-  
-  factory HabitStatusRes.fromJson(Map<String, Object?> json) => _$HabitStatusResFromJson(json);
-  
+
+  factory HabitStatusRes.fromJson(Map<String, Object?> json) =>
+      _$HabitStatusResFromJson(json);
+
   final int currentStreak;
   final int maxStreak;
   final bool isCompleteToday;

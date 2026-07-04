@@ -18,9 +18,10 @@ class UpdateCharityReq {
     this.websiteUrl,
     this.logoUrl,
   });
-  
-  factory UpdateCharityReq.fromJson(Map<String, Object?> json) => _$UpdateCharityReqFromJson(json);
-  
+
+  factory UpdateCharityReq.fromJson(Map<String, Object?> json) =>
+      _$UpdateCharityReqFromJson(json);
+
   final String? name;
   final String? slug;
   final String? mission;

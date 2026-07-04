@@ -14,9 +14,10 @@ class ConfirmPaymentIntentRes {
     this.status,
     this.currency,
   });
-  
-  factory ConfirmPaymentIntentRes.fromJson(Map<String, Object?> json) => _$ConfirmPaymentIntentResFromJson(json);
-  
+
+  factory ConfirmPaymentIntentRes.fromJson(Map<String, Object?> json) =>
+      _$ConfirmPaymentIntentResFromJson(json);
+
   final String? paymentIntentId;
   final String? status;
   final double amount;

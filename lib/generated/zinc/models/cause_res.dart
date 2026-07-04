@@ -10,12 +10,11 @@ part 'cause_res.g.dart';
 
 @JsonSerializable()
 class CauseRes {
-  const CauseRes({
-    required this.principal,
-  });
-  
-  factory CauseRes.fromJson(Map<String, Object?> json) => _$CauseResFromJson(json);
-  
+  const CauseRes({required this.principal});
+
+  factory CauseRes.fromJson(Map<String, Object?> json) =>
+      _$CauseResFromJson(json);
+
   final CausePrincipalRes principal;
 
   Map<String, Object?> toJson() => _$CauseResToJson(this);

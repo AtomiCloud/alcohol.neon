@@ -8,13 +8,11 @@ part 'web_handoff_req.g.dart';
 
 @JsonSerializable()
 class WebHandoffReq {
-  const WebHandoffReq({
-    this.platform,
-    this.storefront,
-  });
-  
-  factory WebHandoffReq.fromJson(Map<String, Object?> json) => _$WebHandoffReqFromJson(json);
-  
+  const WebHandoffReq({this.platform, this.storefront});
+
+  factory WebHandoffReq.fromJson(Map<String, Object?> json) =>
+      _$WebHandoffReqFromJson(json);
+
   final String? platform;
   final String? storefront;
 

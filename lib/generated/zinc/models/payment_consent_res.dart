@@ -13,9 +13,10 @@ class PaymentConsentRes {
     this.consentId,
     this.status,
   });
-  
-  factory PaymentConsentRes.fromJson(Map<String, Object?> json) => _$PaymentConsentResFromJson(json);
-  
+
+  factory PaymentConsentRes.fromJson(Map<String, Object?> json) =>
+      _$PaymentConsentResFromJson(json);
+
   final bool hasPaymentConsent;
   final String? consentId;
   final String? status;

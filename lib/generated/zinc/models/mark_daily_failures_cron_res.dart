@@ -8,12 +8,11 @@ part 'mark_daily_failures_cron_res.g.dart';
 
 @JsonSerializable()
 class MarkDailyFailuresCronRes {
-  const MarkDailyFailuresCronRes({
-    required this.totalMarked,
-  });
-  
-  factory MarkDailyFailuresCronRes.fromJson(Map<String, Object?> json) => _$MarkDailyFailuresCronResFromJson(json);
-  
+  const MarkDailyFailuresCronRes({required this.totalMarked});
+
+  factory MarkDailyFailuresCronRes.fromJson(Map<String, Object?> json) =>
+      _$MarkDailyFailuresCronResFromJson(json);
+
   final int totalMarked;
 
   Map<String, Object?> toJson() => _$MarkDailyFailuresCronResToJson(this);

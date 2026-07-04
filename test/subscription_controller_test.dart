@@ -152,10 +152,7 @@ void main() {
     final c = controller(
       repo(
         (req) async => http.Response(
-          jsonEncode({
-            'url': 'javascript:alert(1)',
-            'expiresInSeconds': 300,
-          }),
+          jsonEncode({'url': 'javascript:alert(1)', 'expiresInSeconds': 300}),
           200,
           headers: {'content-type': 'application/json'},
         ),

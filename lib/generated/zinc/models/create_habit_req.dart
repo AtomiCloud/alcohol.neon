@@ -16,9 +16,10 @@ class CreateHabitReq {
     this.stake,
     this.timezone,
   });
-  
-  factory CreateHabitReq.fromJson(Map<String, Object?> json) => _$CreateHabitReqFromJson(json);
-  
+
+  factory CreateHabitReq.fromJson(Map<String, Object?> json) =>
+      _$CreateHabitReqFromJson(json);
+
   final String? task;
   final List<String>? daysOfWeek;
   final String? notificationTime;

@@ -8,13 +8,11 @@ part 'create_configuration_req.g.dart';
 
 @JsonSerializable()
 class CreateConfigurationReq {
-  const CreateConfigurationReq({
-    this.timezone,
-    this.defaultCharityId,
-  });
-  
-  factory CreateConfigurationReq.fromJson(Map<String, Object?> json) => _$CreateConfigurationReqFromJson(json);
-  
+  const CreateConfigurationReq({this.timezone, this.defaultCharityId});
+
+  factory CreateConfigurationReq.fromJson(Map<String, Object?> json) =>
+      _$CreateConfigurationReqFromJson(json);
+
   final String? timezone;
   final String? defaultCharityId;
 

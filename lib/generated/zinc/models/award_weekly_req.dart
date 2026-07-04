@@ -8,12 +8,11 @@ part 'award_weekly_req.g.dart';
 
 @JsonSerializable()
 class AwardWeeklyReq {
-  const AwardWeeklyReq({
-    this.userId,
-  });
-  
-  factory AwardWeeklyReq.fromJson(Map<String, Object?> json) => _$AwardWeeklyReqFromJson(json);
-  
+  const AwardWeeklyReq({this.userId});
+
+  factory AwardWeeklyReq.fromJson(Map<String, Object?> json) =>
+      _$AwardWeeklyReqFromJson(json);
+
   final String? userId;
 
   Map<String, Object?> toJson() => _$AwardWeeklyReqToJson(this);

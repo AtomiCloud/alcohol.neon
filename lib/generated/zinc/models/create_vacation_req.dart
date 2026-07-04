@@ -8,14 +8,11 @@ part 'create_vacation_req.g.dart';
 
 @JsonSerializable()
 class CreateVacationReq {
-  const CreateVacationReq({
-    this.startDate,
-    this.endDate,
-    this.timezone,
-  });
-  
-  factory CreateVacationReq.fromJson(Map<String, Object?> json) => _$CreateVacationReqFromJson(json);
-  
+  const CreateVacationReq({this.startDate, this.endDate, this.timezone});
+
+  factory CreateVacationReq.fromJson(Map<String, Object?> json) =>
+      _$CreateVacationReqFromJson(json);
+
   final String? startDate;
   final String? endDate;
   final String? timezone;

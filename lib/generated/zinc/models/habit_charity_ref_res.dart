@@ -8,14 +8,11 @@ part 'habit_charity_ref_res.g.dart';
 
 @JsonSerializable()
 class HabitCharityRefRes {
-  const HabitCharityRefRes({
-    this.id,
-    this.name,
-    this.url,
-  });
-  
-  factory HabitCharityRefRes.fromJson(Map<String, Object?> json) => _$HabitCharityRefResFromJson(json);
-  
+  const HabitCharityRefRes({this.id, this.name, this.url});
+
+  factory HabitCharityRefRes.fromJson(Map<String, Object?> json) =>
+      _$HabitCharityRefResFromJson(json);
+
   final String? id;
   final String? name;
   final String? url;

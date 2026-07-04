@@ -12,7 +12,9 @@
   "paths": {
     "/api/v{version}/Causes": {
       "get": {
-        "tags": ["Causes"],
+        "tags": [
+          "Causes"
+        ],
         "parameters": [
           {
             "name": "Key",
@@ -93,7 +95,9 @@
         }
       },
       "post": {
-        "tags": ["Causes"],
+        "tags": [
+          "Causes"
+        ],
         "parameters": [
           {
             "name": "version",
@@ -142,7 +146,9 @@
     },
     "/api/v{version}/Causes/{id}": {
       "get": {
-        "tags": ["Causes"],
+        "tags": [
+          "Causes"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -190,7 +196,9 @@
         }
       },
       "put": {
-        "tags": ["Causes"],
+        "tags": [
+          "Causes"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -247,7 +255,9 @@
         }
       },
       "delete": {
-        "tags": ["Causes"],
+        "tags": [
+          "Causes"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -280,7 +290,9 @@
     },
     "/api/v{version}/Charity": {
       "get": {
-        "tags": ["Charity"],
+        "tags": [
+          "Charity"
+        ],
         "parameters": [
           {
             "name": "Name",
@@ -393,7 +405,9 @@
         }
       },
       "post": {
-        "tags": ["Charity"],
+        "tags": [
+          "Charity"
+        ],
         "parameters": [
           {
             "name": "version",
@@ -442,7 +456,9 @@
     },
     "/api/v{version}/Charity/{id}": {
       "get": {
-        "tags": ["Charity"],
+        "tags": [
+          "Charity"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -490,7 +506,9 @@
         }
       },
       "put": {
-        "tags": ["Charity"],
+        "tags": [
+          "Charity"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -547,7 +565,9 @@
         }
       },
       "delete": {
-        "tags": ["Charity"],
+        "tags": [
+          "Charity"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -580,7 +600,9 @@
     },
     "/api/v{version}/Charity/{id}/causes": {
       "put": {
-        "tags": ["Charity"],
+        "tags": [
+          "Charity"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -622,7 +644,9 @@
     },
     "/api/v{version}/Charity/supported-countries": {
       "get": {
-        "tags": ["Charity"],
+        "tags": [
+          "Charity"
+        ],
         "parameters": [
           {
             "name": "version",
@@ -671,7 +695,9 @@
     },
     "/api/v{version}/Configuration/{userId}/{id}": {
       "get": {
-        "tags": ["Configuration"],
+        "tags": [
+          "Configuration"
+        ],
         "parameters": [
           {
             "name": "userId",
@@ -728,7 +754,9 @@
         }
       },
       "put": {
-        "tags": ["Configuration"],
+        "tags": [
+          "Configuration"
+        ],
         "parameters": [
           {
             "name": "userId",
@@ -796,7 +824,9 @@
     },
     "/api/v{version}/Configuration/me": {
       "get": {
-        "tags": ["Configuration"],
+        "tags": [
+          "Configuration"
+        ],
         "parameters": [
           {
             "name": "version",
@@ -836,7 +866,9 @@
     },
     "/api/v{version}/Configuration/{id}": {
       "get": {
-        "tags": ["Configuration"],
+        "tags": [
+          "Configuration"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -884,7 +916,9 @@
         }
       },
       "put": {
-        "tags": ["Configuration"],
+        "tags": [
+          "Configuration"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -943,7 +977,9 @@
     },
     "/api/v{version}/Configuration/{userId}": {
       "post": {
-        "tags": ["Configuration"],
+        "tags": [
+          "Configuration"
+        ],
         "parameters": [
           {
             "name": "userId",
@@ -1001,7 +1037,9 @@
     },
     "/api/v{version}/Configuration": {
       "post": {
-        "tags": ["Configuration"],
+        "tags": [
+          "Configuration"
+        ],
         "parameters": [
           {
             "name": "version",
@@ -1050,7 +1088,9 @@
     },
     "/api/v{version}/Email/{to}": {
       "post": {
-        "tags": ["Email"],
+        "tags": [
+          "Email"
+        ],
         "parameters": [
           {
             "name": "to",
@@ -1082,7 +1122,9 @@
     },
     "/api/v{version}/Habit/{userId}": {
       "get": {
-        "tags": ["Habit"],
+        "tags": [
+          "Habit"
+        ],
         "parameters": [
           {
             "name": "userId",
@@ -1189,7 +1231,9 @@
         }
       },
       "post": {
-        "tags": ["Habit"],
+        "tags": [
+          "Habit"
+        ],
         "parameters": [
           {
             "name": "userId",
@@ -1247,7 +1291,9 @@
     },
     "/api/v{version}/Habit/{userId}/{id}": {
       "get": {
-        "tags": ["Habit"],
+        "tags": [
+          "Habit"
+        ],
         "parameters": [
           {
             "name": "userId",
@@ -1304,7 +1350,9 @@
         }
       },
       "put": {
-        "tags": ["Habit"],
+        "tags": [
+          "Habit"
+        ],
         "parameters": [
           {
             "name": "userId",
@@ -1370,7 +1418,9 @@
         }
       },
       "delete": {
-        "tags": ["Habit"],
+        "tags": [
+          "Habit"
+        ],
         "parameters": [
           {
             "name": "userId",
@@ -1412,7 +1462,9 @@
     },
     "/api/v{version}/Habit/{userId}/{habitVersionId}/executions": {
       "post": {
-        "tags": ["Habit"],
+        "tags": [
+          "Habit"
+        ],
         "parameters": [
           {
             "name": "userId",
@@ -1480,7 +1532,9 @@
     },
     "/api/v{version}/Habit/{userId}/{habitVersionId}/executions/skip": {
       "post": {
-        "tags": ["Habit"],
+        "tags": [
+          "Habit"
+        ],
         "parameters": [
           {
             "name": "userId",
@@ -1548,7 +1602,9 @@
     },
     "/api/v{version}/Habit/{userId}/executions": {
       "get": {
-        "tags": ["Habit"],
+        "tags": [
+          "Habit"
+        ],
         "parameters": [
           {
             "name": "userId",
@@ -1641,7 +1697,9 @@
     },
     "/api/v{version}/Habit/{userId}/overview": {
       "get": {
-        "tags": ["Habit"],
+        "tags": [
+          "Habit"
+        ],
         "parameters": [
           {
             "name": "userId",
@@ -1708,7 +1766,9 @@
     },
     "/api/v{version}/Habit/executions/mark-daily-failures": {
       "post": {
-        "tags": ["Habit"],
+        "tags": [
+          "Habit"
+        ],
         "parameters": [
           {
             "name": "version",
@@ -1760,7 +1820,9 @@
     },
     "/api/v{version}/habit-cron/mark-daily-failures": {
       "post": {
-        "tags": ["HabitCron"],
+        "tags": [
+          "HabitCron"
+        ],
         "parameters": [
           {
             "name": "version",
@@ -1800,7 +1862,9 @@
     },
     "/api/v{version}/Payment/{userId}/customers": {
       "put": {
-        "tags": ["Payment"],
+        "tags": [
+          "Payment"
+        ],
         "parameters": [
           {
             "name": "userId",
@@ -1849,7 +1913,9 @@
     },
     "/api/v{version}/Payment/{userId}/client-secret": {
       "get": {
-        "tags": ["Payment"],
+        "tags": [
+          "Payment"
+        ],
         "parameters": [
           {
             "name": "userId",
@@ -1898,7 +1964,9 @@
     },
     "/api/v{version}/Payment/{userId}/consent": {
       "get": {
-        "tags": ["Payment"],
+        "tags": [
+          "Payment"
+        ],
         "parameters": [
           {
             "name": "userId",
@@ -1945,7 +2013,9 @@
         }
       },
       "delete": {
-        "tags": ["Payment"],
+        "tags": [
+          "Payment"
+        ],
         "parameters": [
           {
             "name": "userId",
@@ -1977,7 +2047,9 @@
     },
     "/api/v{version}/Payment/{userId}/intent": {
       "post": {
-        "tags": ["Payment"],
+        "tags": [
+          "Payment"
+        ],
         "parameters": [
           {
             "name": "userId",
@@ -2035,7 +2107,9 @@
     },
     "/api/v{version}/Payment/{userId}/intent/{intentId}": {
       "post": {
-        "tags": ["Payment"],
+        "tags": [
+          "Payment"
+        ],
         "parameters": [
           {
             "name": "userId",
@@ -2102,7 +2176,9 @@
     },
     "/api/v{version}/Payment/webhook": {
       "post": {
-        "tags": ["Payment"],
+        "tags": [
+          "Payment"
+        ],
         "parameters": [
           {
             "name": "version",
@@ -2134,7 +2210,9 @@
     },
     "/api/v{version}/charities/sync/pledge": {
       "post": {
-        "tags": ["PledgeSync"],
+        "tags": [
+          "PledgeSync"
+        ],
         "parameters": [
           {
             "name": "version",
@@ -2174,7 +2252,9 @@
     },
     "/api/v{version}/Protection/{userId}": {
       "get": {
-        "tags": ["Protection"],
+        "tags": [
+          "Protection"
+        ],
         "parameters": [
           {
             "name": "userId",
@@ -2223,7 +2303,9 @@
     },
     "/api/v{version}/Protection/award-weekly": {
       "post": {
-        "tags": ["Protection"],
+        "tags": [
+          "Protection"
+        ],
         "parameters": [
           {
             "name": "version",
@@ -2272,7 +2354,9 @@
     },
     "/": {
       "get": {
-        "tags": ["System"],
+        "tags": [
+          "System"
+        ],
         "responses": {
           "200": {
             "description": "Success",
@@ -2299,7 +2383,9 @@
     },
     "/api/v{version}/User": {
       "get": {
-        "tags": ["User"],
+        "tags": [
+          "User"
+        ],
         "parameters": [
           {
             "name": "Id",
@@ -2404,7 +2490,9 @@
         }
       },
       "post": {
-        "tags": ["User"],
+        "tags": [
+          "User"
+        ],
         "parameters": [
           {
             "name": "version",
@@ -2453,7 +2541,9 @@
     },
     "/api/v{version}/User/Me": {
       "get": {
-        "tags": ["User"],
+        "tags": [
+          "User"
+        ],
         "parameters": [
           {
             "name": "version",
@@ -2483,7 +2573,9 @@
     },
     "/api/v{version}/User/Me/All": {
       "get": {
-        "tags": ["User"],
+        "tags": [
+          "User"
+        ],
         "parameters": [
           {
             "name": "version",
@@ -2523,7 +2615,9 @@
     },
     "/api/v{version}/User/{id}": {
       "get": {
-        "tags": ["User"],
+        "tags": [
+          "User"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -2570,7 +2664,9 @@
         }
       },
       "put": {
-        "tags": ["User"],
+        "tags": [
+          "User"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -2626,7 +2722,9 @@
         }
       },
       "delete": {
-        "tags": ["User"],
+        "tags": [
+          "User"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -2658,7 +2756,9 @@
     },
     "/api/v{version}/User/username/{username}": {
       "get": {
-        "tags": ["User"],
+        "tags": [
+          "User"
+        ],
         "parameters": [
           {
             "name": "username",
@@ -2707,7 +2807,9 @@
     },
     "/api/v{version}/error-info": {
       "get": {
-        "tags": ["V1Error"],
+        "tags": [
+          "V1Error"
+        ],
         "parameters": [
           {
             "name": "version",
@@ -2756,7 +2858,9 @@
     },
     "/api/v{version}/error-info/{id}": {
       "get": {
-        "tags": ["V1Error"],
+        "tags": [
+          "V1Error"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -2805,7 +2909,9 @@
     },
     "/api/v{version}/Vacation/{userId}": {
       "post": {
-        "tags": ["Vacation"],
+        "tags": [
+          "Vacation"
+        ],
         "parameters": [
           {
             "name": "userId",
@@ -2861,7 +2967,9 @@
         }
       },
       "get": {
-        "tags": ["Vacation"],
+        "tags": [
+          "Vacation"
+        ],
         "parameters": [
           {
             "name": "userId",
@@ -2946,7 +3054,9 @@
     },
     "/api/v{version}/Vacation/{userId}/{id}": {
       "delete": {
-        "tags": ["Vacation"],
+        "tags": [
+          "Vacation"
+        ],
         "parameters": [
           {
             "name": "userId",
@@ -2988,7 +3098,9 @@
     },
     "/api/v{version}/Vacation/{userId}/{id}/end-today": {
       "patch": {
-        "tags": ["Vacation"],
+        "tags": [
+          "Vacation"
+        ],
         "parameters": [
           {
             "name": "userId",
@@ -3049,7 +3161,9 @@
   "components": {
     "schemas": {
       "AirwallexEvent": {
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "type": "object",
         "properties": {
           "id": {
@@ -3087,7 +3201,9 @@
         "additionalProperties": false
       },
       "AirwallexEventData": {
-        "required": ["object"],
+        "required": [
+          "object"
+        ],
         "type": "object",
         "properties": {
           "object": {
@@ -3097,7 +3213,12 @@
         "additionalProperties": false
       },
       "AirwallexEventDataObject": {
-        "required": ["amount", "base_amount", "captured_amount", "request_id"],
+        "required": [
+          "amount",
+          "base_amount",
+          "captured_amount",
+          "request_id"
+        ],
         "type": "object",
         "properties": {
           "amount": {
@@ -3182,7 +3303,9 @@
         "additionalProperties": false
       },
       "AwardWeeklyRes": {
-        "required": ["awards"],
+        "required": [
+          "awards"
+        ],
         "type": "object",
         "properties": {
           "userId": {
@@ -3215,7 +3338,9 @@
         "additionalProperties": false
       },
       "CauseRes": {
-        "required": ["principal"],
+        "required": [
+          "principal"
+        ],
         "type": "object",
         "properties": {
           "principal": {
@@ -3270,7 +3395,9 @@
         "additionalProperties": false
       },
       "CharityRes": {
-        "required": ["principal"],
+        "required": [
+          "principal"
+        ],
         "type": "object",
         "properties": {
           "principal": {
@@ -3326,7 +3453,10 @@
         "additionalProperties": false
       },
       "ConfigurationRes": {
-        "required": ["charity", "principal"],
+        "required": [
+          "charity",
+          "principal"
+        ],
         "type": "object",
         "properties": {
           "principal": {
@@ -3349,7 +3479,9 @@
         "additionalProperties": false
       },
       "ConfirmPaymentIntentRes": {
-        "required": ["amount"],
+        "required": [
+          "amount"
+        ],
         "type": "object",
         "properties": {
           "paymentIntentId": {
@@ -3455,7 +3587,9 @@
         "additionalProperties": false
       },
       "CreateHabitReq": {
-        "required": ["charityId"],
+        "required": [
+          "charityId"
+        ],
         "type": "object",
         "properties": {
           "task": {
@@ -3489,7 +3623,9 @@
         "additionalProperties": false
       },
       "CreatePaymentIntentReq": {
-        "required": ["amount"],
+        "required": [
+          "amount"
+        ],
         "type": "object",
         "properties": {
           "amount": {
@@ -3508,7 +3644,9 @@
         "additionalProperties": false
       },
       "CreatePaymentIntentRes": {
-        "required": ["amount"],
+        "required": [
+          "amount"
+        ],
         "type": "object",
         "properties": {
           "paymentIntentId": {
@@ -3602,7 +3740,11 @@
         "additionalProperties": false
       },
       "HabitExecutionRes": {
-        "required": ["habitVersionId", "id", "paymentProcessed"],
+        "required": [
+          "habitVersionId",
+          "id",
+          "paymentProcessed"
+        ],
         "type": "object",
         "properties": {
           "id": {
@@ -3636,7 +3778,14 @@
         "additionalProperties": false
       },
       "HabitOverviewHabitRes": {
-        "required": ["charity", "enabled", "stake", "status", "timeLeftToEodMinutes", "version"],
+        "required": [
+          "charity",
+          "enabled",
+          "stake",
+          "status",
+          "timeLeftToEodMinutes",
+          "version"
+        ],
         "type": "object",
         "properties": {
           "id": {
@@ -3689,7 +3838,10 @@
         "additionalProperties": false
       },
       "HabitOverviewResponse": {
-        "required": ["totalSkip", "usedSkip"],
+        "required": [
+          "totalSkip",
+          "usedSkip"
+        ],
         "type": "object",
         "properties": {
           "habits": {
@@ -3715,7 +3867,12 @@
         "additionalProperties": false
       },
       "HabitStatusRes": {
-        "required": ["currentStreak", "isCompleteToday", "maxStreak", "week"],
+        "required": [
+          "currentStreak",
+          "isCompleteToday",
+          "maxStreak",
+          "week"
+        ],
         "type": "object",
         "properties": {
           "currentStreak": {
@@ -3736,7 +3893,10 @@
         "additionalProperties": false
       },
       "HabitVersionMetaRes": {
-        "required": ["isActive", "version"],
+        "required": [
+          "isActive",
+          "version"
+        ],
         "type": "object",
         "properties": {
           "id": {
@@ -3754,7 +3914,12 @@
         "additionalProperties": false
       },
       "HabitVersionRes": {
-        "required": ["charityId", "habitId", "id", "version"],
+        "required": [
+          "charityId",
+          "habitId",
+          "id",
+          "version"
+        ],
         "type": "object",
         "properties": {
           "id": {
@@ -3804,7 +3969,9 @@
         "additionalProperties": false
       },
       "Info": {
-        "required": ["timeStamp"],
+        "required": [
+          "timeStamp"
+        ],
         "type": "object",
         "properties": {
           "landscape": {
@@ -3839,7 +4006,9 @@
         "additionalProperties": false
       },
       "MarkDailyFailuresCronRes": {
-        "required": ["totalMarked"],
+        "required": [
+          "totalMarked"
+        ],
         "type": "object",
         "properties": {
           "totalMarked": {
@@ -3868,7 +4037,9 @@
         "additionalProperties": false
       },
       "PaymentConsentRes": {
-        "required": ["hasPaymentConsent"],
+        "required": [
+          "hasPaymentConsent"
+        ],
         "type": "object",
         "properties": {
           "hasPaymentConsent": {
@@ -3919,7 +4090,10 @@
         "additionalProperties": false
       },
       "ProtectionBalanceRes": {
-        "required": ["balance", "cap"],
+        "required": [
+          "balance",
+          "cap"
+        ],
         "type": "object",
         "properties": {
           "userId": {
@@ -3961,7 +4135,9 @@
         "additionalProperties": false
       },
       "StakeRes": {
-        "required": ["amount"],
+        "required": [
+          "amount"
+        ],
         "type": "object",
         "properties": {
           "amount": {
@@ -4041,7 +4217,10 @@
         "additionalProperties": false
       },
       "UpdateHabitReq": {
-        "required": ["charityId", "enabled"],
+        "required": [
+          "charityId",
+          "enabled"
+        ],
         "type": "object",
         "properties": {
           "task": {
@@ -4092,7 +4271,10 @@
         "additionalProperties": false
       },
       "UserPrincipalRes": {
-        "required": ["active", "emailVerified"],
+        "required": [
+          "active",
+          "emailVerified"
+        ],
         "type": "object",
         "properties": {
           "id": {
@@ -4117,7 +4299,9 @@
         "additionalProperties": false
       },
       "UserRes": {
-        "required": ["principal"],
+        "required": [
+          "principal"
+        ],
         "type": "object",
         "properties": {
           "principal": {
@@ -4127,7 +4311,9 @@
         "additionalProperties": false
       },
       "VacationRes": {
-        "required": ["id"],
+        "required": [
+          "id"
+        ],
         "type": "object",
         "properties": {
           "id": {
@@ -4193,6 +4379,48 @@
             "nullable": true
           },
           "end": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "WebHandoffReq": {
+        "type": "object",
+        "properties": {
+          "platform": {
+            "type": "string",
+            "nullable": true
+          },
+          "storefront": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "WebHandoffRes": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "nullable": true
+          },
+          "expiresInSeconds": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SubscriptionCtaRes": {
+        "type": "object",
+        "properties": {
+          "variant": {
+            "type": "string",
+            "nullable": true
+          },
+          "tier": {
             "type": "string",
             "nullable": true
           }

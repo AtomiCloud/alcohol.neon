@@ -39,6 +39,7 @@ class SubscriptionController extends ChangeNotifier {
   StorefrontInfo? _storefrontInfo;
   bool _opening = false;
   Problem? _openError;
+  bool _disposed = false;
 
   bool get loading => _loading;
   Problem? get error => _error;
@@ -54,10 +55,22 @@ class SubscriptionController extends ChangeNotifier {
     _ => SubscriptionCtaVariant.neutral,
   };
 
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
+  /// The screen can be popped while a request is in flight; notifying a
+  /// disposed ChangeNotifier trips a debug assertion.
+  void _notify() {
+    if (!_disposed) notifyListeners();
+  }
+
   Future<void> load() async {
     _loading = true;
     _error = null;
-    notifyListeners();
+    _notify();
 
     final info = await _storefront.resolve();
     _storefrontInfo = info;
@@ -74,7 +87,7 @@ class SubscriptionController extends ChangeNotifier {
         _error = problem;
         _loading = false;
     }
-    notifyListeners();
+    _notify();
   }
 
   /// Mints the magic link and opens it in the default browser. The URL is a
@@ -83,7 +96,7 @@ class SubscriptionController extends ChangeNotifier {
     final info = _storefrontInfo ?? await _storefront.resolve();
     _opening = true;
     _openError = null;
-    notifyListeners();
+    _notify();
 
     final res = await _repo.webHandoff(
       platform: info.platform,
@@ -112,6 +125,6 @@ class SubscriptionController extends ChangeNotifier {
         _openError = problem;
     }
     _opening = false;
-    notifyListeners();
+    _notify();
   }
 }

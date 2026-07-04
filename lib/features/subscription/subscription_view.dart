@@ -15,7 +15,12 @@ import 'subscription_controller.dart';
 ///                 NO "cheaper on the web" copy, NO price comparison — that
 ///                 text in-app is a steering violation in those regions.
 class SubscriptionView extends StatefulWidget {
-  const SubscriptionView({super.key});
+  /// Test seam: when provided, the view renders this controller as-is (no
+  /// session lookup, no load, no dispose ownership).
+  @visibleForTesting
+  final SubscriptionController? controller;
+
+  const SubscriptionView({super.key, this.controller});
 
   @override
   State<SubscriptionView> createState() => _SubscriptionViewState();
@@ -23,13 +28,20 @@ class SubscriptionView extends StatefulWidget {
 
 class _SubscriptionViewState extends State<SubscriptionView> {
   SubscriptionController? _controller;
+  bool _owned = false;
 
   @override
   void initState() {
     super.initState();
+    final injected = widget.controller;
+    if (injected != null) {
+      _controller = injected;
+      return;
+    }
     final session = context.read<SessionController>();
     final userId = session.userId;
     if (userId != null) {
+      _owned = true;
       _controller = SubscriptionController(
         repository: session.subscriptions,
         storefront: StoreStorefrontService(),
@@ -40,7 +52,7 @@ class _SubscriptionViewState extends State<SubscriptionView> {
 
   @override
   void dispose() {
-    _controller?.dispose();
+    if (_owned) _controller?.dispose();
     super.dispose();
   }
 

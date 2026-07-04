@@ -39,13 +39,27 @@ class StoreStorefrontService implements StorefrontService {
   Future<StorefrontInfo> resolve() async {
     final platform = Platform.isIOS ? 'ios' : 'android';
     String? country;
+    var storeAnswered = false;
     try {
-      country = await (Platform.isIOS ? _iosCountry() : _androidCountry())
+      final raw = await (Platform.isIOS ? _iosCountry() : _androidCountry())
           .timeout(_storeTimeout);
+      if (raw != null && raw.isNotEmpty) {
+        storeAnswered = true;
+        // iOS answers alpha-3 (mapped; unmapped -> null and STAYS null: the
+        // store told us a region we don't recognize, so fail closed rather
+        // than substituting the device locale). Android answers alpha-2.
+        country = raw.length == 3
+            ? iso3166Alpha3ToAlpha2[raw.toUpperCase()]
+            : raw;
+      }
     } catch (_) {
-      country = null;
+      storeAnswered = false;
     }
-    country ??= PlatformDispatcher.instance.locale.countryCode;
+    // Locale is only a fallback for "the store didn't answer at all" — never
+    // for "the store answered something we couldn't map".
+    if (!storeAnswered) {
+      country = PlatformDispatcher.instance.locale.countryCode;
+    }
     if (country != null && country.length != 2) country = null;
     return StorefrontInfo(
       platform: platform,
@@ -53,13 +67,11 @@ class StoreStorefrontService implements StorefrontService {
     );
   }
 
-  /// StoreKit reports the storefront as ISO 3166-1 **alpha-3**; zinc wants
-  /// alpha-2, so map it (null when Apple returns something unmapped).
+  /// StoreKit reports the storefront as ISO 3166-1 **alpha-3** ("USA");
+  /// [resolve] maps it to alpha-2.
   Future<String?> _iosCountry() async {
     final storefront = await SKPaymentQueueWrapper().storefront();
-    final alpha3 = storefront?.countryCode;
-    if (alpha3 == null) return null;
-    return iso3166Alpha3ToAlpha2[alpha3.toUpperCase()];
+    return storefront?.countryCode;
   }
 
   /// Play Billing's billing-config country (ISO 3166-1 alpha-2 already).

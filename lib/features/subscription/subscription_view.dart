@@ -26,13 +26,15 @@ class SubscriptionView extends StatefulWidget {
   State<SubscriptionView> createState() => _SubscriptionViewState();
 }
 
-class _SubscriptionViewState extends State<SubscriptionView> {
+class _SubscriptionViewState extends State<SubscriptionView>
+    with WidgetsBindingObserver {
   SubscriptionController? _controller;
   bool _owned = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     final injected = widget.controller;
     if (injected != null) {
       _controller = injected;
@@ -50,8 +52,17 @@ class _SubscriptionViewState extends State<SubscriptionView> {
     }
   }
 
+  /// Subscribing/managing happens in the external browser; when the app comes
+  /// back to the foreground, re-ask zinc so a new subscription shows up
+  /// immediately instead of a stale "Free plan".
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _controller?.load();
+  }
+
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     if (_owned) _controller?.dispose();
     super.dispose();
   }

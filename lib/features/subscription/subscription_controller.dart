@@ -68,7 +68,9 @@ class SubscriptionController extends ChangeNotifier {
   }
 
   Future<void> load() async {
-    _loading = true;
+    // Full-screen loader only before the first result; later calls (e.g. the
+    // on-resume refresh after subscribing in the browser) update in place.
+    _loading = _cta == null;
     _error = null;
     _notify();
 

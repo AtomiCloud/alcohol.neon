@@ -93,4 +93,44 @@ void main() {
     expect(find.byType(FilledButton), findsNothing);
     c.dispose();
   });
+
+  testWidgets('app resume refreshes the CTA (web subscription shows up)', (
+    tester,
+  ) async {
+    // First response: free/subscribe. After "returning from the browser"
+    // (app resume), zinc reports the new pro subscription -> manage.
+    var calls = 0;
+    final repo = SubscriptionRepository(
+      ApiClient(
+        baseUrl: Uri.parse('https://zinc.test'),
+        tokenProvider: () async => 'token',
+        client: MockClient((req) async {
+          calls++;
+          final body = calls == 1
+              ? {'variant': 'subscribe', 'tier': 'free'}
+              : {'variant': 'manage', 'tier': 'pro'};
+          return http.Response(
+            jsonEncode(body),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }),
+      ),
+    );
+    final c = SubscriptionController(
+      repository: repo,
+      storefront: _FakeStorefront(),
+      userId: 'user-1',
+      launcher: (_) async => true,
+    );
+    await _pump(tester, c);
+    expect(find.text('Subscribe on the web'), findsOneWidget);
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Manage subscription'), findsOneWidget);
+    expect(find.text('Pro plan'), findsOneWidget);
+    c.dispose();
+  });
 }

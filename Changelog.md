@@ -1,3 +1,17 @@
+## [1.5.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.4.0...v1.5.0) (2026-07-06)
+
+
+### ✨ Features ✨
+
+* **register:** enumerate Apple teams and prompt for the team up front ([8976ec8](https://github.com/AtomiCloud/alcohol.neon/commit/8976ec8ae424d57d65877b9687d8d5038132db5c))
+* migrate store identifiers to the LPSM scheme ([49c4713](https://github.com/AtomiCloud/alcohol.neon/commit/49c4713124105028f889756dc73252b94fbf23af))
+
+
+### 🐛 Bug Fixes 🐛
+
+* **register:** sign in once up front, then run all landscapes hands-free ([564e8d6](https://github.com/AtomiCloud/alcohol.neon/commit/564e8d6bdc15f3a88242204afa113bc5ee6a6cc2))
+* surface discovery and fastlane failures instead of swallowing them ([7f577b2](https://github.com/AtomiCloud/alcohol.neon/commit/7f577b22019b576b236536e9f3f1f30c81430f56))
+
 ## [1.4.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.3.0...v1.4.0) (2026-07-06)
 
 

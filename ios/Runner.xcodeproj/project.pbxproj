@@ -11,21 +11,30 @@
 		08CFE764BD7172B398BA6F3A /* pikachuProfile.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 912A37FF08CB1E1873AC75CC /* pikachuProfile.xcconfig */; };
 		0B3D63B3C104BD603BAC857D /* pichuProfile.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = FD2B992E2EDACEB95E322D65 /* pichuProfile.xcconfig */; };
 		1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
+		14D52CCEC4AE7863669AC581 /* NeonWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 69DD51E38BE02F1052485E4E /* NeonWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		1DFCBFFFAB528855D3C8CDA6 /* NeonWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 405EA21C21C5262ECB7F6EBB /* NeonWidgetBundle.swift */; };
 		1F28FF392AD76D3B84B26BB0 /* pikachuRelease.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = B030497F541F78CA8CBDC0F2 /* pikachuRelease.xcconfig */; };
 		331C808B294A63AB00263BE5 /* RunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 331C807B294A618700263BE5 /* RunnerTests.swift */; };
 		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
 		4423FD6600D461D9B31D3256 /* pichuDebug.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 5C29F99E32D8B8DA6C57187C /* pichuDebug.xcconfig */; };
 		48DD69EEDE5F18A4B0126BB5 /* pichuRelease.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 8F37BDEDDF1B79C4D5FF1055 /* pichuRelease.xcconfig */; };
+		4C62592D6A869F6F2720A78A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D08C47273F6C110426087C84 /* Assets.xcassets */; };
 		5969D760749B624EF28D30E5 /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 42BB3C49031E755BA21D4BB5 /* Pods_Runner.framework */; };
+		5E5D8D5BD6AA7884FCF6CF91 /* CompleteHabitIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33E63E5799D7684FE7110CA5 /* CompleteHabitIntent.swift */; };
 		6A08FAF3136B442432987DAE /* raichuDebug.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = A30DCDA8212D9607376E8C5C /* raichuDebug.xcconfig */; };
 		6A4AC210E7431FFF3EBB96C2 /* pikachuDebug.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 733693DFCA5C75CC096C1A70 /* pikachuDebug.xcconfig */; };
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
 		7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */; };
+		7EC9FDB67048DA332F8C37FA /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9A257CA19BF3963633251BBF /* SwiftUI.framework */; };
+		95BED7BE1E12FCF9F9C4F734 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 801F91F4C1BED4F5AF5364C8 /* Foundation.framework */; };
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
 		A56730DD598649E3910616E2 /* Pods_RunnerTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F79474E5E8BEB1B81370AC5F /* Pods_RunnerTests.framework */; };
 		C15D55A98FBB078E711B1EBF /* raichuProfile.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 119F0BF53AEAA4E2F4D97B03 /* raichuProfile.xcconfig */; };
+		C62E66CAE8CDD2532D09B540 /* NeonWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CD9E88B89FBFF9FBF840613 /* NeonWidget.swift */; };
+		DD40DA7E1A5ED0BC10B1190D /* CompleteHabitIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33E63E5799D7684FE7110CA5 /* CompleteHabitIntent.swift */; };
+		E84DDC109B42DE723E31EF96 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C3690EE18A2026C5DFA064EB /* WidgetKit.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -36,9 +45,27 @@
 			remoteGlobalIDString = 97C146ED1CF9000F007C117D;
 			remoteInfo = Runner;
 		};
+		AC09E6C3D24DF7778EA78A7C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 97C146E61CF9000F007C117D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 27D60F2777C1656AC85A2AF0;
+			remoteInfo = NeonWidgetExtension;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		0C50FEC77B8EA8D9633D099F /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				14D52CCEC4AE7863669AC581 /* NeonWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		9705A1C41CF9048500538489 /* Embed Frameworks */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -62,10 +89,15 @@
 		30A8D44A9E0BBA813072A38F /* Pods-Runner.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"; sourceTree = "<group>"; };
 		331C807B294A618700263BE5 /* RunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunnerTests.swift; sourceTree = "<group>"; };
 		331C8081294A63A400263BE5 /* RunnerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RunnerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		33E63E5799D7684FE7110CA5 /* CompleteHabitIntent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CompleteHabitIntent.swift; sourceTree = "<group>"; };
+		3B1D1332CD14E99B9F6CC941 /* Runner.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = Runner.entitlements; sourceTree = "<group>"; };
 		3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = AppFrameworkInfo.plist; path = Flutter/AppFrameworkInfo.plist; sourceTree = "<group>"; };
 		3D38608939C677F051134014 /* Pods-Runner.release-raichu.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release-raichu.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release-raichu.xcconfig"; sourceTree = "<group>"; };
+		405EA21C21C5262ECB7F6EBB /* NeonWidgetBundle.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NeonWidgetBundle.swift; sourceTree = "<group>"; };
 		42BB3C49031E755BA21D4BB5 /* Pods_Runner.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Runner.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		4CD9E88B89FBFF9FBF840613 /* NeonWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NeonWidget.swift; sourceTree = "<group>"; };
 		5C29F99E32D8B8DA6C57187C /* pichuDebug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; path = Flutter/pichuDebug.xcconfig; sourceTree = "<group>"; };
+		69DD51E38BE02F1052485E4E /* NeonWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = NeonWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		6D3DF126AC0B24FA723BF435 /* Pods-Runner.release-pikachu.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release-pikachu.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release-pikachu.xcconfig"; sourceTree = "<group>"; };
 		733693DFCA5C75CC096C1A70 /* pikachuDebug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; path = Flutter/pikachuDebug.xcconfig; sourceTree = "<group>"; };
 		74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Runner-Bridging-Header.h"; sourceTree = "<group>"; };
@@ -73,6 +105,7 @@
 		7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		78BF496444508A6AFA8589DF /* Pods-RunnerTests.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.profile.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.profile.xcconfig"; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = Flutter/Release.xcconfig; sourceTree = "<group>"; };
+		801F91F4C1BED4F5AF5364C8 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		874709109473210CA5D0451E /* Pods-Runner.profile-pikachu.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile-pikachu.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile-pikachu.xcconfig"; sourceTree = "<group>"; };
 		8F37BDEDDF1B79C4D5FF1055 /* pichuRelease.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; path = Flutter/pichuRelease.xcconfig; sourceTree = "<group>"; };
 		912A37FF08CB1E1873AC75CC /* pikachuProfile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; path = Flutter/pikachuProfile.xcconfig; sourceTree = "<group>"; };
@@ -85,11 +118,16 @@
 		97C146FD1CF9000F007C117D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		97C147001CF9000F007C117D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		97C147021CF9000F007C117D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		9A257CA19BF3963633251BBF /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/SwiftUI.framework; sourceTree = DEVELOPER_DIR; };
 		A30DCDA8212D9607376E8C5C /* raichuDebug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; path = Flutter/raichuDebug.xcconfig; sourceTree = "<group>"; };
+		AA0AB4BA5FB771640A403D5F /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		AC3F0B14DB70F5EB0611ED5D /* Pods-Runner.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"; sourceTree = "<group>"; };
 		B030497F541F78CA8CBDC0F2 /* pikachuRelease.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; path = Flutter/pikachuRelease.xcconfig; sourceTree = "<group>"; };
 		BE731BB9E40B480069CF5EE2 /* Pods-Runner.debug-pikachu.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug-pikachu.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug-pikachu.xcconfig"; sourceTree = "<group>"; };
 		C0985F349EBD689C2326C40D /* Pods-Runner.release-pichu.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release-pichu.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release-pichu.xcconfig"; sourceTree = "<group>"; };
+		C3690EE18A2026C5DFA064EB /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/WidgetKit.framework; sourceTree = DEVELOPER_DIR; };
+		D08C47273F6C110426087C84 /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		D8BAAE823FB4A1FD1C6FF8EF /* NeonWidgetExtension.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = NeonWidgetExtension.entitlements; sourceTree = "<group>"; };
 		F79474E5E8BEB1B81370AC5F /* Pods_RunnerTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RunnerTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		FC3120E371E6835A9ABA6802 /* Pods-Runner.debug-raichu.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug-raichu.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug-raichu.xcconfig"; sourceTree = "<group>"; };
 		FD2B992E2EDACEB95E322D65 /* pichuProfile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; path = Flutter/pichuProfile.xcconfig; sourceTree = "<group>"; };
@@ -113,9 +151,29 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		9C2D3BF49AEA92D81559C5DF /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				95BED7BE1E12FCF9F9C4F734 /* Foundation.framework in Frameworks */,
+				E84DDC109B42DE723E31EF96 /* WidgetKit.framework in Frameworks */,
+				7EC9FDB67048DA332F8C37FA /* SwiftUI.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		00FDDF530AC70A974756F512 /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				801F91F4C1BED4F5AF5364C8 /* Foundation.framework */,
+				C3690EE18A2026C5DFA064EB /* WidgetKit.framework */,
+				9A257CA19BF3963633251BBF /* SwiftUI.framework */,
+			);
+			name = iOS;
+			sourceTree = "<group>";
+		};
 		331C8082294A63A400263BE5 /* RunnerTests */ = {
 			isa = PBXGroup;
 			children = (
@@ -129,6 +187,7 @@
 			children = (
 				42BB3C49031E755BA21D4BB5 /* Pods_Runner.framework */,
 				F79474E5E8BEB1B81370AC5F /* Pods_RunnerTests.framework */,
+				00FDDF530AC70A974756F512 /* iOS */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -162,6 +221,8 @@
 				331C8082294A63A400263BE5 /* RunnerTests */,
 				EE0B38A330598ECFC4FC3352 /* Pods */,
 				698B850C612C812CFB115A0E /* Frameworks */,
+				D8BAAE823FB4A1FD1C6FF8EF /* NeonWidgetExtension.entitlements */,
+				9BDEBBCD264957A897D495EF /* NeonWidget */,
 			);
 			sourceTree = "<group>";
 		};
@@ -170,6 +231,7 @@
 			children = (
 				97C146EE1CF9000F007C117D /* Runner.app */,
 				331C8081294A63A400263BE5 /* RunnerTests.xctest */,
+				69DD51E38BE02F1052485E4E /* NeonWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -186,8 +248,22 @@
 				74858FAE1ED2DC5600515810 /* AppDelegate.swift */,
 				7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
+				33E63E5799D7684FE7110CA5 /* CompleteHabitIntent.swift */,
+				3B1D1332CD14E99B9F6CC941 /* Runner.entitlements */,
 			);
 			path = Runner;
+			sourceTree = "<group>";
+		};
+		9BDEBBCD264957A897D495EF /* NeonWidget */ = {
+			isa = PBXGroup;
+			children = (
+				4CD9E88B89FBFF9FBF840613 /* NeonWidget.swift */,
+				405EA21C21C5262ECB7F6EBB /* NeonWidgetBundle.swift */,
+				D08C47273F6C110426087C84 /* Assets.xcassets */,
+				AA0AB4BA5FB771640A403D5F /* Info.plist */,
+			);
+			name = NeonWidget;
+			path = NeonWidget;
 			sourceTree = "<group>";
 		};
 		EE0B38A330598ECFC4FC3352 /* Pods */ = {
@@ -215,6 +291,23 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		27D60F2777C1656AC85A2AF0 /* NeonWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 638875BED7E8CC15E2345E9D /* Build configuration list for PBXNativeTarget "NeonWidgetExtension" */;
+			buildPhases = (
+				49C656ADFD5348976D0F1B3B /* Sources */,
+				9C2D3BF49AEA92D81559C5DF /* Frameworks */,
+				AE4A0F6300F48304CBF83BF7 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = NeonWidgetExtension;
+			productName = NeonWidgetExtension;
+			productReference = 69DD51E38BE02F1052485E4E /* NeonWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		331C8080294A63A400263BE5 /* RunnerTests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 331C8087294A63A400263BE5 /* Build configuration list for PBXNativeTarget "RunnerTests" */;
@@ -244,6 +337,7 @@
 				97C146EB1CF9000F007C117D /* Frameworks */,
 				97C146EC1CF9000F007C117D /* Resources */,
 				9705A1C41CF9048500538489 /* Embed Frameworks */,
+				0C50FEC77B8EA8D9633D099F /* Embed Foundation Extensions */,
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
 				FFFA04F4381B042D363F6B91 /* [CP] Embed Pods Frameworks */,
 				67EE72429E69445E7827BF90 /* [CP] Copy Pods Resources */,
@@ -251,6 +345,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				EB44812FDBEB41BF6ADBC106 /* PBXTargetDependency */,
 			);
 			name = Runner;
 			productName = Runner;
@@ -292,6 +387,7 @@
 			targets = (
 				97C146ED1CF9000F007C117D /* Runner */,
 				331C8080294A63A400263BE5 /* RunnerTests */,
+				27D60F2777C1656AC85A2AF0 /* NeonWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -321,6 +417,14 @@
 				6A08FAF3136B442432987DAE /* raichuDebug.xcconfig in Resources */,
 				C15D55A98FBB078E711B1EBF /* raichuProfile.xcconfig in Resources */,
 				02A27B39EAD06DC695BB1F00 /* raichuRelease.xcconfig in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AE4A0F6300F48304CBF83BF7 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4C62592D6A869F6F2720A78A /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -447,6 +551,16 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		49C656ADFD5348976D0F1B3B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C62E66CAE8CDD2532D09B540 /* NeonWidget.swift in Sources */,
+				1DFCBFFFAB528855D3C8CDA6 /* NeonWidgetBundle.swift in Sources */,
+				5E5D8D5BD6AA7884FCF6CF91 /* CompleteHabitIntent.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		97C146EA1CF9000F007C117D /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -454,6 +568,7 @@
 				74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
 				7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */,
+				DD40DA7E1A5ED0BC10B1190D /* CompleteHabitIntent.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -464,6 +579,12 @@
 			isa = PBXTargetDependency;
 			target = 97C146ED1CF9000F007C117D /* Runner */;
 			targetProxy = 331C8085294A63A400263BE5 /* PBXContainerItemProxy */;
+		};
+		EB44812FDBEB41BF6ADBC106 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = NeonWidgetExtension;
+			target = 27D60F2777C1656AC85A2AF0 /* NeonWidgetExtension */;
+			targetProxy = AC09E6C3D24DF7778EA78A7C /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -491,14 +612,56 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 0F439A466E0EFB7F3E542AB4 /* raichuRelease.xcconfig */;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
+				DEVELOPMENT_TEAM = SY4WNY5G7U;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Release-raichu";
+		};
+		0D9A6C4664C5BD9C36E1F983 /* Debug-pichu */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_ENTITLEMENTS = NeonWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = SY4WNY5G7U;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NeonWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = NeonWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				OTHER_LDFLAGS = "";
+				PRODUCT_BUNDLE_IDENTIFIER = cloud.atomi.alcohol.neon.pichu.NeonWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = "Debug-pichu";
 		};
 		20B80D7E9283EF1001CD6C78 /* Release-pichu */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 8F37BDEDDF1B79C4D5FF1055 /* pichuRelease.xcconfig */;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
+				DEVELOPMENT_TEAM = SY4WNY5G7U;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Release-pichu";
@@ -546,7 +709,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = iphoneos;
@@ -561,8 +724,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = "AppIcon-$(ASSET_PREFIX)";
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
-				DEVELOPMENT_TEAM = MNPSXJP9PN;
+				DEVELOPMENT_TEAM = SY4WNY5G7U;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -576,6 +740,40 @@
 				VERSIONING_SYSTEM = "apple-generic";
 			};
 			name = Profile;
+		};
+		2EF4C8EAFB710E485B6F2D71 /* Release-raichu */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_ENTITLEMENTS = NeonWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = SY4WNY5G7U;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NeonWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = NeonWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = "";
+				PRODUCT_BUNDLE_IDENTIFIER = cloud.atomi.alcohol.neon.raichu.NeonWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = "Release-raichu";
 		};
 		331C8088294A63A400263BE5 /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -677,7 +875,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INFOPLIST_FILE = Runner/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -747,7 +945,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INFOPLIST_FILE = Runner/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -771,6 +969,8 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = B030497F541F78CA8CBDC0F2 /* pikachuRelease.xcconfig */;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
+				DEVELOPMENT_TEAM = SY4WNY5G7U;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Release-pikachu";
@@ -825,7 +1025,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INFOPLIST_FILE = Runner/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -846,6 +1046,82 @@
 				VALIDATE_PRODUCT = YES;
 			};
 			name = "Release-pichu";
+		};
+		531004F98F94124B9C8C3A49 /* Debug-pikachu */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_ENTITLEMENTS = NeonWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = SY4WNY5G7U;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NeonWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = NeonWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				OTHER_LDFLAGS = "";
+				PRODUCT_BUNDLE_IDENTIFIER = cloud.atomi.alcohol.neon.pikachu.NeonWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = "Debug-pikachu";
+		};
+		79D9BA630644747068F07C31 /* Debug-raichu */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_ENTITLEMENTS = NeonWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = SY4WNY5G7U;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NeonWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = NeonWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				OTHER_LDFLAGS = "";
+				PRODUCT_BUNDLE_IDENTIFIER = cloud.atomi.alcohol.neon.raichu.NeonWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = "Debug-raichu";
 		};
 		86630DE3EFA37E5476A01CF4 /* Debug-pichu */ = {
 			isa = XCBuildConfiguration;
@@ -903,7 +1179,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INFOPLIST_FILE = Runner/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -922,13 +1198,117 @@
 			};
 			name = "Debug-pichu";
 		};
+		869CB60FEE1E92D14414703D /* Release-pichu */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_ENTITLEMENTS = NeonWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = SY4WNY5G7U;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NeonWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = NeonWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = "";
+				PRODUCT_BUNDLE_IDENTIFIER = cloud.atomi.alcohol.neon.pichu.NeonWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = "Release-pichu";
+		};
 		86B1102A45B4F9C9E8A43640 /* Debug-pichu */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 5C29F99E32D8B8DA6C57187C /* pichuDebug.xcconfig */;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
+				DEVELOPMENT_TEAM = SY4WNY5G7U;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Debug-pichu";
+		};
+		8761B7AA0D378BAB56BEC81F /* Profile-pichu */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_ENTITLEMENTS = NeonWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = SY4WNY5G7U;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NeonWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = NeonWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = "";
+				PRODUCT_BUNDLE_IDENTIFIER = cloud.atomi.alcohol.neon.pichu.NeonWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = "Profile-pichu";
+		};
+		8BE6999B856857B3ACE88FCF /* Profile-pikachu */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_ENTITLEMENTS = NeonWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = SY4WNY5G7U;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NeonWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = NeonWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = "";
+				PRODUCT_BUNDLE_IDENTIFIER = cloud.atomi.alcohol.neon.pikachu.NeonWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = "Profile-pikachu";
 		};
 		97C147031CF9000F007C117D /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -979,7 +1359,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
@@ -1030,7 +1410,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = iphoneos;
@@ -1047,8 +1427,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = "AppIcon-$(ASSET_PREFIX)";
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
-				DEVELOPMENT_TEAM = MNPSXJP9PN;
+				DEVELOPMENT_TEAM = SY4WNY5G7U;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1070,8 +1451,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
-				DEVELOPMENT_TEAM = MNPSXJP9PN;
+				DEVELOPMENT_TEAM = SY4WNY5G7U;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1142,7 +1524,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INFOPLIST_FILE = Runner/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1211,7 +1593,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INFOPLIST_FILE = Runner/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1230,6 +1612,40 @@
 				VALIDATE_PRODUCT = YES;
 			};
 			name = "Profile-pichu";
+		};
+		9BF69F1D22A801E6E001735A /* Release-pikachu */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_ENTITLEMENTS = NeonWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = SY4WNY5G7U;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NeonWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = NeonWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = "";
+				PRODUCT_BUNDLE_IDENTIFIER = cloud.atomi.alcohol.neon.pikachu.NeonWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = "Release-pikachu";
 		};
 		9DA3FE82EEFF46A140F487B2 /* Release-raichu */ = {
 			isa = XCBuildConfiguration;
@@ -1281,7 +1697,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INFOPLIST_FILE = Runner/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1353,7 +1769,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INFOPLIST_FILE = Runner/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1379,14 +1795,86 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 912A37FF08CB1E1873AC75CC /* pikachuProfile.xcconfig */;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
+				DEVELOPMENT_TEAM = SY4WNY5G7U;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Profile-pikachu";
+		};
+		AC42B963929D2D2A5B14744C /* Profile-raichu */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_ENTITLEMENTS = NeonWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = SY4WNY5G7U;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NeonWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = NeonWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = "";
+				PRODUCT_BUNDLE_IDENTIFIER = cloud.atomi.alcohol.neon.raichu.NeonWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = "Profile-raichu";
+		};
+		B2CFCA5B0549399A79F42486 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_ENTITLEMENTS = NeonWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = SY4WNY5G7U;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NeonWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = NeonWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = "";
+				PRODUCT_BUNDLE_IDENTIFIER = cloud.atomi.alcoholNeon.NeonWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
 		};
 		BA9500182C65AFF79A9979E8 /* Debug-pikachu */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 733693DFCA5C75CC096C1A70 /* pikachuDebug.xcconfig */;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
+				DEVELOPMENT_TEAM = SY4WNY5G7U;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Debug-pikachu";
@@ -1395,6 +1883,8 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = FD2B992E2EDACEB95E322D65 /* pichuProfile.xcconfig */;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
+				DEVELOPMENT_TEAM = SY4WNY5G7U;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Profile-pichu";
@@ -1403,6 +1893,8 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 119F0BF53AEAA4E2F4D97B03 /* raichuProfile.xcconfig */;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
+				DEVELOPMENT_TEAM = SY4WNY5G7U;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Profile-raichu";
@@ -1411,6 +1903,8 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = A30DCDA8212D9607376E8C5C /* raichuDebug.xcconfig */;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
+				DEVELOPMENT_TEAM = SY4WNY5G7U;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Debug-raichu";
@@ -1471,7 +1965,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INFOPLIST_FILE = Runner/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1490,6 +1984,78 @@
 			};
 			name = "Debug-raichu";
 		};
+		E3DB9D7B24FFB95F6B46D5AE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_ENTITLEMENTS = NeonWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = SY4WNY5G7U;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NeonWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = NeonWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				OTHER_LDFLAGS = "";
+				PRODUCT_BUNDLE_IDENTIFIER = cloud.atomi.alcoholNeon.NeonWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		FC12FA4735EFDE09E7CB668C /* Profile */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_ENTITLEMENTS = NeonWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = SY4WNY5G7U;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NeonWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = NeonWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = "";
+				PRODUCT_BUNDLE_IDENTIFIER = cloud.atomi.alcoholNeon.NeonWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Profile;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1499,6 +2065,25 @@
 				331C8088294A63A400263BE5 /* Debug */,
 				331C8089294A63A400263BE5 /* Release */,
 				331C808A294A63A400263BE5 /* Profile */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		638875BED7E8CC15E2345E9D /* Build configuration list for PBXNativeTarget "NeonWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E3DB9D7B24FFB95F6B46D5AE /* Debug */,
+				B2CFCA5B0549399A79F42486 /* Release */,
+				FC12FA4735EFDE09E7CB668C /* Profile */,
+				0D9A6C4664C5BD9C36E1F983 /* Debug-pichu */,
+				8761B7AA0D378BAB56BEC81F /* Profile-pichu */,
+				869CB60FEE1E92D14414703D /* Release-pichu */,
+				531004F98F94124B9C8C3A49 /* Debug-pikachu */,
+				8BE6999B856857B3ACE88FCF /* Profile-pikachu */,
+				9BF69F1D22A801E6E001735A /* Release-pikachu */,
+				79D9BA630644747068F07C31 /* Debug-raichu */,
+				AC42B963929D2D2A5B14744C /* Profile-raichu */,
+				2EF4C8EAFB710E485B6F2D71 /* Release-raichu */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

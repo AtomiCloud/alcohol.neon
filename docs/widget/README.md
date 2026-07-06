@@ -1,29 +1,41 @@
-# Home-screen widget (parked)
+# Home-screen widget (iOS) — setup guide
 
-The iOS "today's habits" home-screen widget — shows the **next habit due** (advancing by
-time of day), then a **done-summary** when nothing's left. Built but **parked** because it
-needs an **App Group**, which requires a **paid Apple Developer Program** membership
-(a free Apple account can't enable App Groups, and the simulator path hit build-config
-friction). All the code is here, ready to re-add once enrolled.
+The iOS "today's habits" home-screen widget shows the **next habit due** (advancing by time
+of day), then a **done-summary** when nothing's left. The Flutter app writes today's schedule
+to a shared **App Group**; the WidgetKit extension reads it and renders.
 
-## Files here
-- `NeonWidget.swift` — the SwiftUI WidgetKit widget (small + medium): TimelineProvider that
-  reads the shared App Group and renders "next up" / summary.
-- `widget_service.dart` — Flutter side: computes today's schedule from the habit overview and
-  writes it to the App Group via the `home_widget` package; call from `DashboardController.load()`.
+```
+Flutter app ──writes today_schedule──▶ App Group ──reads──▶ NeonWidget (WidgetKit) ──▶ home screen
+            (WidgetService.sync on dashboard load)   group.cloud.atomi.alcoholNeon
+```
 
-## To re-add (on a paid Apple Developer account)
-1. `flutter pub add home_widget`, set Podfile `platform :ios, '14.0'`.
-2. Xcode → **File → New → Target → Widget Extension** named `NeonWidget` (uncheck Live Activity /
-   App Intent). Copy `NeonWidget.swift` over the generated one.
-3. Add **App Groups** capability `group.cloud.atomi.alcoholNeon` to **both** Runner and the widget
-   target (Signing & Capabilities — needs a Team).
-4. **Fix the build cycle:** Runner target → Build Phases → drag **"Embed Foundation Extensions"**
-   above **"[CP] Embed Pods Frameworks"**. (And ensure the appex is embedded only once.)
-5. Add `widget_service.dart` to `lib/services/`, and in `DashboardController.load()` (Ok branch):
-   `unawaited(WidgetService.instance.sync(value));`
-6. `flutter run` — add the widget to the home screen.
+## Already wired (code side — done)
+- `home_widget` package added to `pubspec.yaml`; Podfile `platform :ios, '14.0'`.
+- `lib/services/widget_service.dart` — computes today's schedule and pushes it on every
+  dashboard load (called from `DashboardController.load()`).
+- `ios/NeonWidget/NeonWidget.swift` — the SwiftUI widget (small + medium), ready to drop into
+  the extension target.
 
-Contract reminder: schedule JSON is `{date, done, total, items:[{time:"HH:mm", name, done}]}`;
-days[] is Sunday=0; the widget keys are App Group `group.cloud.atomi.alcoholNeon`, data key
-`today_schedule`, widget kind `NeonWidget`.
+## Remaining (Xcode GUI — can't be done from the terminal)
+1. **Create the target:** Xcode → open `ios/Runner.xcworkspace` → **File ▸ New ▸ Target ▸
+   Widget Extension**. Name it **`NeonWidget`**. Uncheck "Include Live Activity" and
+   "Include Configuration App Intent". Finish → "Activate" the scheme if prompted.
+2. **Use our widget code:** replace the generated `NeonWidget.swift` body with
+   `ios/NeonWidget/NeonWidget.swift` (keep Xcode's generated `@main … Bundle.swift`).
+3. **App Group on BOTH targets:** select the project → for **Runner** and **NeonWidgetExtension**,
+   Signing & Capabilities → **+ Capability ▸ App Groups** → add **`group.cloud.atomi.alcoholNeon`**.
+   - On the **Simulator** the App Group works without portal registration.
+   - For a **real device / TestFlight**, an Admin/App Manager must register the App Group in the
+     Developer portal (a Developer-role member can't).
+4. **Fix the build-phase order (avoids a dependency cycle):** Runner target → Build Phases →
+   drag **"Embed Foundation Extensions"** ABOVE **"[CP] Embed Pods Frameworks"**.
+5. **Set both targets' Team** + Deployment Target iOS 14.0+.
+6. `flutter run` → long-press the home screen → **+** → add **Today's habits**.
+
+## Data contract
+App Group `group.cloud.atomi.alcoholNeon`, key `today_schedule`, widget kind `NeonWidget`:
+```json
+{ "date": "2026-06-06", "done": 1, "total": 3,
+  "items": [ { "time": "06:30", "name": "Morning run", "done": false } ] }
+```
+`days[]` is Sunday=0 (zinc convention); `time` is `"HH:mm"`.

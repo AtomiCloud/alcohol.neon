@@ -8,13 +8,11 @@ part 'mark_daily_failures_req.g.dart';
 
 @JsonSerializable()
 class MarkDailyFailuresReq {
-  const MarkDailyFailuresReq({
-    this.date,
-    this.habitIds,
-  });
-  
-  factory MarkDailyFailuresReq.fromJson(Map<String, Object?> json) => _$MarkDailyFailuresReqFromJson(json);
-  
+  const MarkDailyFailuresReq({this.date, this.habitIds});
+
+  factory MarkDailyFailuresReq.fromJson(Map<String, Object?> json) =>
+      _$MarkDailyFailuresReqFromJson(json);
+
   final String? date;
   final List<String>? habitIds;
 

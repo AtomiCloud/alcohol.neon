@@ -16,9 +16,10 @@ class HabitOverviewResponse {
     this.habits,
     this.totalDebt,
   });
-  
-  factory HabitOverviewResponse.fromJson(Map<String, Object?> json) => _$HabitOverviewResponseFromJson(json);
-  
+
+  factory HabitOverviewResponse.fromJson(Map<String, Object?> json) =>
+      _$HabitOverviewResponseFromJson(json);
+
   final List<HabitOverviewHabitRes>? habits;
   final String? totalDebt;
   final int usedSkip;

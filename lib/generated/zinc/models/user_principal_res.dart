@@ -15,9 +15,10 @@ class UserPrincipalRes {
     this.username,
     this.email,
   });
-  
-  factory UserPrincipalRes.fromJson(Map<String, Object?> json) => _$UserPrincipalResFromJson(json);
-  
+
+  factory UserPrincipalRes.fromJson(Map<String, Object?> json) =>
+      _$UserPrincipalResFromJson(json);
+
   final String? id;
   final String? username;
   final String? email;

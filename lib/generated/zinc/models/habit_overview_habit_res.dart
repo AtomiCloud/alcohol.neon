@@ -27,9 +27,10 @@ class HabitOverviewHabitRes {
     this.days,
     this.totalDebt,
   });
-  
-  factory HabitOverviewHabitRes.fromJson(Map<String, Object?> json) => _$HabitOverviewHabitResFromJson(json);
-  
+
+  factory HabitOverviewHabitRes.fromJson(Map<String, Object?> json) =>
+      _$HabitOverviewHabitResFromJson(json);
+
   final String? id;
   final String? name;
   final String? notificationTime;

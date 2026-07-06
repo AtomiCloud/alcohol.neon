@@ -19,9 +19,10 @@ class CharityPrincipalRes {
     this.websiteUrl,
     this.logoUrl,
   });
-  
-  factory CharityPrincipalRes.fromJson(Map<String, Object?> json) => _$CharityPrincipalResFromJson(json);
-  
+
+  factory CharityPrincipalRes.fromJson(Map<String, Object?> json) =>
+      _$CharityPrincipalResFromJson(json);
+
   final String? id;
   final String? name;
   final String? slug;

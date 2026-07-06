@@ -8,12 +8,11 @@ part 'skip_habit_req.g.dart';
 
 @JsonSerializable()
 class SkipHabitReq {
-  const SkipHabitReq({
-    this.notes,
-  });
-  
-  factory SkipHabitReq.fromJson(Map<String, Object?> json) => _$SkipHabitReqFromJson(json);
-  
+  const SkipHabitReq({this.notes});
+
+  factory SkipHabitReq.fromJson(Map<String, Object?> json) =>
+      _$SkipHabitReqFromJson(json);
+
   final String? notes;
 
   Map<String, Object?> toJson() => _$SkipHabitReqToJson(this);

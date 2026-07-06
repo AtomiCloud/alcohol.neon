@@ -17,9 +17,10 @@ class HabitExecutionRes {
     this.completedAt,
     this.notes,
   });
-  
-  factory HabitExecutionRes.fromJson(Map<String, Object?> json) => _$HabitExecutionResFromJson(json);
-  
+
+  factory HabitExecutionRes.fromJson(Map<String, Object?> json) =>
+      _$HabitExecutionResFromJson(json);
+
   final String id;
   final String habitVersionId;
   final String? date;

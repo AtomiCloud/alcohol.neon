@@ -8,13 +8,11 @@ part 'create_cause_req.g.dart';
 
 @JsonSerializable()
 class CreateCauseReq {
-  const CreateCauseReq({
-    this.key,
-    this.name,
-  });
-  
-  factory CreateCauseReq.fromJson(Map<String, Object?> json) => _$CreateCauseReqFromJson(json);
-  
+  const CreateCauseReq({this.key, this.name});
+
+  factory CreateCauseReq.fromJson(Map<String, Object?> json) =>
+      _$CreateCauseReqFromJson(json);
+
   final String? key;
   final String? name;
 

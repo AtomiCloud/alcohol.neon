@@ -17,9 +17,9 @@ class Info {
     this.version,
     this.status,
   });
-  
+
   factory Info.fromJson(Map<String, Object?> json) => _$InfoFromJson(json);
-  
+
   final String? landscape;
   final String? platform;
   final String? service;

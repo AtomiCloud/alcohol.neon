@@ -8,13 +8,11 @@ part 'update_user_req.g.dart';
 
 @JsonSerializable()
 class UpdateUserReq {
-  const UpdateUserReq({
-    this.idToken,
-    this.accessToken,
-  });
-  
-  factory UpdateUserReq.fromJson(Map<String, Object?> json) => _$UpdateUserReqFromJson(json);
-  
+  const UpdateUserReq({this.idToken, this.accessToken});
+
+  factory UpdateUserReq.fromJson(Map<String, Object?> json) =>
+      _$UpdateUserReqFromJson(json);
+
   final String? idToken;
   final String? accessToken;
 

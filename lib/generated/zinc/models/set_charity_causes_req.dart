@@ -8,12 +8,11 @@ part 'set_charity_causes_req.g.dart';
 
 @JsonSerializable()
 class SetCharityCausesReq {
-  const SetCharityCausesReq({
-    this.keys,
-  });
-  
-  factory SetCharityCausesReq.fromJson(Map<String, Object?> json) => _$SetCharityCausesReqFromJson(json);
-  
+  const SetCharityCausesReq({this.keys});
+
+  factory SetCharityCausesReq.fromJson(Map<String, Object?> json) =>
+      _$SetCharityCausesReqFromJson(json);
+
   final List<String>? keys;
 
   Map<String, Object?> toJson() => _$SetCharityCausesReqToJson(this);

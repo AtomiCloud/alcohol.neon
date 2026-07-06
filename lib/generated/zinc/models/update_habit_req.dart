@@ -17,9 +17,10 @@ class UpdateHabitReq {
     this.stake,
     this.timezone,
   });
-  
-  factory UpdateHabitReq.fromJson(Map<String, Object?> json) => _$UpdateHabitReqFromJson(json);
-  
+
+  factory UpdateHabitReq.fromJson(Map<String, Object?> json) =>
+      _$UpdateHabitReqFromJson(json);
+
   final String? task;
   final List<String>? daysOfWeek;
   final String? notificationTime;

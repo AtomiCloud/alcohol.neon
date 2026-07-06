@@ -8,12 +8,11 @@ part 'confirm_payment_intent_req.g.dart';
 
 @JsonSerializable()
 class ConfirmPaymentIntentReq {
-  const ConfirmPaymentIntentReq({
-    this.paymentConsentId,
-  });
-  
-  factory ConfirmPaymentIntentReq.fromJson(Map<String, Object?> json) => _$ConfirmPaymentIntentReqFromJson(json);
-  
+  const ConfirmPaymentIntentReq({this.paymentConsentId});
+
+  factory ConfirmPaymentIntentReq.fromJson(Map<String, Object?> json) =>
+      _$ConfirmPaymentIntentReqFromJson(json);
+
   final String? paymentConsentId;
 
   Map<String, Object?> toJson() => _$ConfirmPaymentIntentReqToJson(this);

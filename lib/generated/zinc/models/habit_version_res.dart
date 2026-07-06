@@ -20,9 +20,10 @@ class HabitVersionRes {
     this.ratio,
     this.timezone,
   });
-  
-  factory HabitVersionRes.fromJson(Map<String, Object?> json) => _$HabitVersionResFromJson(json);
-  
+
+  factory HabitVersionRes.fromJson(Map<String, Object?> json) =>
+      _$HabitVersionResFromJson(json);
+
   final String id;
   final String habitId;
   final int version;

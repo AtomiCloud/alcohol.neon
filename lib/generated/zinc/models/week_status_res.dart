@@ -19,9 +19,10 @@ class WeekStatusRes {
     this.start,
     this.end,
   });
-  
-  factory WeekStatusRes.fromJson(Map<String, Object?> json) => _$WeekStatusResFromJson(json);
-  
+
+  factory WeekStatusRes.fromJson(Map<String, Object?> json) =>
+      _$WeekStatusResFromJson(json);
+
   final String? sunday;
   final String? monday;
   final String? tuesday;

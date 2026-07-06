@@ -15,9 +15,10 @@ class PledgeSyncSummaryRes {
     required this.externalIdsLinked,
     required this.charitiesProcessed,
   });
-  
-  factory PledgeSyncSummaryRes.fromJson(Map<String, Object?> json) => _$PledgeSyncSummaryResFromJson(json);
-  
+
+  factory PledgeSyncSummaryRes.fromJson(Map<String, Object?> json) =>
+      _$PledgeSyncSummaryResFromJson(json);
+
   final int causesUpserted;
   final int charitiesCreated;
   final int charitiesUpdated;

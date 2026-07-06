@@ -8,13 +8,11 @@ part 'stake_res.g.dart';
 
 @JsonSerializable()
 class StakeRes {
-  const StakeRes({
-    required this.amount,
-    this.currency,
-  });
-  
-  factory StakeRes.fromJson(Map<String, Object?> json) => _$StakeResFromJson(json);
-  
+  const StakeRes({required this.amount, this.currency});
+
+  factory StakeRes.fromJson(Map<String, Object?> json) =>
+      _$StakeResFromJson(json);
+
   final double amount;
   final String? currency;
 

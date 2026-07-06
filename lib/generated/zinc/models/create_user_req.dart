@@ -8,13 +8,11 @@ part 'create_user_req.g.dart';
 
 @JsonSerializable()
 class CreateUserReq {
-  const CreateUserReq({
-    this.idToken,
-    this.accessToken,
-  });
-  
-  factory CreateUserReq.fromJson(Map<String, Object?> json) => _$CreateUserReqFromJson(json);
-  
+  const CreateUserReq({this.idToken, this.accessToken});
+
+  factory CreateUserReq.fromJson(Map<String, Object?> json) =>
+      _$CreateUserReqFromJson(json);
+
   final String? idToken;
   final String? accessToken;
 

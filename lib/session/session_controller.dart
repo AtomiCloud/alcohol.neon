@@ -9,6 +9,7 @@ import '../data/execution_repository.dart';
 import '../data/habit_repository.dart';
 import '../data/payment_repository.dart';
 import '../data/protection_repository.dart';
+import '../data/subscription_repository.dart';
 import '../data/user_repository.dart';
 import '../data/vacation_repository.dart';
 import '../generated/zinc/models/configuration_principal_res.dart';
@@ -32,6 +33,7 @@ class SessionController extends ChangeNotifier {
   final PaymentRepository payments;
   final ProtectionRepository protections;
   final VacationRepository vacations;
+  final SubscriptionRepository subscriptions;
 
   SessionController(AuthService auth) : this._(auth, auth.makeApiClient());
 
@@ -44,7 +46,8 @@ class SessionController extends ChangeNotifier {
       executions = ExecutionRepository(api),
       payments = PaymentRepository(api),
       protections = ProtectionRepository(api),
-      vacations = VacationRepository(api);
+      vacations = VacationRepository(api),
+      subscriptions = SubscriptionRepository(api);
 
   SessionPhase _phase = SessionPhase.idle;
   Problem? _error;

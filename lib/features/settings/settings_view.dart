@@ -12,6 +12,7 @@ import '../../session/session_controller.dart';
 import '../charity/charity_picker.dart';
 import '../onboarding/timezone_picker.dart';
 import '../payment/consent_service.dart';
+import '../subscription/subscription_view.dart';
 
 /// M5 — account settings (mirrors argon's `settings.tsx` field-card layout, minus
 /// the web-only consent SETUP/REMOVAL actions, which land in M6). Loads the user's
@@ -314,6 +315,15 @@ class _SettingsViewState extends State<SettingsView> {
           error: _consentError,
           onSetUp: _consentBusy ? null : _setUpConsent,
           onRemove: _consentBusy ? null : _removeConsent,
+        ),
+        _FieldCard(
+          icon: Icons.workspace_premium_outlined,
+          label: 'Subscription',
+          value: 'View your plan',
+          subtitle: 'See your current plan and manage it.',
+          onTap: () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const SubscriptionView())),
         ),
         if (_saveError != null) ...[
           const SizedBox(height: 12),

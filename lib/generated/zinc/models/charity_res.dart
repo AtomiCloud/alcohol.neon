@@ -10,12 +10,11 @@ part 'charity_res.g.dart';
 
 @JsonSerializable()
 class CharityRes {
-  const CharityRes({
-    required this.principal,
-  });
-  
-  factory CharityRes.fromJson(Map<String, Object?> json) => _$CharityResFromJson(json);
-  
+  const CharityRes({required this.principal});
+
+  factory CharityRes.fromJson(Map<String, Object?> json) =>
+      _$CharityResFromJson(json);
+
   final CharityPrincipalRes principal;
 
   Map<String, Object?> toJson() => _$CharityResToJson(this);

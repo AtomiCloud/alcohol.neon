@@ -8,13 +8,11 @@ part 'create_customer_res.g.dart';
 
 @JsonSerializable()
 class CreateCustomerRes {
-  const CreateCustomerRes({
-    this.customerId,
-    this.clientSecret,
-  });
-  
-  factory CreateCustomerRes.fromJson(Map<String, Object?> json) => _$CreateCustomerResFromJson(json);
-  
+  const CreateCustomerRes({this.customerId, this.clientSecret});
+
+  factory CreateCustomerRes.fromJson(Map<String, Object?> json) =>
+      _$CreateCustomerResFromJson(json);
+
   final String? customerId;
   final String? clientSecret;
 

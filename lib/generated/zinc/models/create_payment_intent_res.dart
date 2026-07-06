@@ -14,9 +14,10 @@ class CreatePaymentIntentRes {
     this.status,
     this.currency,
   });
-  
-  factory CreatePaymentIntentRes.fromJson(Map<String, Object?> json) => _$CreatePaymentIntentResFromJson(json);
-  
+
+  factory CreatePaymentIntentRes.fromJson(Map<String, Object?> json) =>
+      _$CreatePaymentIntentResFromJson(json);
+
   final String? paymentIntentId;
   final String? status;
   final double amount;

@@ -8,12 +8,11 @@ part 'update_cause_req.g.dart';
 
 @JsonSerializable()
 class UpdateCauseReq {
-  const UpdateCauseReq({
-    this.name,
-  });
-  
-  factory UpdateCauseReq.fromJson(Map<String, Object?> json) => _$UpdateCauseReqFromJson(json);
-  
+  const UpdateCauseReq({this.name});
+
+  factory UpdateCauseReq.fromJson(Map<String, Object?> json) =>
+      _$UpdateCauseReqFromJson(json);
+
   final String? name;
 
   Map<String, Object?> toJson() => _$UpdateCauseReqToJson(this);

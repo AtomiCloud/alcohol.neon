@@ -1,3 +1,17 @@
+## [1.4.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.3.0...v1.4.0) (2026-07-06)
+
+
+### ✨ Features ✨
+
+* **ios:** interactive home-screen widget with direct habit completion ([9acee8b](https://github.com/AtomiCloud/alcohol.neon/commit/9acee8bc078b0a3ed9f8e004e94c1da4e0e13129))
+* subscription screen with web-handoff portal link ([da0f888](https://github.com/AtomiCloud/alcohol.neon/commit/da0f8886fc07a4b239e83478caefae53c5c72197))
+
+
+### 🐛 Bug Fixes 🐛
+
+* harden subscription handoff per code review ([f73da25](https://github.com/AtomiCloud/alcohol.neon/commit/f73da25f45f49764d732b7a3b0152497e92116e5))
+* refresh subscription CTA when the app resumes ([140af1e](https://github.com/AtomiCloud/alcohol.neon/commit/140af1e2111ee73c585f5a5b2851752b71be2953))
+
 ## [1.3.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.2.0...v1.3.0) (2026-06-22)
 
 

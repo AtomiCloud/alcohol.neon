@@ -62,6 +62,9 @@ class NotificationService {
   /// Cancel and reschedule weekly reminders for the user's enabled habits.
   Future<void> syncHabits(List<HabitOverviewHabitRes> habits) async {
     await init();
+    // Ensure we have permission before scheduling — otherwise iOS silently drops
+    // the reminders. Idempotent: iOS only shows the prompt the first time.
+    await requestPermission();
     await _plugin.cancelAll();
 
     const details = NotificationDetails(
@@ -94,6 +97,31 @@ class NotificationService {
         );
       }
     }
+  }
+
+  /// Fires a notification immediately (debug/test). Requests permission first and
+  /// uses foreground-presentation options so it shows even while the app is open.
+  Future<void> showNow({
+    String title = 'Test notification',
+    String body = 'If you can see this, notifications work 🎉',
+  }) async {
+    await requestPermission();
+    const details = NotificationDetails(
+      iOS: DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+        presentBanner: true,
+      ),
+      android: AndroidNotificationDetails(
+        'habit_reminders',
+        'Habit reminders',
+        channelDescription: 'Daily reminders to do your habits',
+        importance: Importance.high,
+        priority: Priority.high,
+      ),
+    );
+    await _plugin.show(999999, title, body, details);
   }
 
   Future<void> cancelAll() async {

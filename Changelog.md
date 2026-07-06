@@ -1,3 +1,10 @@
+## [1.3.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.2.0...v1.3.0) (2026-06-22)
+
+
+### ✨ Features ✨
+
+* add delete-account entry to profile ([df1680e](https://github.com/AtomiCloud/alcohol.neon/commit/df1680ed0a52f61ffb0c3a87b0b1b5ee74e47412))
+
 ## [1.2.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.1.0...v1.2.0) (2026-06-12)
 
 

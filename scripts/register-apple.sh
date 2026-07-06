@@ -157,6 +157,23 @@ if [ -z "${FASTLANE_TEAM_ID:-}" ]; then
   if [ -z "$portal_teams" ]; then
     echo "  (could not enumerate portal teams — using the project team $PROJECT_TEAM_ID)"
     FASTLANE_TEAM_ID=$PROJECT_TEAM_ID
+  elif ! grep -q $'^TEAM\t'"$PROJECT_TEAM_ID"$'\t' <<<"$portal_teams" &&
+    [ -z "${NEON_ALLOW_FOREIGN_TEAM:-}" ]; then
+    # Registering App IDs/Groups into the wrong team (e.g. a personal one) makes
+    # them invisible to CI, whose API key belongs to the project team — refuse.
+    echo "✗ Your Apple ID has NO Developer-portal access to the project team ($PROJECT_TEAM_ID)." >&2
+    echo >&2
+    echo "  Portal teams your Apple ID can see:" >&2
+    cut -f2,3 <<<"$portal_teams" | sed 's/^/    - /' >&2
+    echo >&2
+    echo "  App Store Connect and the Developer portal have SEPARATE access: you can" >&2
+    echo "  be on the ASC team yet lack the signing side. An org Admin must grant your" >&2
+    echo "  user 'Access to Certificates, Identifiers & Profiles' (App Store Connect →" >&2
+    echo "  Users and Access → your user → Developer Resources), or an Admin runs this." >&2
+    echo >&2
+    echo "  To intentionally register under a different team anyway:" >&2
+    echo "    NEON_ALLOW_FOREIGN_TEAM=1 pls register" >&2
+    exit 1
   else
     FASTLANE_TEAM_ID=$(pick_team "Developer-portal" "$portal_teams" "$PROJECT_TEAM_ID")
   fi

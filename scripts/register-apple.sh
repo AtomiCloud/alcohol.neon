@@ -25,11 +25,13 @@ set -euo pipefail
 #
 # Env:
 #   FASTLANE_USER      Apple ID email (skips the prompt)
-#   FASTLANE_TEAM_ID   Apple Developer team (defaults to the project's team)
+#   FASTLANE_TEAM_ID   Apple Developer team (skips the team menu)
 #
 # Usage: ./scripts/register-apple.sh [landscape ...]   (default: ALL — pichu pikachu raichu)
 
-export FASTLANE_TEAM_ID=${FASTLANE_TEAM_ID:-SY4WNY5G7U}
+# The team this project releases under — preselected in the team menu.
+PROJECT_TEAM_ID=SY4WNY5G7U
+
 export FASTLANE_SKIP_UPDATE_CHECK=1
 export FASTLANE_OPT_OUT_USAGE=1
 export FASTLANE_HIDE_CHANGELOG=1
@@ -59,6 +61,58 @@ echo "    Expect a password prompt and one 2FA code. fastlane will then print a"
 echo "    long FASTLANE_SESSION blob — ignore it; the session is cached locally."
 echo
 fastlane spaceauth -u "$APPLE_ID"
+
+# ── 2. Pick the team ──────────────────────────────────────────────────────────
+# An Apple ID can belong to several teams, and fastlane's own team chooser
+# would appear mid-loop where output is captured (an invisible hang). So
+# enumerate the teams here, with the session just cached, and choose up front.
+if [ -z "${FASTLANE_TEAM_ID:-}" ]; then
+  tmpdir=$(mktemp -d)
+  trap 'rm -rf "$tmpdir"' EXIT
+  mkdir -p "$tmpdir/fastlane"
+  cat >"$tmpdir/fastlane/Fastfile" <<'RUBY'
+lane :teams do
+  require "spaceship"
+  Spaceship::Portal.login(ENV["FASTLANE_USER"])
+  Spaceship::Portal.client.teams.each do |t|
+    puts "TEAM\t#{t["teamId"]}\t#{t["name"]}"
+  end
+end
+RUBY
+  echo
+  echo "==> Looking up your teams…"
+  teams=$( (cd "$tmpdir" && fastlane teams 2>&1) | grep $'^TEAM\t' || true)
+
+  if [ -z "$teams" ]; then
+    echo "  (could not enumerate teams — using the project team $PROJECT_TEAM_ID)"
+    FASTLANE_TEAM_ID=$PROJECT_TEAM_ID
+  elif [ "$(wc -l <<<"$teams")" -eq 1 ]; then
+    FASTLANE_TEAM_ID=$(cut -f2 <<<"$teams")
+    echo "  ✓ team: $(cut -f3 <<<"$teams") ($FASTLANE_TEAM_ID)"
+  else
+    echo "Your Apple ID belongs to multiple teams:"
+    i=0
+    default_idx=1
+    while IFS=$'\t' read -r _ tid tname; do
+      i=$((i + 1))
+      marker=""
+      if [ "$tid" = "$PROJECT_TEAM_ID" ]; then
+        marker="   ← this project's team"
+        default_idx=$i
+      fi
+      echo "  $i) $tname ($tid)$marker"
+    done <<<"$teams"
+    read -r -p "Select team [$default_idx]: " sel </dev/tty
+    sel=${sel:-$default_idx}
+    FASTLANE_TEAM_ID=$(sed -n "${sel}p" <<<"$teams" | cut -f2)
+    if [ -z "$FASTLANE_TEAM_ID" ]; then
+      echo "✗ invalid selection: $sel" >&2
+      exit 1
+    fi
+  fi
+fi
+export FASTLANE_TEAM_ID
+echo "==> Registering under team $FASTLANE_TEAM_ID"
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 # Both run a fastlane command silently and print a one-line result; on a real
@@ -94,7 +148,7 @@ ensure() {
   return 1
 }
 
-# ── 2. Register every landscape ──────────────────────────────────────────────
+# ── 3. Register every landscape ──────────────────────────────────────────────
 for L in "${LANDSCAPES[@]}"; do
   # Captured (not process-substituted) so a discovery failure aborts the run.
   targets=$("$HERE/ci/ios-signing-targets.sh" "$L")
@@ -120,7 +174,7 @@ for L in "${LANDSCAPES[@]}"; do
   done <<<"$targets"
 done
 
-# ── 3. Summary ────────────────────────────────────────────────────────────────
+# ── 4. Summary ────────────────────────────────────────────────────────────────
 echo
 echo "Done — ${#LANDSCAPES[@]} landscape(s) registered: ${LANDSCAPES[*]}"
 echo "CI verifies this wiring on every release (scripts/ci/doctor-ios.sh)."

@@ -23,11 +23,17 @@ merge feat:/fix: to main
 
 ## Flavor → identity map
 
-| Flavor  | iOS bundle id                      | Apple ID     | Android package                    |
-| ------- | ---------------------------------- | ------------ | ---------------------------------- |
-| pichu   | `cloud.atomi.alcohol.neon.pichu`   | `6777280038` | `cloud.atomi.alcohol_neon.pichu`   |
-| pikachu | `cloud.atomi.alcohol.neon.pikachu` | `6777280047` | `cloud.atomi.alcohol_neon.pikachu` |
-| raichu  | `cloud.atomi.alcohol.neon.raichu`  | `6777280099` | `cloud.atomi.alcohol_neon.raichu`  |
+| Flavor  | Bundle id / package (iOS = Android) | Apple ID                                   |
+| ------- | ----------------------------------- | ------------------------------------------ |
+| pichu   | `cloud.atomi.pichu.alcohol.neon`    | `6777280038` — old record, new one pending |
+| pikachu | `cloud.atomi.pikachu.alcohol.neon`  | `6777280047` — old record, new one pending |
+| raichu  | `cloud.atomi.raichu.alcohol.neon`   | `6777280099` — old record, new one pending |
+
+All identifiers derive from the LPSM grammar (the widget extension is `<bundle id>.widget`) —
+see [docs/developer/standard/bundle-id.md](developer/standard/bundle-id.md). The numeric Apple
+IDs above belong to the **old** App Store Connect app records; the new records don't exist yet,
+so the `apple_id` fields in `scripts/ci/cd-matrix.sh` are empty until they're created — see
+[docs/migration-lpsm-ids.md](migration-lpsm-ids.md).
 
 ## Secrets (org-level GitHub Actions secrets, synced from Infisical `raichu`)
 
@@ -79,8 +85,14 @@ The shells are defined in `nix/shells.nix`:
   hijacks `xcodebuild`, so the actual `flutter build ipa` is run through `scripts/flutter-ios.sh`,
   which strips the nix toolchain vars and points `DEVELOPER_DIR` at real Xcode. GNU rsync comes from
   nix (macOS openrsync ignores `--chmod` → read-only framework → lipo fails). Signing mirrors the old
-  Codemagic script: `keychain initialize` → `app-store-connect fetch-signing-files … --create` →
-  `keychain add-certificates` → `xcode-project use-profiles --export-options-plist`.
+  Codemagic script, extended for embedded extensions: `keychain initialize` →
+  `app-store-connect fetch-signing-files … --create` looped over **every** signing target
+  (the app plus each extension, e.g. the widget — discovered from the Xcode project by
+  `scripts/ci/ios-signing-targets.sh`) → `keychain add-certificates` →
+  `xcode-project use-profiles --export-options-plist` → a doctor step
+  (`scripts/ci/doctor-ios.sh`) that decodes each fetched profile and fails fast, naming the
+  missing piece, if a profile lacks the App Group entitlement (i.e. `pls register` was skipped
+  for a target).
 - **Android** (`nix develop .#cd-android -c ./scripts/ci/cd-android.sh`)**:** flutter + Android SDK +
   JDK17 from nix; `codemagic-cli-tools` provides `google-play get-latest-build-number` for the
   versionCode query. The keystore is decoded to `android/app/upload-keystore.jks` and a
@@ -98,7 +110,10 @@ The shells are defined in `nix/shells.nix`:
 - **iOS build number** = `max(app-store-connect get-latest-build-number <apple_id> + 1,
 github.run_number)`. The `get-latest` figure lags while a freshly uploaded build is still
   processing on Apple's side, so the monotonic CI run number guards against colliding with an
-  in-flight build on back-to-back runs.
+  in-flight build on back-to-back runs. While a landscape's `apple_id` in
+  `scripts/ci/cd-matrix.sh` is empty (new ASC records pending —
+  [docs/migration-lpsm-ids.md](migration-lpsm-ids.md)), the store query is skipped and the CI
+  run number alone is used.
 - **Android versionCode** = `google-play get-latest-build-number --package-name <pkg>` + 1 — the
   highest existing build number across **all** Play tracks, incremented. This mirrors the iOS
   scheme and coordinates with releases from the prior (Codemagic) pipeline; a bare counter (e.g.
@@ -115,6 +130,11 @@ github.run_number)`. The `get-latest` figure lags while a freshly uploaded build
 
 - **iOS cert cap (~2):** `--create` reuses the cert matching `CERTIFICATE_PRIVATE_KEY`, so no new cert
   should be minted. If the log shows a _new_ cert being created, revoke a stale one in the Apple portal.
+- **App Groups have no API:** `fetch-signing-files --create` self-heals bundle ids and profiles,
+  but App Group creation and group⇄App-ID association need `pls register`
+  (`scripts/register-apple.sh`; App Manager Apple ID, one 2FA tap). If it was skipped, the doctor
+  step fails the build naming the missing piece — see
+  [docs/developer/standard/bundle-id.md](developer/standard/bundle-id.md).
 - **Play first upload:** the very first `.aab` for each applicationId must be uploaded **manually**
   once in Play Console before the API will accept automated uploads.
 - **macOS toolchain:** if an iOS step fails on Xcode path / pods / profiles, iterate via manual

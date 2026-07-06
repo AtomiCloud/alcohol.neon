@@ -25,8 +25,10 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "cloud.atomi.alcohol_neon"
+        // LPSM application id (cloud.atomi.<landscape>.<platform>.<service>) — identical
+        // to the iOS bundle id. Flavorless local builds map to the lapras landscape;
+        // each flavor overrides with its own landscape below.
+        applicationId = "cloud.atomi.lapras.alcohol.neon"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -35,28 +37,30 @@ android {
         versionName = flutter.versionName
     }
 
-    // Per-landscape flavors (bundle-id-as-marker): each gets its own applicationId
-    // suffix + app name — including prod (raichu), so all three install side-by-side
-    // and prod has a distinct id. Build with e.g. `flutter build appbundle --flavor pichu`.
+    // Per-landscape flavors (bundle-id-as-marker): each sets its full LPSM
+    // applicationId (cloud.atomi.<landscape>.alcohol.neon — identical to iOS) + app
+    // name — including prod (raichu), so all three install side-by-side and prod has
+    // a distinct id. The Logto redirect scheme is the applicationId itself. Build
+    // with e.g. `flutter build appbundle --flavor pichu`.
     flavorDimensions += "landscape"
     productFlavors {
         create("pichu") {
             dimension = "landscape"
-            applicationIdSuffix = ".pichu"
+            applicationId = "cloud.atomi.pichu.alcohol.neon"
             manifestPlaceholders["appName"] = "LazyTax (Pichu)"
-            manifestPlaceholders["logtoRedirectScheme"] = "cloud.atomi.alcohol.neon.pichu"
+            manifestPlaceholders["logtoRedirectScheme"] = "cloud.atomi.pichu.alcohol.neon"
         }
         create("pikachu") {
             dimension = "landscape"
-            applicationIdSuffix = ".pikachu"
+            applicationId = "cloud.atomi.pikachu.alcohol.neon"
             manifestPlaceholders["appName"] = "LazyTax (Pikachu)"
-            manifestPlaceholders["logtoRedirectScheme"] = "cloud.atomi.alcohol.neon.pikachu"
+            manifestPlaceholders["logtoRedirectScheme"] = "cloud.atomi.pikachu.alcohol.neon"
         }
         create("raichu") {
             dimension = "landscape"
-            applicationIdSuffix = ".raichu"
+            applicationId = "cloud.atomi.raichu.alcohol.neon"
             manifestPlaceholders["appName"] = "LazyTax"
-            manifestPlaceholders["logtoRedirectScheme"] = "cloud.atomi.alcohol.neon.raichu"
+            manifestPlaceholders["logtoRedirectScheme"] = "cloud.atomi.raichu.alcohol.neon"
         }
     }
 

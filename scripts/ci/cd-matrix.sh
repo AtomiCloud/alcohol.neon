@@ -5,6 +5,14 @@ set -euo pipefail
 # All 3 flavors on a tag/push; just the selected flavor on a manual workflow_dispatch.
 # The caller wires it to GitHub: matrix=$(./scripts/ci/cd-matrix.sh) >> "$GITHUB_OUTPUT".
 #
+# Every identifier derives from the LPSM service tree (see
+# docs/developer/standard/bundle-id.md): bundle_id == package_name ==
+# cloud.atomi.<landscape>.<platform>.<service> — identical on iOS and Android.
+# Only apple_id (the numeric App Store Connect app id) is store-assigned state:
+# fill it in after creating each landscape's ASC app record
+# (docs/migration-lpsm-ids.md). Empty apple_id → cd-ios.sh falls back to the CI
+# run number for CFBundleVersion.
+#
 # Env:
 #   EVENT  github.event_name      (e.g. push, workflow_dispatch)
 #   SEL    github.event.inputs.flavor (workflow_dispatch only)
@@ -13,11 +21,18 @@ set -euo pipefail
 #   EVENT=push ./scripts/ci/cd-matrix.sh
 #   EVENT=workflow_dispatch SEL=pichu ./scripts/ci/cd-matrix.sh
 
-ALL='[
-  {"flavor":"pichu","bundle_id":"cloud.atomi.alcohol.neon.pichu","apple_id":"6777280038","package_name":"cloud.atomi.alcohol_neon.pichu"},
-  {"flavor":"pikachu","bundle_id":"cloud.atomi.alcohol.neon.pikachu","apple_id":"6777280047","package_name":"cloud.atomi.alcohol_neon.pikachu"},
-  {"flavor":"raichu","bundle_id":"cloud.atomi.alcohol.neon.raichu","apple_id":"6777280099","package_name":"cloud.atomi.alcohol_neon.raichu"}
+PLATFORM=alcohol
+SERVICE=neon
+
+# landscape → numeric ASC app id (TODO: fill after the new app records exist).
+LANDSCAPES='[
+  {"flavor":"pichu","apple_id":""},
+  {"flavor":"pikachu","apple_id":""},
+  {"flavor":"raichu","apple_id":""}
 ]'
+
+ALL=$(echo "$LANDSCAPES" | jq -c --arg p "$PLATFORM" --arg s "$SERVICE" \
+  '[.[] | . + {bundle_id: "cloud.atomi.\(.flavor).\($p).\($s)", package_name: "cloud.atomi.\(.flavor).\($p).\($s)"}]')
 
 if [ "${EVENT:-}" = "workflow_dispatch" ]; then
   FILTERED=$(echo "$ALL" | jq -c --arg f "${SEL:-}" '[.[] | select(.flavor==$f)]')

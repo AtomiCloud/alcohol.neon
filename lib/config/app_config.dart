@@ -43,7 +43,7 @@ class AppConfig {
     required this.logtoAppId,
     required this.zincResource,
     required this.airwallexEnv,
-    this.redirectUri = 'cloud.atomi.alcohol.neon://callback',
+    this.redirectUri = 'cloud.atomi.lapras.alcohol.neon://callback',
     this.scopes = const [
       'openid',
       'profile',
@@ -151,9 +151,14 @@ class AppConfig {
         if (l.name == name) return l;
       }
     }
-    if (packageName.endsWith('.pichu')) return Landscape.pichu;
-    if (packageName.endsWith('.pikachu')) return Landscape.pikachu;
-    if (packageName.endsWith('.raichu')) return Landscape.raichu;
+    // LPSM bundle id: cloud.atomi.<landscape>.<platform>.<service>[.<module>] —
+    // the landscape is the segment right after the reversed domain.
+    final parts = packageName.split('.');
+    if (parts.length >= 3) {
+      for (final l in Landscape.values) {
+        if (parts[2] == l.name) return l;
+      }
+    }
     return kReleaseMode ? Landscape.raichu : Landscape.pichu;
   }
 

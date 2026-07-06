@@ -25,7 +25,7 @@
             </intent-filter>
         </activity>
         <!-- flutter_web_auth_2 callback for Logto sign-in redirect
-             (cloud.atomi.alcohol.neon://callback). Must match AppConfig.redirectUri. -->
+             (cloud.atomi.<landscape>.alcohol.neon://callback). Must match AppConfig.redirectUri. -->
         <activity
             android:name="com.linusu.flutter_web_auth_2.CallbackActivity"
             android:exported="true">

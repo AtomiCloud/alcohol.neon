@@ -2,6 +2,9 @@
 with packages;
 {
   dev = [
+    # fastlane powers `pls register` (Apple App Group registration — no ASC API
+    # for it, so it needs an App Manager's Apple ID + one 2FA tap, i.e. a human).
+    fastlane
     git
     infisical
     pls

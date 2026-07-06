@@ -104,30 +104,30 @@ flutter_launcher_icons:
 
 # iOS flavors. Android flavors are hand-maintained in android/app/build.gradle.kts,
 # so only run flutter_flavorizr's iOS processors (see the dev_dependency note).
-# iOS bundle ids match the App Store Connect apps + the Logto callback schemes.
+# LPSM ids (docs/developer/standard/bundle-id.md): identical on iOS and Android.
 flavorizr:
   flavors:
     pichu:
       app:
         name: 'LazyTax (Pichu)'
       ios:
-        bundleId: 'cloud.atomi.alcohol.neon.pichu'
+        bundleId: 'cloud.atomi.pichu.alcohol.neon'
       android:
-        applicationId: 'cloud.atomi.alcohol_neon.pichu'
+        applicationId: 'cloud.atomi.pichu.alcohol.neon'
     pikachu:
       app:
         name: 'LazyTax (Pikachu)'
       ios:
-        bundleId: 'cloud.atomi.alcohol.neon.pikachu'
+        bundleId: 'cloud.atomi.pikachu.alcohol.neon'
       android:
-        applicationId: 'cloud.atomi.alcohol_neon.pikachu'
+        applicationId: 'cloud.atomi.pikachu.alcohol.neon'
     raichu:
       app:
         name: 'LazyTax'
       ios:
-        bundleId: 'cloud.atomi.alcohol.neon.raichu'
+        bundleId: 'cloud.atomi.raichu.alcohol.neon'
       android:
-        applicationId: 'cloud.atomi.alcohol_neon.raichu'
+        applicationId: 'cloud.atomi.raichu.alcohol.neon'
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

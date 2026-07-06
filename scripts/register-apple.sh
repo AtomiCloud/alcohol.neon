@@ -34,14 +34,28 @@ LANDSCAPES=("$@")
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 
+# Runs a fastlane command whose only benign failure is "resource already exists"
+# (the idempotent re-run case). Output streams live (Apple ID / 2FA prompts) and
+# is captured, so a real failure — auth, network, permissions — still aborts
+# loudly instead of masquerading as already-registered.
+tolerate_exists() {
+  local out
+  if out=$("$@" 2>&1 | tee /dev/stderr); then return 0; fi
+  if grep -qiE "already exist|already been taken|is not available" <<<"$out"; then
+    echo "    (already exists — continuing)"
+    return 0
+  fi
+  return 1
+}
+
 for L in "${LANDSCAPES[@]}"; do
+  # Captured (not process-substituted) so a discovery failure aborts the run.
+  targets=$("$HERE/ci/ios-signing-targets.sh" "$L")
   # The App Group is `group.` + the app's bundle id — the first (shortest) target.
-  GROUP="group.$("$HERE/ci/ios-signing-targets.sh" "$L" | sed -n 1p)"
+  GROUP="group.${targets%%$'\n'*}"
 
   echo "==> [$L] ensure App Group $GROUP"
-  # `produce group` fails if the group already exists — that's the idempotent case.
-  fastlane produce group -g "$GROUP" -n "LazyTax $L shared" ||
-    echo "    (already exists — continuing)"
+  tolerate_exists fastlane produce group -g "$GROUP" -n "LazyTax $L shared"
 
   while IFS= read -r bundle_id; do
     module=${bundle_id#cloud.atomi."$L".alcohol.neon}
@@ -49,15 +63,14 @@ for L in "${LANDSCAPES[@]}"; do
     name="LazyTax $L${module:+ $module}"
 
     echo "==> [$L] ensure App ID $bundle_id"
-    fastlane produce -a "$bundle_id" --app_name "$name" --skip_itc ||
-      echo "    (already exists — continuing)"
+    tolerate_exists fastlane produce -a "$bundle_id" --app_name "$name" --skip_itc
 
     echo "==> [$L] enable App Groups capability on $bundle_id"
     fastlane produce enable_services --app-group -a "$bundle_id"
 
     echo "==> [$L] associate $GROUP with $bundle_id"
     fastlane produce associate_group -a "$bundle_id" "$GROUP"
-  done < <("$HERE/ci/ios-signing-targets.sh" "$L")
+  done <<<"$targets"
 done
 
 echo

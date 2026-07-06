@@ -28,12 +28,15 @@ flutter pub get
 # group⇄bundle-id association have no API: an App Manager must run `pls register`
 # once per new target (see docs/developer/standard/bundle-id.md).
 keychain initialize
+# Capture discovery instead of a process substitution: a substitution's failure
+# would be silently swallowed and sign nothing; this aborts the build instead.
+SIGNING_TARGETS=$(./scripts/ci/ios-signing-targets.sh "$FLAVOR")
 while IFS= read -r target_id; do
   app-store-connect fetch-signing-files "$target_id" \
     --type IOS_APP_STORE \
     --certificate-key @env:CERTIFICATE_PRIVATE_KEY \
     --create
-done < <(./scripts/ci/ios-signing-targets.sh "$FLAVOR")
+done <<<"$SIGNING_TARGETS"
 keychain add-certificates
 xcode-project use-profiles --export-options-plist "$HOME/export_options.plist"
 

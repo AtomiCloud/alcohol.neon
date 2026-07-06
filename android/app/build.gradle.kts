@@ -26,8 +26,10 @@ android {
 
     defaultConfig {
         // LPSM application id (cloud.atomi.<landscape>.<platform>.<service>) — identical
-        // to the iOS bundle id. Flavorless local builds map to the lapras landscape;
-        // each flavor overrides with its own landscape below.
+        // to the iOS bundle id. Once flavors are declared Android always requires
+        // --flavor, so this base id is never shipped; it maps to the local `lapras`
+        // landscape purely for consistency with iOS's flavorless configs, and each
+        // flavor overrides it with its own landscape below.
         applicationId = "cloud.atomi.lapras.alcohol.neon"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.

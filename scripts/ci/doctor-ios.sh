@@ -15,8 +15,11 @@ set -euo pipefail
 # Usage: ./scripts/ci/doctor-ios.sh <landscape>
 
 LANDSCAPE=${1:?usage: doctor-ios.sh <landscape>}
+# Captured (not a process substitution) so a discovery failure aborts the doctor
+# instead of being swallowed as an empty loop.
+TARGETS=$(./scripts/ci/ios-signing-targets.sh "$LANDSCAPE")
 # The App Group is `group.` + the app's bundle id — the first (shortest) target.
-EXPECTED_GROUP="group.$(./scripts/ci/ios-signing-targets.sh "$LANDSCAPE" | sed -n 1p)"
+EXPECTED_GROUP="group.${TARGETS%%$'\n'*}"
 PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
 
 fail=0
@@ -47,6 +50,6 @@ while IFS= read -r target_id; do
     echo "doctor: FAIL  $target_id — no provisioning profile fetched for it" >&2
     fail=1
   fi
-done < <(./scripts/ci/ios-signing-targets.sh "$LANDSCAPE")
+done <<<"$TARGETS"
 
 exit "$fail"

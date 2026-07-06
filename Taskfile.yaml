@@ -35,7 +35,9 @@ tasks:
       Runs scripts/register-apple.sh — creates each landscape's App Group, every
       App ID (app + extensions, auto-discovered from the Xcode project), enables
       the App Groups capability, and associates the group. These portal writes
-      have no App Store Connect API, so this uses fastlane with YOUR Apple ID:
+      have no App Store Connect API — and it now ALSO creates each landscape's
+      App Store Connect app record and fills the numeric apple_id into
+      scripts/ci/cd-matrix.sh (commit that diff). Uses fastlane with YOUR Apple ID:
       you sign in once (password + one 2FA prompt), then ALL landscapes are
       processed automatically. The account needs the App Manager/Admin role.
       Idempotent — re-run after adding any widget/extension target. CI verifies

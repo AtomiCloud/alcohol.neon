@@ -74,7 +74,8 @@ Flavorless local builds map to the `lapras` landscape
 | **App Group creation**               | `pls register` **only** — no ASC API exists           | Apple ID + 2FA     |
 | **Group ⇄ App ID association**       | `pls register` **only** — no ASC API exists           | Apple ID + 2FA     |
 | Verification that it's all wired     | CD (`scripts/ci/doctor-ios.sh`, decodes profiles)     | API key            |
-| ASC app record / Play Console app    | Manual, once per landscape                            | Human              |
+| ASC app record + apple_id fill       | `pls register` (rename old apps first)                | Apple ID + 2FA     |
+| Play Console app                     | Manual, once per landscape — no API                   | Human              |
 
 **Adding a widget/extension/watch target:** add the target in Xcode with its LPSM
 bundle id, run `pls register` (App Manager Apple ID, one 2FA tap), commit. CI

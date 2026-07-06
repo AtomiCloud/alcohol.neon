@@ -15,7 +15,8 @@ set -euo pipefail
 # Usage: ./scripts/ci/doctor-ios.sh <landscape>
 
 LANDSCAPE=${1:?usage: doctor-ios.sh <landscape>}
-EXPECTED_GROUP="group.cloud.atomi.$LANDSCAPE.alcohol.neon"
+# The App Group is `group.` + the app's bundle id — the first (shortest) target.
+EXPECTED_GROUP="group.$(./scripts/ci/ios-signing-targets.sh "$LANDSCAPE" | sed -n 1p)"
 PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
 
 fail=0

@@ -6,8 +6,9 @@ set -euo pipefail
 # The caller wires it to GitHub: matrix=$(./scripts/ci/cd-matrix.sh) >> "$GITHUB_OUTPUT".
 #
 # Every identifier derives from the LPSM service tree (see
-# docs/developer/standard/bundle-id.md): bundle_id == package_name ==
-# cloud.atomi.<landscape>.<platform>.<service> — identical on iOS and Android.
+# docs/developer/standard/bundle-id.md): package_name (Android) ==
+# cloud.atomi.<landscape>.<platform>.<service>, identical to the iOS bundle id
+# (which CD discovers from the Xcode project via ios-signing-targets.sh).
 # Only apple_id (the numeric App Store Connect app id) is store-assigned state:
 # fill it in after creating each landscape's ASC app record
 # (docs/migration-lpsm-ids.md). Empty apple_id → cd-ios.sh falls back to the CI
@@ -32,7 +33,7 @@ LANDSCAPES='[
 ]'
 
 ALL=$(echo "$LANDSCAPES" | jq -c --arg p "$PLATFORM" --arg s "$SERVICE" \
-  '[.[] | . + {bundle_id: "cloud.atomi.\(.flavor).\($p).\($s)", package_name: "cloud.atomi.\(.flavor).\($p).\($s)"}]')
+  '[.[] | . + {package_name: "cloud.atomi.\(.flavor).\($p).\($s)"}]')
 
 if [ "${EVENT:-}" = "workflow_dispatch" ]; then
   FILTERED=$(echo "$ALL" | jq -c --arg f "${SEL:-}" '[.[] | select(.flavor==$f)]')

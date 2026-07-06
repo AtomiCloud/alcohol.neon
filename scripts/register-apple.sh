@@ -35,7 +35,8 @@ LANDSCAPES=("$@")
 HERE="$(cd "$(dirname "$0")" && pwd)"
 
 for L in "${LANDSCAPES[@]}"; do
-  GROUP="group.cloud.atomi.$L.alcohol.neon"
+  # The App Group is `group.` + the app's bundle id — the first (shortest) target.
+  GROUP="group.$("$HERE/ci/ios-signing-targets.sh" "$L" | sed -n 1p)"
 
   echo "==> [$L] ensure App Group $GROUP"
   # `produce group` fails if the group already exists — that's the idempotent case.

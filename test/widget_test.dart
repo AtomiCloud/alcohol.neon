@@ -39,6 +39,29 @@ void main() {
     },
   );
 
+  test(
+    'AppConfig resolves lapras from the flavorless LPSM bundle id',
+    () async {
+      final config = await AppConfig.resolveForPackage(
+        'cloud.atomi.lapras.alcohol.neon',
+      );
+      expect(config.landscape, Landscape.lapras);
+      expect(config.redirectUri, 'cloud.atomi.lapras.alcohol.neon://callback');
+    },
+  );
+
+  test('landscape segment also resolves from module bundle ids', () async {
+    final config = await AppConfig.resolveForPackage(
+      'cloud.atomi.pichu.alcohol.neon.widget',
+    );
+    expect(config.landscape, Landscape.pichu);
+  });
+
+  test('unrecognized bundle id falls back to pichu in debug mode', () async {
+    final config = await AppConfig.resolveForPackage('com.example.other');
+    expect(config.landscape, Landscape.pichu);
+  });
+
   test('apiResources is empty when no zinc resource is configured', () {
     final base = Uri.parse('https://example.com');
     final withResource = AppConfig(

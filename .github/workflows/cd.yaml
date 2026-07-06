@@ -50,7 +50,6 @@ jobs:
     uses: ./.github/workflows/⚡reusable-cd-ios.yaml
     with:
       flavor: ${{ matrix.flavor }}
-      bundle-id: ${{ matrix.bundle_id }}
       apple-id: ${{ matrix.apple_id }}
     secrets: inherit
 

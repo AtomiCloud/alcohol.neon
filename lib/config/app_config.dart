@@ -14,9 +14,9 @@ import 'landscape.dart';
 ///   `--dart-define=NEON_*`     overrides everything (local dev / CI)
 ///
 /// The landscape is chosen from the app's **own bundle id** (bundle-id-as-marker):
-/// `…neon.pichu` → pichu, `…neon.pikachu` → pikachu, `…neon.raichu` → raichu; the
-/// bare id falls back to raichu (release) / pichu (debug). `--dart-define=NEON_LANDSCAPE=…`
-/// forces a landscape (e.g. `lapras` for local).
+/// LPSM ids put it in segment 3 — `cloud.atomi.pichu.alcohol.neon` → pichu, etc.
+/// An unrecognized id falls back to raichu (release) / pichu (debug).
+/// `--dart-define=NEON_LANDSCAPE=…` forces a landscape (e.g. `lapras` for local).
 ///
 /// dart-define keys: NEON_LANDSCAPE, NEON_LOGTO_ENDPOINT, NEON_LOGTO_APP_ID,
 /// NEON_ZINC_URL, NEON_ZINC_RESOURCE ("" → request no resource), NEON_AIRWALLEX_ENV.
@@ -138,7 +138,7 @@ class AppConfig {
   }
 
   /// Picks the [Landscape] from a `--dart-define=NEON_LANDSCAPE` override if set,
-  /// else from the app's bundle id suffix, else prod (raichu) for release builds
+  /// else from the landscape segment of the LPSM bundle id, else prod (raichu) for release builds
   /// and dev (pichu) for debug.
   static Landscape _resolveLandscape(
     String packageName, [

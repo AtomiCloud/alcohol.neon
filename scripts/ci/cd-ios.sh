@@ -6,9 +6,10 @@ set -euo pipefail
 # toolchain so xcodebuild uses real Xcode. See docs/github-actions-release.md.
 #
 # Env:
-#   FLAVOR                            flutter flavor
-#   BUNDLE_ID                         iOS bundle identifier
-#   APP_STORE_APPLE_ID                numeric Apple ID (for get-latest-build-number)
+#   FLAVOR                            flutter flavor (bundle ids are discovered from
+#                                     the Xcode project via ios-signing-targets.sh)
+#   APP_STORE_APPLE_ID                numeric Apple ID (for get-latest-build-number;
+#                                     empty until the ASC app record exists)
 #   APP_STORE_CONNECT_ISSUER_ID       ) ASC API key — read by codemagic-cli-tools by name
 #   APP_STORE_CONNECT_KEY_IDENTIFIER  )
 #   APP_STORE_CONNECT_PRIVATE_KEY     )

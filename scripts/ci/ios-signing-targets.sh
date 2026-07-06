@@ -14,7 +14,7 @@ set -euo pipefail
 LANDSCAPE=${1:?usage: ios-signing-targets.sh <landscape>}
 PBXPROJ="$(dirname "$0")/../../ios/Runner.xcodeproj/project.pbxproj"
 
-sed -n "s/^[[:space:]]*PRODUCT_BUNDLE_IDENTIFIER = \(cloud\.atomi\.$LANDSCAPE\.[a-z.]*\);$/\1/p" "$PBXPROJ" |
+sed -n "s/^[[:space:]]*PRODUCT_BUNDLE_IDENTIFIER = \(cloud\.atomi\.$LANDSCAPE\.[a-z0-9.]*\);$/\1/p" "$PBXPROJ" |
   grep -v '\.tests$' |
   sort -u |
   awk '{ print length, $0 }' | sort -n | cut -d' ' -f2-

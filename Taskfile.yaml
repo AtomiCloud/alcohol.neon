@@ -29,6 +29,23 @@ tasks:
     cmds:
       - ./scripts/generate-sdk.sh {{ .CLI_ARGS | default "https://api.zinc.alcohol.pichu.cluster.atomi.cloud/swagger/v1/swagger.json" }}
 
+  register:
+    desc: Register Apple App Groups + App IDs for all signing targets (App Manager only)
+    summary: |
+      Runs scripts/register-apple.sh — creates each landscape's App Group, every
+      App ID (app + extensions, auto-discovered from the Xcode project), enables
+      the App Groups capability, and associates the group. These portal writes
+      have no App Store Connect API, so this uses fastlane with YOUR Apple ID:
+      you sign in once (password + one 2FA prompt), then ALL landscapes are
+      processed automatically. The account needs the App Manager/Admin role.
+      Idempotent — re-run after adding any widget/extension target. CI verifies
+      the result on every release via scripts/ci/doctor-ios.sh.
+
+      Usage: pls register              (all landscapes — the default)
+             pls register -- pichu     (one landscape)
+    cmds:
+      - ./scripts/register-apple.sh {{ .CLI_ARGS }}
+
   test:
     desc: Run unit tests
     cmds:

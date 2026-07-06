@@ -89,6 +89,10 @@ let
         inherit
           flutter
           cocoapods
+          # fastlane: only for `pls register` (scripts/register-apple.sh) — App Group
+          # creation/association has no App Store Connect API, so it rides Spaceship's
+          # Apple-ID (2FA) portal client. Dev shell only; CI/CD stays API-key-based.
+          fastlane
           ;
       }
     );

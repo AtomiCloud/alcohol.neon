@@ -15,7 +15,9 @@ import AppIntents
 import Foundation
 import WidgetKit
 
-private let appGroupId = "group.cloud.atomi.alcoholNeon"
+// Per-landscape App Group, injected from the NEON_APP_GROUP build setting via Info.plist.
+private let appGroupId =
+    (Bundle.main.object(forInfoDictionaryKey: "NeonAppGroup") as? String) ?? "group.invalid"
 private let dataKey = "today_schedule"
 
 @available(iOS 17.0, *)

@@ -10,13 +10,13 @@ on:
         description: Flutter flavor (pichu | pikachu | raichu)
         required: true
         type: string
-      bundle-id:
-        description: iOS bundle identifier
-        required: true
-        type: string
       apple-id:
-        description: Numeric App Store Apple ID (for get-latest-build-number)
-        required: true
+        description: >-
+          Numeric App Store Apple ID (for get-latest-build-number). Empty until the
+          landscape's ASC app record exists — the build number then falls back to
+          the CI run number.
+        required: false
+        default: ''
         type: string
 
 jobs:
@@ -29,7 +29,6 @@ jobs:
     timeout-minutes: 60
     env:
       FLAVOR: ${{ inputs.flavor }}
-      BUNDLE_ID: ${{ inputs.bundle-id }}
       APP_STORE_APPLE_ID: ${{ inputs.apple-id }}
       # codemagic-cli-tools reads these by convention.
       APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}

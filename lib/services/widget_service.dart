@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:home_widget/home_widget.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../generated/zinc/models/habit_overview_response.dart';
 
@@ -11,13 +12,18 @@ class WidgetService {
   WidgetService._();
   static final WidgetService instance = WidgetService._();
 
-  static const _appGroup = 'group.cloud.atomi.alcoholNeon';
   static const _kind = 'NeonWidget';
   static const _dataKey = 'today_schedule';
 
+  /// Per-landscape App Group — `group.<app bundle id>` (LPSM). Matches the
+  /// NEON_APP_GROUP build setting the iOS targets sign with.
+  static String? _appGroupCache;
+  static Future<String> _appGroup() async => _appGroupCache ??=
+      'group.${(await PackageInfo.fromPlatform()).packageName}';
+
   Future<void> sync(HabitOverviewResponse overview) async {
     try {
-      await HomeWidget.setAppGroupId(_appGroup);
+      await HomeWidget.setAppGroupId(await _appGroup());
       final todayIndex = DateTime.now().weekday % 7; // Sun=0
       final items = <Map<String, dynamic>>[];
       var done = 0;
@@ -68,7 +74,7 @@ class WidgetService {
     required String? userId,
   }) async {
     try {
-      await HomeWidget.setAppGroupId(_appGroup);
+      await HomeWidget.setAppGroupId(await _appGroup());
       await HomeWidget.saveWidgetData<String>('zinc_base', baseUrl);
       if (token != null) {
         await HomeWidget.saveWidgetData<String>('zinc_token', token);
@@ -86,7 +92,7 @@ class WidgetService {
   /// the tick doesn't lie about a habit the server never recorded. Best-effort.
   Future<void> revertDone(String versionId) async {
     try {
-      await HomeWidget.setAppGroupId(_appGroup);
+      await HomeWidget.setAppGroupId(await _appGroup());
       final raw = await HomeWidget.getWidgetData<String>(_dataKey);
       if (raw == null) return;
       final map = jsonDecode(raw) as Map<String, dynamic>;

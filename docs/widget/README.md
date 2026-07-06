@@ -6,8 +6,12 @@ to a shared **App Group**; the WidgetKit extension reads it and renders.
 
 ```
 Flutter app ──writes today_schedule──▶ App Group ──reads──▶ NeonWidget (WidgetKit) ──▶ home screen
-            (WidgetService.sync on dashboard load)   group.cloud.atomi.alcoholNeon
+            (WidgetService.sync on dashboard load)   group.cloud.atomi.<landscape>.alcohol.neon
 ```
+
+The App Group is **per landscape** — `group.` + the app's LPSM bundle id (see
+[docs/developer/standard/bundle-id.md](../developer/standard/bundle-id.md)); Dart derives it
+from the package name, the iOS targets from the `NEON_APP_GROUP` build setting.
 
 ## Already wired (code side — done)
 - `home_widget` package added to `pubspec.yaml`; Podfile `platform :ios, '14.0'`.
@@ -23,17 +27,20 @@ Flutter app ──writes today_schedule──▶ App Group ──reads──▶ 
 2. **Use our widget code:** replace the generated `NeonWidget.swift` body with
    `ios/NeonWidget/NeonWidget.swift` (keep Xcode's generated `@main … Bundle.swift`).
 3. **App Group on BOTH targets:** select the project → for **Runner** and **NeonWidgetExtension**,
-   Signing & Capabilities → **+ Capability ▸ App Groups** → add **`group.cloud.atomi.alcoholNeon`**.
+   Signing & Capabilities → **+ Capability ▸ App Groups** → add the landscape's group
+   (**`group.cloud.atomi.<landscape>.alcohol.neon`** — or keep the `$(NEON_APP_GROUP)`
+   entitlements the repo already carries).
    - On the **Simulator** the App Group works without portal registration.
-   - For a **real device / TestFlight**, an Admin/App Manager must register the App Group in the
-     Developer portal (a Developer-role member can't).
+   - For a **real device / TestFlight**, an Admin/App Manager runs **`pls register`** once —
+     it creates the groups, App IDs, and associations in the Developer portal (a
+     Developer-role member can't). CD verifies this via `scripts/ci/doctor-ios.sh`.
 4. **Fix the build-phase order (avoids a dependency cycle):** Runner target → Build Phases →
    drag **"Embed Foundation Extensions"** ABOVE **"[CP] Embed Pods Frameworks"**.
 5. **Set both targets' Team** + Deployment Target iOS 14.0+.
 6. `flutter run` → long-press the home screen → **+** → add **Today's habits**.
 
 ## Data contract
-App Group `group.cloud.atomi.alcoholNeon`, key `today_schedule`, widget kind `NeonWidget`:
+App Group `group.cloud.atomi.<landscape>.alcohol.neon`, key `today_schedule`, widget kind `NeonWidget`:
 ```json
 { "date": "2026-06-06", "done": 1, "total": 3,
   "items": [ { "time": "06:30", "name": "Morning run", "done": false } ] }

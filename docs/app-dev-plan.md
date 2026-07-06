@@ -15,7 +15,7 @@ screens, with phased milestones. Derived from a full read of zinc's controllers 
 - **Shell** — `RootView` switching on `AuthStatus`; `SignInView`, `HomeView` (proves token acquisition).
 
 **Pending before features:** (a) build verification (validate Logto SDK call shapes), and
-(b) a **Native Logto application** registered (App ID + `cloud.atomi.alcohol.neon://callback` + `alcohol-zinc` resource) — sign-in can't complete without it.
+(b) a **Native Logto application** registered (App ID + `cloud.atomi.<landscape>.alcohol.neon://callback` + `alcohol-zinc` resource) — sign-in can't complete without it.
 
 ---
 

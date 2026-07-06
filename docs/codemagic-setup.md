@@ -1,5 +1,12 @@
 # LazyTax (alcohol.neon) — Store Setup Runbook (was: Codemagic)
 
+> 🕰️ **Historical reference — legacy identifiers (pre-2026-07).** Codemagic is removed, and
+> **every bundle id / package name / Apple ID in this doc is the old, pre-LPSM scheme**. The
+> note below predates the ID migration — read its "still the source of truth" claim as applying
+> to the _old_ store records only. Current scheme:
+> [docs/developer/standard/bundle-id.md](developer/standard/bundle-id.md); migration runbook:
+> [migration-lpsm-ids.md](migration-lpsm-ids.md).
+
 > ⚠️ **Codemagic has been replaced by GitHub Actions** (`.github/workflows/cd.yaml`); `codemagic.yaml`
 > is removed. **Parts 3–9 (store identities, ASC API key, keystore, Play service account) are still
 > the source of truth** — those records are reused by the GHA pipeline. **Part 10 (loading credentials

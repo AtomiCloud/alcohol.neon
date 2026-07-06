@@ -6,9 +6,10 @@ set -euo pipefail
 # toolchain so xcodebuild uses real Xcode. See docs/github-actions-release.md.
 #
 # Env:
-#   FLAVOR                            flutter flavor
-#   BUNDLE_ID                         iOS bundle identifier
-#   APP_STORE_APPLE_ID                numeric Apple ID (for get-latest-build-number)
+#   FLAVOR                            flutter flavor (bundle ids are discovered from
+#                                     the Xcode project via ios-signing-targets.sh)
+#   APP_STORE_APPLE_ID                numeric Apple ID (for get-latest-build-number;
+#                                     empty until the ASC app record exists)
 #   APP_STORE_CONNECT_ISSUER_ID       ) ASC API key — read by codemagic-cli-tools by name
 #   APP_STORE_CONNECT_KEY_IDENTIFIER  )
 #   APP_STORE_CONNECT_PRIVATE_KEY     )
@@ -20,18 +21,38 @@ flutter pub get
 (cd ios && pod install)
 
 # Code signing: reuse the existing Apple Distribution cert that matches
-# CERTIFICATE_PRIVATE_KEY (--create only mints one if none matches).
+# CERTIFICATE_PRIVATE_KEY (--create only mints one if none matches). Signing files
+# are fetched for the app AND every embedded extension (widget, …) — the target
+# list is discovered from the Xcode project, so new extensions need no CI change.
+# --create self-heals missing bundle ids/profiles, but App Group creation and
+# group⇄bundle-id association have no API: an App Manager must run `pls register`
+# once per new target (see docs/developer/standard/bundle-id.md).
 keychain initialize
-app-store-connect fetch-signing-files "$BUNDLE_ID" \
-  --type IOS_APP_STORE \
-  --certificate-key @env:CERTIFICATE_PRIVATE_KEY \
-  --create
+# Capture discovery instead of a process substitution: a substitution's failure
+# would be silently swallowed and sign nothing; this aborts the build instead.
+SIGNING_TARGETS=$(./scripts/ci/ios-signing-targets.sh "$FLAVOR")
+while IFS= read -r target_id; do
+  app-store-connect fetch-signing-files "$target_id" \
+    --type IOS_APP_STORE \
+    --certificate-key @env:CERTIFICATE_PRIVATE_KEY \
+    --create
+done <<<"$SIGNING_TARGETS"
 keychain add-certificates
 xcode-project use-profiles --export-options-plist "$HOME/export_options.plist"
 
+# Doctor: every fetched profile must carry the App Group entitlement — catches a
+# skipped `pls register` here, at the signing step, instead of as an opaque
+# xcodebuild/App Store rejection after a 30-minute build.
+./scripts/ci/doctor-ios.sh "$FLAVOR"
+
 # CFBundleVersion must top every previous upload, but get-latest-build-number lags while a
 # fresh upload is still processing — max with the CI run number so reruns never collide.
-LATEST=$(app-store-connect get-latest-build-number "$APP_STORE_APPLE_ID" || echo 0)
+# APP_STORE_APPLE_ID is empty until the landscape's ASC app record exists
+# (docs/migration-lpsm-ids.md) — fall back to the CI run number alone.
+LATEST=0
+if [ -n "${APP_STORE_APPLE_ID:-}" ]; then
+  LATEST=$(app-store-connect get-latest-build-number "$APP_STORE_APPLE_ID" || echo 0)
+fi
 BUILD_NUMBER=$((${LATEST:-0} + 1))
 RUN_NUMBER=${GITHUB_RUN_NUMBER:-0}
 if [ "$RUN_NUMBER" -gt "$BUILD_NUMBER" ]; then

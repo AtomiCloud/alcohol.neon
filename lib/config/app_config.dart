@@ -14,9 +14,9 @@ import 'landscape.dart';
 ///   `--dart-define=NEON_*`     overrides everything (local dev / CI)
 ///
 /// The landscape is chosen from the app's **own bundle id** (bundle-id-as-marker):
-/// `…neon.pichu` → pichu, `…neon.pikachu` → pikachu, `…neon.raichu` → raichu; the
-/// bare id falls back to raichu (release) / pichu (debug). `--dart-define=NEON_LANDSCAPE=…`
-/// forces a landscape (e.g. `lapras` for local).
+/// LPSM ids put it in segment 3 — `cloud.atomi.pichu.alcohol.neon` → pichu, etc.
+/// An unrecognized id falls back to raichu (release) / pichu (debug).
+/// `--dart-define=NEON_LANDSCAPE=…` forces a landscape (e.g. `lapras` for local).
 ///
 /// dart-define keys: NEON_LANDSCAPE, NEON_LOGTO_ENDPOINT, NEON_LOGTO_APP_ID,
 /// NEON_ZINC_URL, NEON_ZINC_RESOURCE ("" → request no resource), NEON_AIRWALLEX_ENV.
@@ -43,7 +43,7 @@ class AppConfig {
     required this.logtoAppId,
     required this.zincResource,
     required this.airwallexEnv,
-    this.redirectUri = 'cloud.atomi.alcohol.neon://callback',
+    this.redirectUri = 'cloud.atomi.lapras.alcohol.neon://callback',
     this.scopes = const [
       'openid',
       'profile',
@@ -138,7 +138,7 @@ class AppConfig {
   }
 
   /// Picks the [Landscape] from a `--dart-define=NEON_LANDSCAPE` override if set,
-  /// else from the app's bundle id suffix, else prod (raichu) for release builds
+  /// else from the landscape segment of the LPSM bundle id, else prod (raichu) for release builds
   /// and dev (pichu) for debug.
   static Landscape _resolveLandscape(
     String packageName, [
@@ -151,9 +151,14 @@ class AppConfig {
         if (l.name == name) return l;
       }
     }
-    if (packageName.endsWith('.pichu')) return Landscape.pichu;
-    if (packageName.endsWith('.pikachu')) return Landscape.pikachu;
-    if (packageName.endsWith('.raichu')) return Landscape.raichu;
+    // LPSM bundle id: cloud.atomi.<landscape>.<platform>.<service>[.<module>] —
+    // the landscape is the segment right after the reversed domain.
+    final parts = packageName.split('.');
+    if (parts.length >= 3) {
+      for (final l in Landscape.values) {
+        if (parts[2] == l.name) return l;
+      }
+    }
     return kReleaseMode ? Landscape.raichu : Landscape.pichu;
   }
 

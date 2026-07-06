@@ -134,11 +134,22 @@ org-level GitHub Actions secrets (synced from Infisical `raichu`). See
 [docs/codemagic-setup.md](docs/codemagic-setup.md) for the store/identity setup.
 **Codemagic has been removed** — `codemagic.yaml` is gone; the migration to GHA is the current pipeline.
 
+## Identifiers (LPSM)
+
+All store identifiers derive from the service tree — see
+[docs/developer/standard/bundle-id.md](docs/developer/standard/bundle-id.md):
+app `cloud.atomi.<landscape>.alcohol.neon` (identical on iOS and Android), widget
+`….neon.widget`, App Group `group.<app id>` (per landscape), Logto redirect
+`<app id>://callback`. Apple-portal registration (App Groups + App IDs +
+association — no ASC API) is `pls register` (fastlane, App Manager Apple ID, one
+2FA tap); CD verifies the wiring via `scripts/ci/doctor-ios.sh`. Migration
+runbook: [docs/migration-lpsm-ids.md](docs/migration-lpsm-ids.md).
+
 ## Known setup dependency
 
 A **Native** Logto app must be registered per landscape (App ID + redirect
-`cloud.atomi.alcohol.neon://callback` + the `alcohol-zinc` resource). Until its App ID is in
-`AppConfig` (or via `--dart-define`), the app builds/runs but sign-in won't complete.
+`cloud.atomi.<landscape>.alcohol.neon://callback` + the `alcohol-zinc` resource). Until its App
+ID is in `AppConfig` (or via `--dart-define`), the app builds/runs but sign-in won't complete.
 
 ## Status / next
 

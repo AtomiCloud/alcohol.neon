@@ -227,6 +227,18 @@ ensure() {
     echo "  ✓ $label (already exists)"
     return 0
   fi
+  # "not available" = the globally-unique identifier is claimed or reserved
+  # OUTSIDE this team — either registered in another team (delete it there) or
+  # recently deleted (Apple reserves deleted identifiers for up to ~48h; if it
+  # never frees, Apple Developer Support can release it).
+  if grep -qi "is not available" <<<"$out"; then
+    echo "  ✗ $label — identifier taken or reserved outside this team" >&2
+    echo "    → if it exists in another team (e.g. a personal one), delete it there;" >&2
+    echo "      if you just deleted it, Apple holds it for up to ~48h — re-run later" >&2
+    echo "      (this script is idempotent). Still stuck? Apple Developer Support" >&2
+    echo "      can release the identifier." >&2
+    return 1
+  fi
   echo "  ✗ $label" >&2
   printf '%s\n' "$out" >&2
   return 1

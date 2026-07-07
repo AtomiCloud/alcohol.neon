@@ -1,3 +1,23 @@
+## [1.7.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.6.1...v1.7.0) (2026-07-07)
+
+
+### 📜 Documentation 📜
+
+* cover Apple credentials in the store-credentials runbook ([63b734d](https://github.com/AtomiCloud/alcohol.neon/commit/63b734d1d3e871f93075457a42c183b690323965))
+
+
+### ✨ Features ✨
+
+* **register:** rotate provisioning profiles after association ([27b8f31](https://github.com/AtomiCloud/alcohol.neon/commit/27b8f314e30df449033f98399a0a1ce7c61f26ef))
+
+
+### 🐛 Bug Fixes 🐛
+
+* **register:** address review nits on rotation parsing and cert-cap doc ([ad05e64](https://github.com/AtomiCloud/alcohol.neon/commit/ad05e643f27de55e3f760c2170fa78dca5a5770f))
+* **ci:** floor Android versionCode with the CI run number ([de9ad50](https://github.com/AtomiCloud/alcohol.neon/commit/de9ad50e0f7fc1e89de269f28e6d860bf1bb17c9))
+* **register:** rotate profiles via ConnectAPI ([24f1530](https://github.com/AtomiCloud/alcohol.neon/commit/24f1530a6aa95bbe0c63dc279cf8fcd60b2b2ac7))
+* the Apple team is MNPSXJP9PN, not the stale SY4WNY5G7U ([0cd72e5](https://github.com/AtomiCloud/alcohol.neon/commit/0cd72e56c589bc04e93c11bad5810b5d271a085e))
+
 ## [1.6.1](https://github.com/AtomiCloud/alcohol.neon/compare/v1.6.0...v1.6.1) (2026-07-07)
 
 

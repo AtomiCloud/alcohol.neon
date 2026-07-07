@@ -1,3 +1,26 @@
+## [1.6.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.5.0...v1.6.0) (2026-07-07)
+
+
+### ✨ Features ✨
+
+* **register:** create ASC app records and auto-fill apple_ids ([b98c422](https://github.com/AtomiCloud/alcohol.neon/commit/b98c4221c5b3f33c83c80410ea295f3991f8e83a))
+* lpsm.yaml as the single source of truth for store identifiers ([7febe7d](https://github.com/AtomiCloud/alcohol.neon/commit/7febe7d4e0e1ef7ad61c1bf7e74c9de1690db9e7))
+* **register:** make the App Store name configurable via NEON_APP_NAME ([748271d](https://github.com/AtomiCloud/alcohol.neon/commit/748271d08cafd526fd24c283a5ab98e4d8df66cc))
+* make the LPSM module segment mandatory (.app, .app.widget) ([16f9adb](https://github.com/AtomiCloud/alcohol.neon/commit/16f9adb7dcb31d701d2409d90678d667252b7fa0))
+* name prod 'LazyTax: Stake Habits'; document store_suffix scope ([756595f](https://github.com/AtomiCloud/alcohol.neon/commit/756595f5ddea5534787776772b3217a3496f2813))
+
+
+### 🐛 Bug Fixes 🐛
+
+* **ci:** empty node_modules instead of removing the cache mountpoint ([60c081d](https://github.com/AtomiCloud/alcohol.neon/commit/60c081dd890e0010b0c5c0f23fdf8f7fda876266))
+* **register:** explain identifier-reserved failures on create ([dab3539](https://github.com/AtomiCloud/alcohol.neon/commit/dab3539d69f9936763ae3a09049b6bc44dd54e92))
+* **register:** look up apple_ids via ConnectAPI, surface failures ([a04e928](https://github.com/AtomiCloud/alcohol.neon/commit/a04e92816a305a452e4be1bfc9fde2364a6a79a9))
+* **register:** parse fastlane output past its timestamp prefixes ([dcd227c](https://github.com/AtomiCloud/alcohol.neon/commit/dcd227cdc2f4bb3c97c34894e8dc78f2dc46721c))
+* **register:** refuse to register under a foreign portal team ([c242206](https://github.com/AtomiCloud/alcohol.neon/commit/c24220647b1720a02cc28c9d776803a6974fbe44))
+* **ci:** start semantic-release from a clean npm workdir ([bc50fa2](https://github.com/AtomiCloud/alcohol.neon/commit/bc50fa264cb423be7c64f47ef6d63b5360859e10))
+* **register:** warn instead of hanging on unknown ASC teams ([934b7f3](https://github.com/AtomiCloud/alcohol.neon/commit/934b7f315445257ceb8ec04a0eed15756d459ccd))
+* **register:** warn when a bundle id has no ASC app record ([5863ce8](https://github.com/AtomiCloud/alcohol.neon/commit/5863ce88a306a6b17f0194d72449f7d5df22947f))
+
 ## [1.5.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.4.0...v1.5.0) (2026-07-06)
 
 

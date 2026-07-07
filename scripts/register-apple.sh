@@ -15,7 +15,7 @@ set -euo pipefail
 #   3. the App Groups capability on each App ID
 #   4. the group ⇄ App ID association
 #   5. the App Store Connect  app record (the store bucket TestFlight uploads
-#      into) — and writes its numeric apple_id into scripts/ci/cd-matrix.sh
+#      into) — and writes its numeric apple_id into lpsm.yaml
 #
 # The ONE Apple-side thing it can't do: free up an app NAME still held by a
 # pre-migration app record. If a name is taken, that landscape is reported at
@@ -31,39 +31,40 @@ set -euo pipefail
 #   FASTLANE_USER          Apple ID email (skips the prompt)
 #   FASTLANE_TEAM_ID       Developer-portal team (skips the team menu)
 #   FASTLANE_ITC_TEAM_ID   App Store Connect team (skips the team menu)
+#   NEON_APP_NAME          Override the App Store base name from lpsm.yaml
 #
-# Usage: ./scripts/register-apple.sh [landscape ...]   (default: ALL — pichu pikachu raichu)
-
-# The team this project releases under — preselected in the team menu.
-PROJECT_TEAM_ID=SY4WNY5G7U
+# Usage: ./scripts/register-apple.sh [landscape ...]   (default: all in lpsm.yaml)
 
 export FASTLANE_SKIP_UPDATE_CHECK=1
 export FASTLANE_OPT_OUT_USAGE=1
 export FASTLANE_HIDE_CHANGELOG=1
 
-LANDSCAPES=("$@")
-[ ${#LANDSCAPES[@]} -gt 0 ] || LANDSCAPES=(pichu pikachu raichu)
-
 HERE="$(cd "$(dirname "$0")" && pwd)"
-MATRIX="$HERE/ci/cd-matrix.sh"
+LPSM="$HERE/../lpsm.yaml"
 
-if ! command -v fastlane >/dev/null; then
-  echo "✗ fastlane not found — run this inside the dev shell (direnv / nix develop)." >&2
-  exit 1
+for tool in fastlane yq; do
+  if ! command -v "$tool" >/dev/null; then
+    echo "✗ $tool not found — run this inside the dev shell (direnv / nix develop)." >&2
+    exit 1
+  fi
+done
+
+# Everything identity-shaped comes from lpsm.yaml — the single source of truth.
+PROJECT_TEAM_ID=$(yq '.apple_team' "$LPSM")
+APP_NAME=${NEON_APP_NAME:-$(yq '.app_name' "$LPSM")}
+
+LANDSCAPES=("$@")
+if [ ${#LANDSCAPES[@]} -eq 0 ]; then
+  while IFS= read -r l; do LANDSCAPES+=("$l"); done < <(yq '.landscapes[].name' "$LPSM")
 fi
 
-# The public-facing App Store name per landscape. Prod gets the bare name;
-# other landscapes are suffixed so all three can coexist (store names are
-# globally unique). Override the base with NEON_APP_NAME=… ; individual names
-# can also be edited later in App Store Connect (freely before first release).
-APP_NAME=${NEON_APP_NAME:-LazyTax}
+# The public-facing App Store name: base name + the landscape's store_suffix
+# from lpsm.yaml (prod bare, others suffixed — store names are globally
+# unique). Names remain editable in App Store Connect until first release.
 store_name() {
-  case $1 in
-  raichu) echo "$APP_NAME" ;;
-  pichu) echo "$APP_NAME (Pichu)" ;;
-  pikachu) echo "$APP_NAME (Pikachu)" ;;
-  *) echo "$APP_NAME ($1)" ;;
-  esac
+  local suffix
+  suffix=$(yq ".landscapes[] | select(.name == \"$1\") | .store_suffix // \"\"" "$LPSM")
+  echo "$APP_NAME$suffix"
 }
 
 # ── 1. Sign in once, interactively ──────────────────────────────────────────
@@ -290,9 +291,9 @@ for L in "${LANDSCAPES[@]}"; do
   fi
 done
 
-# ── 4. Fill apple_ids into the CD matrix ──────────────────────────────────────
+# ── 4. Fill apple_ids into lpsm.yaml ──────────────────────────────────────────
 # The numeric ASC app id feeds get-latest-build-number in CD; look each one up
-# and patch scripts/ci/cd-matrix.sh in place.
+# and write it into lpsm.yaml (the source of truth the CD matrix reads).
 echo
 echo "==> Looking up numeric apple_ids…"
 ids=$(
@@ -306,13 +307,13 @@ patched=0
 while IFS=$'\t' read -r _ bid aid; do
   [ -n "$bid" ] && [ -n "$aid" ] || continue
   land=$(cut -d. -f3 <<<"$bid")
-  if grep -q "{\"flavor\":\"$land\",\"apple_id\":\"$aid\"}" "$MATRIX"; then
-    echo "  ✓ $land: apple_id $aid (already in cd-matrix.sh)"
+  current=$(yq ".landscapes[] | select(.name == \"$land\") | .apple_id" "$LPSM")
+  if [ "$current" = "$aid" ]; then
+    echo "  ✓ $land: apple_id $aid (already in lpsm.yaml)"
     continue
   fi
-  sed -i.bak "s|{\"flavor\":\"$land\",\"apple_id\":\"[^\"]*\"}|{\"flavor\":\"$land\",\"apple_id\":\"$aid\"}|" "$MATRIX"
-  rm -f "$MATRIX.bak"
-  echo "  ✓ $land: apple_id $aid → written to cd-matrix.sh"
+  yq -i "(.landscapes[] | select(.name == \"$land\") | .apple_id) = \"$aid\"" "$LPSM"
+  echo "  ✓ $land: apple_id $aid → written to lpsm.yaml"
   patched=1
 done <<<"$ids"
 [ -n "$ids" ] || echo "  (no records found yet — nothing to fill)"
@@ -329,8 +330,8 @@ if [ ${#PENDING_RENAME[@]} -gt 0 ]; then
 fi
 if [ "$patched" -eq 1 ]; then
   echo
-  echo "cd-matrix.sh was updated with apple_id(s) — review and commit it:"
-  echo "  git diff scripts/ci/cd-matrix.sh"
+  echo "lpsm.yaml was updated with apple_id(s) — review and commit it:"
+  echo "  git diff lpsm.yaml"
 fi
 echo
 echo "Still manual (no API exists) — see docs/migration-lpsm-ids.md:"

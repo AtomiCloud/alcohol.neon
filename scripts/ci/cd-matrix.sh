@@ -2,17 +2,19 @@
 set -euo pipefail
 
 # Resolves the CD build matrix and prints it as JSON ({"include":[...]}) to stdout.
-# All 3 flavors on a tag/push; just the selected flavor on a manual workflow_dispatch.
+# All flavors on a tag/push; just the selected flavor on a manual workflow_dispatch.
 # The caller wires it to GitHub: matrix=$(./scripts/ci/cd-matrix.sh) >> "$GITHUB_OUTPUT".
 #
-# Every identifier derives from the LPSM service tree (see
-# docs/developer/standard/bundle-id.md): package_name (Android) ==
-# cloud.atomi.<landscape>.<platform>.<service>, identical to the iOS bundle id
-# (which CD discovers from the Xcode project via ios-signing-targets.sh).
-# Only apple_id (the numeric App Store Connect app id) is store-assigned state:
-# fill it in after creating each landscape's ASC app record
-# (docs/migration-lpsm-ids.md). Empty apple_id → cd-ios.sh falls back to the CI
-# run number for CFBundleVersion.
+# Everything comes from lpsm.yaml — the single source of truth for the LPSM
+# service tree (docs/developer/standard/bundle-id.md): package_name (Android)
+# == cloud.atomi.<landscape>.<platform>.<service>, identical to the iOS bundle
+# id (which CD discovers from the Xcode project via ios-signing-targets.sh).
+# apple_id (the numeric App Store Connect app id) is filled into lpsm.yaml by
+# `pls register`; while empty, cd-ios.sh falls back to the CI run number for
+# CFBundleVersion.
+#
+# Needs yq (mikefarah v4): preinstalled on GitHub ubuntu runners, in the nix
+# dev shell locally.
 #
 # Env:
 #   EVENT  github.event_name      (e.g. push, workflow_dispatch)
@@ -22,18 +24,13 @@ set -euo pipefail
 #   EVENT=push ./scripts/ci/cd-matrix.sh
 #   EVENT=workflow_dispatch SEL=pichu ./scripts/ci/cd-matrix.sh
 
-PLATFORM=alcohol
-SERVICE=neon
+LPSM="$(dirname "$0")/../../lpsm.yaml"
 
-# landscape → numeric ASC app id (TODO: fill after the new app records exist).
-LANDSCAPES='[
-  {"flavor":"pichu","apple_id":""},
-  {"flavor":"pikachu","apple_id":""},
-  {"flavor":"raichu","apple_id":""}
-]'
+PLATFORM=$(yq '.platform' "$LPSM")
+SERVICE=$(yq '.service' "$LPSM")
 
-ALL=$(echo "$LANDSCAPES" | jq -c --arg p "$PLATFORM" --arg s "$SERVICE" \
-  '[.[] | . + {package_name: "cloud.atomi.\(.flavor).\($p).\($s)"}]')
+ALL=$(yq -o=json -I=0 '.landscapes' "$LPSM" | jq -c --arg p "$PLATFORM" --arg s "$SERVICE" \
+  '[.[] | {flavor: .name, apple_id: (.apple_id // ""), package_name: "cloud.atomi.\(.name).\($p).\($s)"}]')
 
 if [ "${EVENT:-}" = "workflow_dispatch" ]; then
   FILTERED=$(echo "$ALL" | jq -c --arg f "${SEL:-}" '[.[] | select(.flavor==$f)]')

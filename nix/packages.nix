@@ -75,6 +75,9 @@ let
           rsync
           resvg
           jdk17
+          # mikefarah yq (v4) — reads lpsm.yaml (cd-matrix.sh, register-apple.sh,
+          # lpsm-lint pre-commit hook).
+          yq-go
           ;
       }
       // {

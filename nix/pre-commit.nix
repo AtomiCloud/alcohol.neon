@@ -56,6 +56,16 @@ pre-commit-lib.run {
       language = "system";
     };
 
+    a-lpsm-lint = {
+      enable = true;
+      description = "Store identifiers match lpsm.yaml (LPSM service tree)";
+      entry = "scripts/ci/lpsm-lint.sh";
+      files = "(lpsm\\.yaml|project\\.pbxproj|build\\.gradle\\.kts|pubspec\\.yaml|config/.*\\.yaml|lpsm-lint\\.sh)";
+      name = "LPSM Identifier Lint";
+      pass_filenames = false;
+      language = "system";
+    };
+
     a-shellcheck = {
       enable = true;
       entry = "${packages.shellcheck}/bin/shellcheck";

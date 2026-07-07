@@ -30,7 +30,7 @@ Sign in with your (App Manager/Admin) Apple ID; expect one 2FA prompt, then a
 team menu (Developer portal + App Store Connect). Per landscape it creates the
 App Group, all App IDs (app + widget), enables + associates the App Groups
 capability, creates the **App Store Connect app record**, and **writes the new
-numeric `apple_id` into `scripts/ci/cd-matrix.sh`** — review and commit that
+numeric `apple_id` into `lpsm.yaml`** — review and commit that
 diff. Idempotent — safe to re-run; if a store name is still taken it tells you
 which landscape to fix and you just re-run after renaming.
 

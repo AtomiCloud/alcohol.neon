@@ -37,7 +37,7 @@ tasks:
       the App Groups capability, and associates the group. These portal writes
       have no App Store Connect API — and it now ALSO creates each landscape's
       App Store Connect app record and fills the numeric apple_id into
-      scripts/ci/cd-matrix.sh (commit that diff). Uses fastlane with YOUR Apple ID:
+      lpsm.yaml (commit that diff). Uses fastlane with YOUR Apple ID:
       you sign in once (password + one 2FA prompt), then ALL landscapes are
       processed automatically. The account needs the App Manager/Admin role.
       Idempotent — re-run after adding any widget/extension target. CI verifies

@@ -61,7 +61,10 @@ Flavorless local builds map to the `lapras` landscape
 - Dart: `AppConfig` resolves the landscape from segment 3 of the package name;
   `WidgetService` derives the App Group as `group.<packageName>`;
   `config/<landscape>.yaml` carries the redirect URI.
-- CI: `scripts/ci/cd-matrix.sh` derives ids; `scripts/ci/ios-signing-targets.sh`
+- **`lpsm.yaml` is the single source of truth** — platform/service, team,
+  landscapes, store names, apple_ids. `scripts/ci/cd-matrix.sh` derives the CD
+  matrix from it; `scripts/ci/lpsm-lint.sh` (pre-commit) fails any literal in
+  pbxproj/gradle/pubspec/config yamls that drifts from it; `scripts/ci/ios-signing-targets.sh`
   discovers all signing targets from the Xcode project.
 
 ## Registration & automation boundary

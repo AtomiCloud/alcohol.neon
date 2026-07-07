@@ -45,8 +45,10 @@ while IFS= read -r target_id; do
         echo "doctor: OK    $target_id ← $EXPECTED_GROUP"
       else
         echo "doctor: FAIL  $target_id — profile lacks App Group $EXPECTED_GROUP" >&2
-        echo "  → an App Manager must run 'pls register' (creates the group and" >&2
-        echo "    ticks it on the bundle id in the Apple Developer portal), then" >&2
+        echo "    application-groups in profile: ${groups:-<key absent>}" >&2
+        echo "  → the group must be ticked on this App ID in the Apple Developer" >&2
+        echo "    portal (Identifiers → App ID → App Groups → Configure) and the" >&2
+        echo "    stale profile rotated ('pls register' does the rotation), then" >&2
         echo "    re-run this workflow. See docs/developer/standard/bundle-id.md." >&2
         fail=1
       fi

@@ -52,3 +52,16 @@ tasks:
     desc: Run unit tests
     cmds:
       - flutter test
+
+  verify:ios:
+    desc: Local iOS signing preflight (fetch profiles + App Group doctor)
+    summary: |
+      Runs CD's signing preflight locally — fetch-signing-files for every
+      discovered target + scripts/ci/doctor-ios.sh — pulling the signing
+      secrets from Infisical instead of waiting on a GHA round trip.
+      Needs infisical access to the signing project and
+      NEON_SIGNING_PROJECT_ID set (docs/store-credentials.md).
+
+      Usage: pls verify:ios -- pichu
+    cmds:
+      - ./scripts/local/verify-ios-signing.sh {{ .CLI_ARGS | default "pichu" }}

@@ -54,6 +54,21 @@ prompt. Nothing is stored; see
 | `doctor: FAIL … lacks App Group`      | portal wiring missing for a target                                              | `pls register`                                               |
 | cert limit reached                    | too many Distribution certs                                                     | revoke an unused one; keep reusing `CERTIFICATE_PRIVATE_KEY` |
 
+### Test the signing locally (no GHA round trip)
+
+CD's whole signing preflight (fetch signing files for every target + the App
+Group doctor) can run on any Mac with Infisical access to the signing project:
+
+```bash
+export NEON_SIGNING_PROJECT_ID=<infisical project id of the signing project>
+pls verify:ios -- pichu
+```
+
+It injects the same secret names CD uses via `infisical run`, mints/downloads
+real certs+profiles (CD will happily reuse them), and gives a doctor verdict in
+seconds instead of a ~30-minute workflow cycle. `NEON_SIGNING_ENV` overrides
+the environment slug (default `raichu`).
+
 ---
 
 ## Google Play service account

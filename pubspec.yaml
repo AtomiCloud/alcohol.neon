@@ -111,23 +111,23 @@ flavorizr:
       app:
         name: 'LazyTax (Pichu)'
       ios:
-        bundleId: 'cloud.atomi.pichu.alcohol.neon'
+        bundleId: 'cloud.atomi.pichu.alcohol.neon.app'
       android:
-        applicationId: 'cloud.atomi.pichu.alcohol.neon'
+        applicationId: 'cloud.atomi.pichu.alcohol.neon.app'
     pikachu:
       app:
         name: 'LazyTax (Pikachu)'
       ios:
-        bundleId: 'cloud.atomi.pikachu.alcohol.neon'
+        bundleId: 'cloud.atomi.pikachu.alcohol.neon.app'
       android:
-        applicationId: 'cloud.atomi.pikachu.alcohol.neon'
+        applicationId: 'cloud.atomi.pikachu.alcohol.neon.app'
     raichu:
       app:
         name: 'LazyTax'
       ios:
-        bundleId: 'cloud.atomi.raichu.alcohol.neon'
+        bundleId: 'cloud.atomi.raichu.alcohol.neon.app'
       android:
-        applicationId: 'cloud.atomi.raichu.alcohol.neon'
+        applicationId: 'cloud.atomi.raichu.alcohol.neon.app'
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

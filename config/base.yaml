@@ -9,7 +9,7 @@ logtoEndpoint: 'http://localhost:3301/'
 logtoAppId: 'REPLACE_WITH_NATIVE_LOGTO_APP_ID'
 zincResource: 'https://api.zinc.alcohol.lapras'
 airwallexEnv: 'demo'
-redirectUri: 'cloud.atomi.lapras.alcohol.neon://callback'
+redirectUri: 'cloud.atomi.lapras.alcohol.neon.app://callback'
 scopes:
   - openid
   - profile

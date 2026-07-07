@@ -138,7 +138,7 @@ org-level GitHub Actions secrets (synced from Infisical `raichu`). See
 
 All store identifiers derive from the service tree — see
 [docs/developer/standard/bundle-id.md](docs/developer/standard/bundle-id.md):
-app `cloud.atomi.<landscape>.alcohol.neon` (identical on iOS and Android), widget
+app `cloud.atomi.<landscape>.alcohol.neon.app` (identical on iOS and Android), widget
 `….neon.widget`, App Group `group.<app id>` (per landscape), Logto redirect
 `<app id>://callback`. Apple-portal registration (App Groups + App IDs +
 association — no ASC API) is `pls register` (fastlane, App Manager Apple ID, one
@@ -148,7 +148,7 @@ runbook: [docs/migration-lpsm-ids.md](docs/migration-lpsm-ids.md).
 ## Known setup dependency
 
 A **Native** Logto app must be registered per landscape (App ID + redirect
-`cloud.atomi.<landscape>.alcohol.neon://callback` + the `alcohol-zinc` resource). Until its App
+`cloud.atomi.<landscape>.alcohol.neon.app://callback` + the `alcohol-zinc` resource). Until its App
 ID is in `AppConfig` (or via `--dart-define`), the app builds/runs but sign-in won't complete.
 
 ## Status / next

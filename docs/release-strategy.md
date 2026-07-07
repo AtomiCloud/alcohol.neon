@@ -35,15 +35,15 @@ Give **every** landscape — including raichu (prod) — its own landscape segme
 
 | Landscape       | Flavor name | applicationId / bundle id (Android = iOS) | Display name | Stores                              |
 | --------------- | ----------- | ----------------------------------------- | ------------ | ----------------------------------- |
-| pichu (dev)     | `pichu`     | `cloud.atomi.pichu.alcohol.neon`          | `Neon Dev`   | TestFlight internal + Play internal |
-| pikachu (stage) | `pikachu`   | `cloud.atomi.pikachu.alcohol.neon`        | `Neon Stage` | TestFlight external + Play closed   |
-| raichu (prod)   | `raichu`    | `cloud.atomi.raichu.alcohol.neon`         | `Neon`       | App Store + Play production         |
+| pichu (dev)     | `pichu`     | `cloud.atomi.pichu.alcohol.neon.app`      | `Neon Dev`   | TestFlight internal + Play internal |
+| pikachu (stage) | `pikachu`   | `cloud.atomi.pikachu.alcohol.neon.app`    | `Neon Stage` | TestFlight external + Play closed   |
+| raichu (prod)   | `raichu`    | `cloud.atomi.raichu.alcohol.neon.app`     | `Neon`       | App Store + Play production         |
 
 Notes:
 
 - Flavor name = Android product flavor = iOS Xcode scheme name = `--flavor` value = `appFlavor` at runtime. Keep them identical (and lowercase — the Flutter CLI matches the iOS scheme name case-sensitively/lowercase) so they never drift. ([Flutter flavors](https://docs.flutter.dev/deployment/flavors), [iOS flavors](https://docs.flutter.dev/deployment/flavors-ios))
 - An applicationId/bundle id **can never change after first publish** or the store treats it as a brand-new app. ([Android](https://developer.android.com/build/configure-app-module), [Apple](https://developer.apple.com/help/app-store-connect/create-an-app-record/create-and-submit-app-bundles/))
-- Logto OIDC: a shared redirect scheme would be **ambiguous** with three apps installed (iOS routes a custom scheme to whichever app claims it). Per-landscape schemes are **implemented**: the scheme equals the app's bundle id (e.g. `cloud.atomi.pichu.alcohol.neon://callback`), with a **separate Logto Native app + redirect URI per landscape**.
+- Logto OIDC: a shared redirect scheme would be **ambiguous** with three apps installed (iOS routes a custom scheme to whichever app claims it). Per-landscape schemes are **implemented**: the scheme equals the app's bundle id (e.g. `cloud.atomi.pichu.alcohol.neon.app://callback`), with a **separate Logto Native app + redirect URI per landscape**.
 
 ---
 
@@ -70,18 +70,18 @@ The foundation already injects per-landscape config via `--dart-define` (`NEON_L
 ```kotlin
 android {
     defaultConfig {
-        applicationId = "cloud.atomi.lapras.alcohol.neon"   // flavorless local builds → lapras
+        applicationId = "cloud.atomi.lapras.alcohol.neon.app"   // flavorless local builds → lapras
         // versionCode / versionName driven by --build-number / --build-name from CI
     }
     flavorDimensions += "landscape"
     productFlavors {
         // full LPSM applicationId per flavor — the landscape is a leading segment,
         // so applicationIdSuffix cannot express it
-        create("pichu")   { dimension = "landscape"; applicationId = "cloud.atomi.pichu.alcohol.neon";
+        create("pichu")   { dimension = "landscape"; applicationId = "cloud.atomi.pichu.alcohol.neon.app";
                             resValue("string", "app_name", "Neon Dev") }
-        create("pikachu") { dimension = "landscape"; applicationId = "cloud.atomi.pikachu.alcohol.neon";
+        create("pikachu") { dimension = "landscape"; applicationId = "cloud.atomi.pikachu.alcohol.neon.app";
                             resValue("string", "app_name", "Neon Stage") }
-        create("raichu")  { dimension = "landscape"; applicationId = "cloud.atomi.raichu.alcohol.neon";
+        create("raichu")  { dimension = "landscape"; applicationId = "cloud.atomi.raichu.alcohol.neon.app";
                             resValue("string", "app_name", "Neon") }
     }
 }
@@ -93,7 +93,7 @@ android {
 
 - Create three **shared** schemes `pichu`/`pikachu`/`raichu` (Product ▸ Scheme ▸ New Scheme, target `Runner`, mark Shared in Manage Schemes).
 - Duplicate `Debug`/`Profile`/`Release` into per-flavor configs: `Debug-pichu`, `Profile-pichu`, `Release-pichu` (and pikachu/raichu). Map each scheme's Run→`Debug-<flavor>`, Profile→`Profile-<flavor>`, Archive→`Release-<flavor>`.
-- Set `PRODUCT_BUNDLE_IDENTIFIER` per config to the full LPSM id `cloud.atomi.<landscape>.alcohol.neon` (the landscape is a leading segment, not a suffix on a base id). Set `CFBundleDisplayName` to a user-defined `$(APP_DISPLAY_NAME)` var per config.
+- Set `PRODUCT_BUNDLE_IDENTIFIER` per config to the full LPSM id `cloud.atomi.<landscape>.alcohol.neon.app` (the landscape is a leading segment, not a suffix on a base id). Set `CFBundleDisplayName` to a user-defined `$(APP_DISPLAY_NAME)` var per config.
 - **Register every new config in `ios/Podfile`'s project map** (`'Debug-pichu' => :debug, 'Release-pichu' => :release, …`). The official docs require this so CocoaPods knows each config's build mode (note: docs require the registration but do **not** state `pod install` hard-fails — treat as a correctness requirement). ([iOS flavors](https://docs.flutter.dev/deployment/flavors-ios))
 - xcconfig trap: `//` is treated as a comment **even inside quotes** — never put a raw `https://…` URL in an xcconfig-injected value; prefix the scheme in Dart code.
 
@@ -134,7 +134,7 @@ flutter build appbundle --release --flavor pichu --dart-define-from-file=config/
 
 **One-time in Apple consoles:**
 
-1. Register all three App IDs in the Apple Developer portal: `cloud.atomi.pichu.alcohol.neon`, `cloud.atomi.pikachu.alcohol.neon`, and `cloud.atomi.raichu.alcohol.neon`. `pls register` (`scripts/register-apple.sh`, fastlane) automates this portal registration — App IDs, App Groups, and their associations — so no manual clicking is needed here.
+1. Register all three App IDs in the Apple Developer portal: `cloud.atomi.pichu.alcohol.neon.app`, `cloud.atomi.pikachu.alcohol.neon.app`, and `cloud.atomi.raichu.alcohol.neon.app`. `pls register` (`scripts/register-apple.sh`, fastlane) automates this portal registration — App IDs, App Groups, and their associations — so no manual clicking is needed here.
 2. Create three App Store Connect **app records**, one per bundle id (a bundle id can't be changed after the first upload).
 3. **Users and Access ▸ Integrations ▸ App Store Connect API** → create one key with **App Manager** access. Capture **Issuer ID** (account-level), **Key ID** (per key), and download the **`.p8` (downloadable only once)**.
 4. Register that key in **Codemagic Team Settings ▸ Integrations** as an Apple Developer Portal integration.
@@ -207,7 +207,7 @@ workflows:
       <<: *env_versions
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: cloud.atomi.pichu.alcohol.neon
+        bundle_identifier: cloud.atomi.pichu.alcohol.neon.app
       groups: [neon_pichu, app_store_credentials]
       vars:
         APP_STORE_APPLE_ID: <pichu-asc-apple-id>
@@ -234,7 +234,7 @@ workflows:
 
   neon-pikachu-ios:
     name: iOS pikachu (stage)
-    # same shape; bundle_identifier cloud.atomi.pikachu.alcohol.neon, --flavor pikachu, config/pikachu.json,
+    # same shape; bundle_identifier cloud.atomi.pikachu.alcohol.neon.app, --flavor pikachu, config/pikachu.json,
     # groups: [neon_pikachu, app_store_credentials]
     triggering:
       events: [tag]
@@ -250,7 +250,7 @@ workflows:
 
   neon-raichu-ios:
     name: iOS raichu (prod)
-    # bundle_identifier cloud.atomi.raichu.alcohol.neon, --flavor raichu, config/raichu.json
+    # bundle_identifier cloud.atomi.raichu.alcohol.neon.app, --flavor raichu, config/raichu.json
     triggering:
       events: [tag]
       tag_patterns:
@@ -275,7 +275,7 @@ workflows:
       android_signing: [neon_upload_keystore]
       groups: [neon_pichu, google_play_credentials]
       vars:
-        PACKAGE_NAME: cloud.atomi.pichu.alcohol.neon
+        PACKAGE_NAME: cloud.atomi.pichu.alcohol.neon.app
         GOOGLE_PLAY_TRACK: internal
     triggering:
       events: [push]
@@ -299,12 +299,12 @@ workflows:
         track: internal
 
   neon-pikachu-android:
-    # flavor pikachu, PACKAGE_NAME cloud.atomi.pikachu.alcohol.neon,
+    # flavor pikachu, PACKAGE_NAME cloud.atomi.pikachu.alcohol.neon.app,
     # GOOGLE_PLAY_TRACK = <closed-track-name> (or 'beta'), tag 'v*-rc'
     ...
 
   neon-raichu-android:
-    # flavor raichu, PACKAGE_NAME cloud.atomi.raichu.alcohol.neon, track: production,
+    # flavor raichu, PACKAGE_NAME cloud.atomi.raichu.alcohol.neon.app, track: production,
     # tag 'v*' excluding 'v*-rc'
     publishing:
       google_play:
@@ -362,7 +362,7 @@ Key behaviors (all from official Codemagic docs):
 2. **Flavors**: add Android product flavors (`pichu`/`pikachu`/`raichu`, each with its full LPSM applicationId), iOS shared schemes + per-flavor build configs, and register configs in the `ios/Podfile` project map.
 3. **Config**: add `config/{pichu,pikachu,raichu}.json` with all `NEON_*` keys (`NEON_LANDSCAPE` == flavor name); add the startup assert `appFlavor == NEON_LANDSCAPE` in `AppConfig`.
 4. **Icons + names**: per-flavor launcher icons (DEV/STG badges) and display names.
-5. **Logto**: create 3 Native apps + landscape-specific redirect URIs (`cloud.atomi.pichu.alcohol.neon://callback`, etc.); set Airwallex `demo` for pichu, production for pikachu/raichu.
+5. **Logto**: create 3 Native apps + landscape-specific redirect URIs (`cloud.atomi.pichu.alcohol.neon.app://callback`, etc.); set Airwallex `demo` for pichu, production for pikachu/raichu.
 6. **Apple**: register 3 App IDs (`pls register` automates the portal side); create 3 ASC app records; create 1 ASC API key (App Manager); register it as a Codemagic Apple Developer Portal integration.
 7. **Android signing**: generate the upload keystore; upload to Codemagic code-signing identities; enroll each app in Play App Signing; replace the debug-key release signingConfig.
 8. **Play**: create 3 Play Console apps; create 1 Google Cloud service account (enable Play Android Developer API); grant it Release Manager on all 3; store JSON as a Codemagic secret.

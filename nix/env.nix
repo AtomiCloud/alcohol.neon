@@ -18,6 +18,7 @@ with packages;
     sg
     shellcheck
     treefmt
+    yq-go
   ];
 
   main = [

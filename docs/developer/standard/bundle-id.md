@@ -12,33 +12,38 @@ application id, the App Group, the deeplink scheme, and the OAuth redirect URI.
 ## Grammar
 
 ```
-bundle_id   = "cloud.atomi" "." landscape "." platform "." service [ "." module ]*
-app_group   = "group." bundle_id(app)          # per landscape, no module segment
+bundle_id   = "cloud.atomi" "." landscape "." platform "." service ("." module)+
+app_group   = "group." bundle_id(app)           # per landscape (app = the `app` module)
 scheme      = bundle_id(app)                    # custom-URL/deeplink scheme
 redirect    = scheme "://callback"              # Logto redirect URI
 package     = bundle_id                         # Android — identical string
 ```
+
+The module segment is **mandatory** — the main app is the `app` module, its
+embedded targets nest under it (`app.widget`), and the unit-test bundle is the
+peer `tests` module.
 
 This is LPSM rendered as reverse-DNS: broadest (landscape) → narrowest (module),
 after the reversed domain (`atomi.cloud` → `cloud.atomi`).
 
 ### For alcohol.neon
 
-| Thing               | pichu (dev)                                 | raichu (prod)                                |
-| ------------------- | ------------------------------------------- | -------------------------------------------- |
-| App (iOS + Android) | `cloud.atomi.pichu.alcohol.neon`            | `cloud.atomi.raichu.alcohol.neon`            |
-| Home-screen widget  | `cloud.atomi.pichu.alcohol.neon.widget`     | `cloud.atomi.raichu.alcohol.neon.widget`     |
-| App Group           | `group.cloud.atomi.pichu.alcohol.neon`      | `group.cloud.atomi.raichu.alcohol.neon`      |
-| Logto redirect      | `cloud.atomi.pichu.alcohol.neon://callback` | `cloud.atomi.raichu.alcohol.neon://callback` |
+| Thing               | pichu (dev)                                     | raichu (prod)                                    |
+| ------------------- | ----------------------------------------------- | ------------------------------------------------ |
+| App (iOS + Android) | `cloud.atomi.pichu.alcohol.neon.app`            | `cloud.atomi.raichu.alcohol.neon.app`            |
+| Home-screen widget  | `cloud.atomi.pichu.alcohol.neon.app.widget`     | `cloud.atomi.raichu.alcohol.neon.app.widget`     |
+| App Group           | `group.cloud.atomi.pichu.alcohol.neon.app`      | `group.cloud.atomi.raichu.alcohol.neon.app`      |
+| Logto redirect      | `cloud.atomi.pichu.alcohol.neon.app://callback` | `cloud.atomi.raichu.alcohol.neon.app://callback` |
 
 Flavorless local builds map to the `lapras` landscape
-(`cloud.atomi.lapras.alcohol.neon`); the unit-test bundle uses the `tests` module.
+(`cloud.atomi.lapras.alcohol.neon.app`); the unit-test bundle uses the `tests` module.
 
 ## Rules
 
-1. **Main app has no module segment; every embedded target adds one.** Apple
-   requires an extension's bundle id to be `<parent>.<suffix>` — module-last
-   satisfies it, and nesting works (`…neon.watch`, `…neon.watch.widget`).
+1. **The main app is the `app` module; every embedded target nests under it.**
+   Apple requires an extension's bundle id to be `<parent>.<suffix>` — module
+   nesting satisfies it (`…neon.app.widget`; a future watch app:
+   `…neon.app.watch`, its widget `…neon.app.watch.widget`).
 2. **Segments are `[a-z][a-z0-9]*`** — lowercase, start with a letter, no `-`
    (Android forbids) and no `_` (iOS forbids). This is what lets iOS and Android
    share one string.
@@ -61,7 +66,10 @@ Flavorless local builds map to the `lapras` landscape
 - Dart: `AppConfig` resolves the landscape from segment 3 of the package name;
   `WidgetService` derives the App Group as `group.<packageName>`;
   `config/<landscape>.yaml` carries the redirect URI.
-- CI: `scripts/ci/cd-matrix.sh` derives ids; `scripts/ci/ios-signing-targets.sh`
+- **`lpsm.yaml` is the single source of truth** — platform/service, team,
+  landscapes, store names, apple_ids. `scripts/ci/cd-matrix.sh` derives the CD
+  matrix from it; `scripts/ci/lpsm-lint.sh` (pre-commit) fails any literal in
+  pbxproj/gradle/pubspec/config yamls that drifts from it; `scripts/ci/ios-signing-targets.sh`
   discovers all signing targets from the Xcode project.
 
 ## Registration & automation boundary
@@ -74,7 +82,8 @@ Flavorless local builds map to the `lapras` landscape
 | **App Group creation**               | `pls register` **only** — no ASC API exists           | Apple ID + 2FA     |
 | **Group ⇄ App ID association**       | `pls register` **only** — no ASC API exists           | Apple ID + 2FA     |
 | Verification that it's all wired     | CD (`scripts/ci/doctor-ios.sh`, decodes profiles)     | API key            |
-| ASC app record / Play Console app    | Manual, once per landscape                            | Human              |
+| ASC app record + apple_id fill       | `pls register` (rename old apps first)                | Apple ID + 2FA     |
+| Play Console app                     | Manual, once per landscape — no API                   | Human              |
 
 **Adding a widget/extension/watch target:** add the target in Xcode with its LPSM
 bundle id, run `pls register` (App Manager Apple ID, one 2FA tap), commit. CI

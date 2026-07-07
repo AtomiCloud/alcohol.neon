@@ -23,11 +23,11 @@ merge feat:/fix: to main
 
 ## Flavor → identity map
 
-| Flavor  | Bundle id / package (iOS = Android) | Apple ID                                   |
-| ------- | ----------------------------------- | ------------------------------------------ |
-| pichu   | `cloud.atomi.pichu.alcohol.neon`    | `6777280038` — old record, new one pending |
-| pikachu | `cloud.atomi.pikachu.alcohol.neon`  | `6777280047` — old record, new one pending |
-| raichu  | `cloud.atomi.raichu.alcohol.neon`   | `6777280099` — old record, new one pending |
+| Flavor  | Bundle id / package (iOS = Android)    | Apple ID                                   |
+| ------- | -------------------------------------- | ------------------------------------------ |
+| pichu   | `cloud.atomi.pichu.alcohol.neon.app`   | `6777280038` — old record, new one pending |
+| pikachu | `cloud.atomi.pikachu.alcohol.neon.app` | `6777280047` — old record, new one pending |
+| raichu  | `cloud.atomi.raichu.alcohol.neon.app`  | `6777280099` — old record, new one pending |
 
 All identifiers derive from the LPSM grammar (the widget extension is `<bundle id>.widget`) —
 see [docs/developer/standard/bundle-id.md](developer/standard/bundle-id.md). The numeric Apple

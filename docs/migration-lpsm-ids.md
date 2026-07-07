@@ -3,60 +3,55 @@
 The repo now uses LPSM identifiers everywhere (see
 [docs/developer/standard/bundle-id.md](developer/standard/bundle-id.md)):
 
-|                | old                                           | new                                                  |
-| -------------- | --------------------------------------------- | ---------------------------------------------------- |
-| iOS app        | `cloud.atomi.alcohol.neon.<L>`                | `cloud.atomi.<L>.alcohol.neon`                       |
-| iOS widget     | `cloud.atomi.alcohol.neon.<L>.NeonWidget`     | `cloud.atomi.<L>.alcohol.neon.widget`                |
-| Android app    | `cloud.atomi.alcohol_neon.<L>`                | `cloud.atomi.<L>.alcohol.neon` (same as iOS)         |
-| App Group      | `group.cloud.atomi.alcoholNeon` (one, shared) | `group.cloud.atomi.<L>.alcohol.neon` (per landscape) |
-| Logto redirect | `cloud.atomi.alcohol.neon.<L>://callback`     | `cloud.atomi.<L>.alcohol.neon://callback`            |
+|                | old                                           | new                                                      |
+| -------------- | --------------------------------------------- | -------------------------------------------------------- |
+| iOS app        | `cloud.atomi.alcohol.neon.<L>`                | `cloud.atomi.<L>.alcohol.neon.app`                       |
+| iOS widget     | `cloud.atomi.alcohol.neon.<L>.NeonWidget`     | `cloud.atomi.<L>.alcohol.neon.app.widget`                |
+| Android app    | `cloud.atomi.alcohol_neon.<L>`                | `cloud.atomi.<L>.alcohol.neon.app` (same as iOS)         |
+| App Group      | `group.cloud.atomi.alcoholNeon` (one, shared) | `group.cloud.atomi.<L>.alcohol.neon.app` (per landscape) |
+| Logto redirect | `cloud.atomi.alcohol.neon.<L>://callback`     | `cloud.atomi.<L>.alcohol.neon.app://callback`            |
 
 New bundle ids = new store apps. The code side ships in this PR; the following
-**one-sitting manual checklist** finishes the cutover. Steps 2–4 are manual
-forever because Apple/Google expose no API for them; step 1 is one command.
+finishes the cutover. Steps 2–3 are manual forever because Apple/Google expose
+no API for them; step 1 is one command that does everything Apple-side.
 
-## 1. Apple Developer portal — `pls register` (App Manager, ~2 min)
+## 1. Rename the old apps, then `pls register` (App Manager, ~10 min)
+
+In App Store Connect, **rename the 3 old apps first** — they hold the store
+names ("LazyTax", "LazyTax (Pichu)", "LazyTax (Pikachu)"): e.g. suffix " OLD".
+Old numeric ids for reference: pichu `6777280038`, pikachu `6777280047`,
+raichu `6777280099`. Then:
 
 ```bash
 pls register
 ```
 
-Sign in with your (App Manager/Admin) Apple ID; expect one 2FA prompt. This
-creates the 3 App Groups, the 6 App IDs (app + widget × 3 landscapes), enables
-the App Groups capability, and associates each group. Idempotent — safe to re-run.
+Sign in with your (App Manager/Admin) Apple ID; expect one 2FA prompt, then a
+team menu (Developer portal + App Store Connect). Per landscape it creates the
+App Group, all App IDs (app + widget), enables + associates the App Groups
+capability, creates the **App Store Connect app record**, and **writes the new
+numeric `apple_id` into `lpsm.yaml`** — review and commit that
+diff. Idempotent — safe to re-run; if a store name is still taken it tells you
+which landscape to fix and you just re-run after renaming.
 
-## 2. App Store Connect — 3 new app records (~15 min)
-
-App creation has no API-key endpoint. For each landscape:
-
-1. **Rename the old app first** (it holds the name): old pichu app → e.g.
-   "LazyTax (Pichu) OLD". Old numeric ids for reference: pichu `6777280038`,
-   pikachu `6777280047`, raichu `6777280099`.
-2. My Apps → **+** → New App → iOS, name "LazyTax (Pichu)" / "(Pikachu)" /
-   "LazyTax", bundle id `cloud.atomi.<L>.alcohol.neon`, any SKU.
-3. Note the new app's **numeric Apple ID** (App Information → Apple ID).
-
-Then fill the three `apple_id` values in `scripts/ci/cd-matrix.sh` (they're
-empty; CD works without them but build numbers fall back to the CI run number).
-
-## 3. Google Play Console — 3 new apps (~15 min)
+## 2. Google Play Console — 3 new apps (~15 min)
 
 App creation has no API here either. For each landscape:
 
 1. All apps → **Create app** → name as above, App/Game, Free.
-2. Package name is fixed by the first upload: `cloud.atomi.<L>.alcohol.neon`.
+2. Package name is fixed by the first upload: `cloud.atomi.<L>.alcohol.neon.app`.
 3. Ensure the CI service account (`GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`) has access
    to the new app (skip if it has account-wide access).
 4. Complete the minimum setup for the **internal testing** track. The first CD
    upload enrolls Play App Signing (same upload keystore — no keystore change).
 
-## 4. Logto — redirect URIs (~3 min, or scriptable via Logto Management API)
+## 3. Logto — redirect URIs (~3 min, or scriptable via Logto Management API)
 
 On each landscape's Native app in Logto, add the new redirect URI
-`cloud.atomi.<L>.alcohol.neon://callback` (keep the old one during cutover;
+`cloud.atomi.<L>.alcohol.neon.app://callback` (keep the old one during cutover;
 delete it once the new builds are live).
 
-## 5. Cut a release and let the doctor check you
+## 4. Cut a release and let the doctor check you
 
 Tag (or `workflow_dispatch` a pichu smoke build). CD now:
 
@@ -65,7 +60,7 @@ Tag (or `workflow_dispatch` a pichu smoke build). CD now:
   the exact missing piece** if step 1 was skipped,
 - publishes to the new TestFlight/Play apps.
 
-## 6. Cleanup (later, non-blocking)
+## 5. Cleanup (later, non-blocking)
 
 - Remove/retire the renamed old ASC apps and old Play apps; re-invite testers.
 - Delete the old bundle ids and the old shared `group.cloud.atomi.alcoholNeon`

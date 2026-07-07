@@ -14,10 +14,13 @@ void main() {
     'AppConfig resolves landscape + layered config from its bundle id',
     () async {
       final config = await AppConfig.resolveForPackage(
-        'cloud.atomi.pichu.alcohol.neon',
+        'cloud.atomi.pichu.alcohol.neon.app',
       );
       expect(config.landscape, Landscape.pichu);
-      expect(config.redirectUri, 'cloud.atomi.pichu.alcohol.neon://callback');
+      expect(
+        config.redirectUri,
+        'cloud.atomi.pichu.alcohol.neon.app://callback',
+      );
       expect(config.logtoEndpoint, contains('pichu')); // from pichu.yaml
       expect(config.logtoAppId, 'k19tbzmnsndxnt1v6rfkm'); // from pichu.yaml
       expect(config.scopes, contains('openid')); // inherited from base.yaml
@@ -28,10 +31,13 @@ void main() {
     'AppConfig resolves raichu from its raichu bundle id landscape segment',
     () async {
       final config = await AppConfig.resolveForPackage(
-        'cloud.atomi.raichu.alcohol.neon',
+        'cloud.atomi.raichu.alcohol.neon.app',
       );
       expect(config.landscape, Landscape.raichu);
-      expect(config.redirectUri, 'cloud.atomi.raichu.alcohol.neon://callback');
+      expect(
+        config.redirectUri,
+        'cloud.atomi.raichu.alcohol.neon.app://callback',
+      );
       expect(
         config.airwallexEnv,
         Environment.production,
@@ -43,16 +49,19 @@ void main() {
     'AppConfig resolves lapras from the flavorless LPSM bundle id',
     () async {
       final config = await AppConfig.resolveForPackage(
-        'cloud.atomi.lapras.alcohol.neon',
+        'cloud.atomi.lapras.alcohol.neon.app',
       );
       expect(config.landscape, Landscape.lapras);
-      expect(config.redirectUri, 'cloud.atomi.lapras.alcohol.neon://callback');
+      expect(
+        config.redirectUri,
+        'cloud.atomi.lapras.alcohol.neon.app://callback',
+      );
     },
   );
 
   test('landscape segment also resolves from module bundle ids', () async {
     final config = await AppConfig.resolveForPackage(
-      'cloud.atomi.pichu.alcohol.neon.widget',
+      'cloud.atomi.pichu.alcohol.neon.app.widget',
     );
     expect(config.landscape, Landscape.pichu);
   });
@@ -86,7 +95,7 @@ void main() {
 
   test('AppConfig resolves an Airwallex environment per landscape', () async {
     final config = await AppConfig.resolveForPackage(
-      'cloud.atomi.pikachu.alcohol.neon',
+      'cloud.atomi.pikachu.alcohol.neon.app',
     );
     expect(config.landscape, Landscape.pikachu);
     expect(config.airwallexEnv, Environment.production);

@@ -82,7 +82,7 @@ flutter run --flavor pichu \
 ## ⚠️ Required before sign-in works: a Native Logto app
 
 Sign-in needs a Logto application of type **Native** with redirect URI
-`cloud.atomi.<landscape>.alcohol.neon://callback` and access to the `alcohol-zinc` resource. Put its
+`cloud.atomi.<landscape>.alcohol.neon.app://callback` and access to the `alcohol-zinc` resource. Put its
 **App ID** in `AppConfig` (or pass `--dart-define=NEON_LOGTO_APP_ID=...`). Until then the app
 builds and runs, but sign-in cannot complete.
 

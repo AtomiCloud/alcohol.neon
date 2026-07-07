@@ -1,3 +1,10 @@
+## [1.7.1](https://github.com/AtomiCloud/alcohol.neon/compare/v1.7.0...v1.7.1) (2026-07-07)
+
+
+### 🐛 Bug Fixes 🐛
+
+* **ci:** doctor reads entitlements with PlistBuddy, not plutil keypaths ([f1762a5](https://github.com/AtomiCloud/alcohol.neon/commit/f1762a5b6a1b88e6a61209e7ea3378d1f81fe3a8))
+
 ## [1.7.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.6.1...v1.7.0) (2026-07-07)
 
 

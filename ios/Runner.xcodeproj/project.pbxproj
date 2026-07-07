@@ -633,6 +633,7 @@
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NeonWidget/Info.plist;
+				SWIFT_OBJC_BRIDGING_HEADER = "";
 				INFOPLIST_KEY_CFBundleDisplayName = NeonWidget;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -758,6 +759,7 @@
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NeonWidget/Info.plist;
+				SWIFT_OBJC_BRIDGING_HEADER = "";
 				INFOPLIST_KEY_CFBundleDisplayName = NeonWidget;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1068,6 +1070,7 @@
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NeonWidget/Info.plist;
+				SWIFT_OBJC_BRIDGING_HEADER = "";
 				INFOPLIST_KEY_CFBundleDisplayName = NeonWidget;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1107,6 +1110,7 @@
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NeonWidget/Info.plist;
+				SWIFT_OBJC_BRIDGING_HEADER = "";
 				INFOPLIST_KEY_CFBundleDisplayName = NeonWidget;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1222,6 +1226,7 @@
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NeonWidget/Info.plist;
+				SWIFT_OBJC_BRIDGING_HEADER = "";
 				INFOPLIST_KEY_CFBundleDisplayName = NeonWidget;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1267,6 +1272,7 @@
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NeonWidget/Info.plist;
+				SWIFT_OBJC_BRIDGING_HEADER = "";
 				INFOPLIST_KEY_CFBundleDisplayName = NeonWidget;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1302,6 +1308,7 @@
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NeonWidget/Info.plist;
+				SWIFT_OBJC_BRIDGING_HEADER = "";
 				INFOPLIST_KEY_CFBundleDisplayName = NeonWidget;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1644,6 +1651,7 @@
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NeonWidget/Info.plist;
+				SWIFT_OBJC_BRIDGING_HEADER = "";
 				INFOPLIST_KEY_CFBundleDisplayName = NeonWidget;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1835,6 +1843,7 @@
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NeonWidget/Info.plist;
+				SWIFT_OBJC_BRIDGING_HEADER = "";
 				INFOPLIST_KEY_CFBundleDisplayName = NeonWidget;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1870,6 +1879,7 @@
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NeonWidget/Info.plist;
+				SWIFT_OBJC_BRIDGING_HEADER = "";
 				INFOPLIST_KEY_CFBundleDisplayName = NeonWidget;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -2021,6 +2031,7 @@
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NeonWidget/Info.plist;
+				SWIFT_OBJC_BRIDGING_HEADER = "";
 				INFOPLIST_KEY_CFBundleDisplayName = NeonWidget;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -2060,6 +2071,7 @@
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NeonWidget/Info.plist;
+				SWIFT_OBJC_BRIDGING_HEADER = "";
 				INFOPLIST_KEY_CFBundleDisplayName = NeonWidget;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;

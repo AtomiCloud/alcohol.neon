@@ -1,4 +1,61 @@
-# Google Play service account — setup from scratch
+# Store credentials — Apple & Google setup from scratch
+
+Everything CD needs to sign and publish, how to mint each credential from
+zero, and where it lives. All secrets go into **Infisical (`raichu`)** and sync
+to org-level GitHub Actions secrets.
+
+## Apple — what CD needs
+
+| Secret                             | What it is                                                 |
+| ---------------------------------- | ---------------------------------------------------------- |
+| `APP_STORE_CONNECT_ISSUER_ID`      | ASC API key issuer (UUID, shown on the Integrations page)  |
+| `APP_STORE_CONNECT_KEY_IDENTIFIER` | ASC API key id (e.g. `A1B2C3D4E5`)                         |
+| `APP_STORE_CONNECT_PRIVATE_KEY`    | the API key's `.p8` contents (multiline)                   |
+| `CERTIFICATE_PRIVATE_KEY`          | RSA private key backing the Apple Distribution certificate |
+
+### 1. App Store Connect API key (the robot)
+
+1. [appstoreconnect.apple.com](https://appstoreconnect.apple.com) → **Users and
+   Access → Integrations → App Store Connect API → Team Keys** (an Admin must
+   generate).
+2. **Generate API Key** — role **App Manager** is enough for CD (certs,
+   profiles, bundle ids, uploads).
+3. Download the `.p8` — **only downloadable once**; its contents become
+   `APP_STORE_CONNECT_PRIVATE_KEY`. The key id and the page's **Issuer ID**
+   fill the other two secrets.
+
+### 2. Distribution certificate key (the signature)
+
+The signing certificate is _derived from a private key you own_. Mint the key
+once; `fetch-signing-files --create` then creates the Apple Distribution
+certificate from it on first run and **reuses** it forever after (teams are
+capped at ~2 distribution certs — never mint per-run):
+
+```bash
+openssl genrsa -out apple_distribution.key 2048   # contents → CERTIFICATE_PRIVATE_KEY
+```
+
+No portal clicking needed — the first CD run creates the certificate.
+
+### 3. Human Apple ID (for `pls register` only)
+
+Portal writes with no API (App Groups, associations, ASC app records) run
+through `pls register` with a **human App Manager/Admin Apple ID** + one 2FA
+prompt. Nothing is stored; see
+[docs/developer/standard/bundle-id.md](developer/standard/bundle-id.md).
+
+### Apple troubleshooting
+
+| Error                                 | Meaning                                                                         | Fix                                                          |
+| ------------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `401` from app-store-connect          | issuer/key-id/`.p8` mismatch or revoked key                                     | re-check the three secrets as a set                          |
+| `409 … identifier … is not available` | bundle id/App Group registered in another team, or reserved ~48h after deletion | delete it there / wait / Apple support                       |
+| `doctor: FAIL … lacks App Group`      | portal wiring missing for a target                                              | `pls register`                                               |
+| cert limit reached                    | too many Distribution certs                                                     | revoke an unused one; keep reusing `CERTIFICATE_PRIVATE_KEY` |
+
+---
+
+## Google Play service account
 
 CD publishes Android builds to Play (internal track) via the Google Play
 Developer API, authenticated as a **GCP service account**. This is the

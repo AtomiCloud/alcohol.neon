@@ -28,26 +28,33 @@ PROFILE_DIRS=(
 )
 
 fail=0
+tmp_plist=$(mktemp)
+trap 'rm -f "$tmp_plist"' EXIT
 while IFS= read -r target_id; do
   found=""
   for dir in "${PROFILE_DIRS[@]}"; do
     for profile in "$dir"/*.mobileprovision; do
       [ -e "$profile" ] || continue
-      plist=$(security cms -D -i "$profile" 2>/dev/null) || continue
-      app_id=$(printf '%s' "$plist" |
-        plutil -extract Entitlements.application-identifier raw -o - - 2>/dev/null) || continue
+      security cms -D -i "$profile" >"$tmp_plist" 2>/dev/null || continue
+      # PlistBuddy, not plutil keypaths: the dotted entitlement key needs
+      # plutil's `\.` escaping, which the CI runner's macOS doesn't support —
+      # it silently extracted nothing and failed every release with a bogus
+      # "profile lacks App Group". PlistBuddy paths are colon-separated, so
+      # dotted key names need no escaping at all.
+      app_id=$(/usr/libexec/PlistBuddy -c "Print :Entitlements:application-identifier" "$tmp_plist" 2>/dev/null) || continue
       # application-identifier is TEAMID.<bundle id>
       [ "${app_id#*.}" = "$target_id" ] || continue
       found=$profile
-      groups=$(printf '%s' "$plist" |
-        plutil -extract 'Entitlements.com\.apple\.security\.application-groups' json -o - - 2>/dev/null) || groups=""
-      if printf '%s' "$groups" | grep -q "\"$EXPECTED_GROUP\""; then
+      groups=$(/usr/libexec/PlistBuddy -c "Print :Entitlements:com.apple.security.application-groups" "$tmp_plist" 2>/dev/null) || groups=""
+      if printf '%s' "$groups" | grep -qF "$EXPECTED_GROUP"; then
         echo "doctor: OK    $target_id ← $EXPECTED_GROUP"
       else
         echo "doctor: FAIL  $target_id — profile lacks App Group $EXPECTED_GROUP" >&2
-        echo "  → an App Manager must run 'pls register' (creates the group and" >&2
-        echo "    ticks it on the bundle id in the Apple Developer portal), then" >&2
-        echo "    re-run this workflow. See docs/developer/standard/bundle-id.md." >&2
+        echo "    application-groups in profile: ${groups:-<key absent>}" >&2
+        echo "  → the group must be ticked on this App ID in the Apple Developer" >&2
+        echo "    portal (Identifiers → App ID → App Groups → Configure) and the" >&2
+        echo "    stale profile rotated ('pls register' rotates), then re-run." >&2
+        echo "    See docs/developer/standard/bundle-id.md." >&2
         fail=1
       fi
       break 2

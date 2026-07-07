@@ -184,9 +184,17 @@ if [ -z "${FASTLANE_TEAM_ID:-}" ]; then
 fi
 export FASTLANE_TEAM_ID
 
-if [ -z "${FASTLANE_ITC_TEAM_ID:-}" ] && [ -n "$itc_teams" ]; then
-  FASTLANE_ITC_TEAM_ID=$(pick_team "App Store Connect" "$itc_teams" "")
-  export FASTLANE_ITC_TEAM_ID
+if [ -z "${FASTLANE_ITC_TEAM_ID:-}" ]; then
+  if [ -n "$itc_teams" ]; then
+    FASTLANE_ITC_TEAM_ID=$(pick_team "App Store Connect" "$itc_teams" "")
+    export FASTLANE_ITC_TEAM_ID
+  else
+    # Without a team hint fastlane would prompt interactively on multi-team
+    # accounts — inside captured output that's an invisible hang, so say so.
+    echo "  ⚠ could not enumerate App Store Connect teams — continuing without a"
+    echo "    team hint (fine for single-team accounts). If a later step hangs,"
+    echo "    abort and re-run with FASTLANE_ITC_TEAM_ID=<numeric ASC team id>."
+  fi
 fi
 echo "==> Registering under portal team $FASTLANE_TEAM_ID${FASTLANE_ITC_TEAM_ID:+, ASC team $FASTLANE_ITC_TEAM_ID}"
 

@@ -37,17 +37,17 @@ so the `apple_id` fields in `scripts/ci/cd-matrix.sh` are empty until they're cr
 
 ## Secrets (org-level GitHub Actions secrets, synced from Infisical `raichu`)
 
-| Secret                             | Used by | Notes                                                                                             |
-| ---------------------------------- | ------- | ------------------------------------------------------------------------------------------------- |
-| `APP_STORE_CONNECT_ISSUER_ID`      | iOS     | ASC API key (read by `codemagic-cli-tools` by name)                                               |
-| `APP_STORE_CONNECT_KEY_IDENTIFIER` | iOS     | ASC API key                                                                                       |
-| `APP_STORE_CONNECT_PRIVATE_KEY`    | iOS     | ASC API key `.p8` (multiline)                                                                     |
-| `CERTIFICATE_PRIVATE_KEY`          | iOS     | Apple Distribution cert private key — `fetch-signing-files` **reuses** the matching existing cert |
-| `ANDROID_KEYSTORE_BASE64`          | Android | base64 of `atomi-upload.jks`                                                                      |
-| `ANDROID_KEYSTORE_PASSWORD`        | Android | store password                                                                                    |
-| `ANDROID_KEY_ALIAS`                | Android | `atomi-upload`                                                                                    |
-| `ANDROID_KEY_PASSWORD`             | Android | = store password                                                                                  |
-| `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` | Android | Play publishing service account (JSON)                                                            |
+| Secret                             | Used by | Notes                                                                                                   |
+| ---------------------------------- | ------- | ------------------------------------------------------------------------------------------------------- |
+| `APP_STORE_CONNECT_ISSUER_ID`      | iOS     | ASC API key (read by `codemagic-cli-tools` by name)                                                     |
+| `APP_STORE_CONNECT_KEY_IDENTIFIER` | iOS     | ASC API key                                                                                             |
+| `APP_STORE_CONNECT_PRIVATE_KEY`    | iOS     | ASC API key `.p8` (multiline)                                                                           |
+| `CERTIFICATE_PRIVATE_KEY`          | iOS     | Apple Distribution cert private key — `fetch-signing-files` **reuses** the matching existing cert       |
+| `ANDROID_KEYSTORE_BASE64`          | Android | base64 of `atomi-upload.jks`                                                                            |
+| `ANDROID_KEYSTORE_PASSWORD`        | Android | store password                                                                                          |
+| `ANDROID_KEY_ALIAS`                | Android | `atomi-upload`                                                                                          |
+| `ANDROID_KEY_PASSWORD`             | Android | = store password                                                                                        |
+| `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` | Android | Play publishing service account (JSON) — setup: [docs/play-service-account.md](play-service-account.md) |
 
 To regenerate the secret bundle, see the validated source material in Infisical `raichu` + the
 local `signingkey` (cert key) and `atomi-upload.jks` (keystore). All three are gitignored; **never

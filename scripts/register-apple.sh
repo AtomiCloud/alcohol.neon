@@ -107,12 +107,20 @@ lane :rotate_profiles do
   require "spaceship"
   # Profiles minted before a group association never gain it retroactively,
   # and CD reuses any valid existing profile — delete ours so the next CD run
-  # mints fresh ones carrying the current entitlements.
-  Spaceship::Portal.login(ENV["FASTLANE_USER"])
+  # mints fresh ones carrying the current entitlements. Must go through
+  # ConnectAPI: Apple retired the legacy portal provisioning endpoints (they
+  # now answer "Please update to Xcode 7.3").
+  Spaceship::ConnectAPI.login(
+    ENV["FASTLANE_USER"],
+    use_portal: true,
+    use_tunes: false,
+    portal_team_id: ENV["FASTLANE_TEAM_ID"]
+  )
   ids = ENV["NEON_BUNDLE_IDS"].split(",")
-  Spaceship::Portal::ProvisioningProfile::AppStore.all.each do |p|
-    next unless ids.include?(p.app.bundle_id)
-    puts "ROTATE\t#{p.app.bundle_id}\t#{p.name}"
+  Spaceship::ConnectAPI::Profile.all(includes: "bundleId").each do |p|
+    bid = p.bundle_id && p.bundle_id.identifier
+    next unless ids.include?(bid)
+    puts "ROTATE\t#{bid}\t#{p.name}"
     p.delete!
   end
 end

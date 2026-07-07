@@ -351,7 +351,7 @@ rotate_out=$(
       echo "${ALL_TARGET_IDS[*]}"
     ) fastlane rotate_profiles 2>&1
 ) || true
-rotated=$(sed -nE 's/.*\bROTATE\t/  ✓ deleted profile for /p' <<<"$rotate_out" | tr '\t' ' ' || true)
+rotated=$(sed -nE 's/.*ROTATE\t/  ✓ deleted profile for /p' <<<"$rotate_out" | tr '\t' ' ' || true)
 if [ -n "$rotated" ]; then
   printf '%s\n' "$rotated"
 elif grep -qi "error" <<<"$rotate_out"; then

@@ -28,8 +28,9 @@ to org-level GitHub Actions secrets.
 
 The signing certificate is _derived from a private key you own_. Mint the key
 once; `fetch-signing-files --create` then creates the Apple Distribution
-certificate from it on first run and **reuses** it forever after (teams are
-capped at ~2 distribution certs — never mint per-run):
+certificate from it on first run and **reuses** it forever after (Apple caps
+distribution certificates per team — the cap varies by account type — so never
+mint per-run):
 
 ```bash
 openssl genrsa -out apple_distribution.key 2048   # contents → CERTIFICATE_PRIVATE_KEY

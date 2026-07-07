@@ -52,6 +52,8 @@ done
 # Everything identity-shaped comes from lpsm.yaml — the single source of truth.
 PROJECT_TEAM_ID=$(yq '.apple_team' "$LPSM")
 APP_NAME=${NEON_APP_NAME:-$(yq '.app_name' "$LPSM")}
+PLATFORM=$(yq '.platform' "$LPSM")
+SERVICE=$(yq '.service' "$LPSM")
 
 LANDSCAPES=("$@")
 if [ ${#LANDSCAPES[@]} -eq 0 ]; then
@@ -285,9 +287,8 @@ for L in "${LANDSCAPES[@]}"; do
     fastlane produce group -g "$GROUP" -n "LazyTax $L shared"
 
   while IFS= read -r bundle_id; do
-    module=${bundle_id#cloud.atomi."$L".alcohol.neon}
-    module=${module#.}
-    name="LazyTax $L${module:+ $module}"
+    module=${bundle_id#cloud.atomi."$L"."$PLATFORM"."$SERVICE".}
+    name="LazyTax $L ${module//./ }"
 
     ensure "App ID $bundle_id" \
       fastlane produce -a "$bundle_id" --app_name "$name" --skip_itc

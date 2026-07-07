@@ -6,7 +6,7 @@ to a shared **App Group**; the WidgetKit extension reads it and renders.
 
 ```
 Flutter app ──writes today_schedule──▶ App Group ──reads──▶ NeonWidget (WidgetKit) ──▶ home screen
-            (WidgetService.sync on dashboard load)   group.cloud.atomi.<landscape>.alcohol.neon
+            (WidgetService.sync on dashboard load)   group.cloud.atomi.<landscape>.alcohol.neon.app
 ```
 
 The App Group is **per landscape** — `group.` + the app's LPSM bundle id (see
@@ -28,7 +28,7 @@ from the package name, the iOS targets from the `NEON_APP_GROUP` build setting.
    `ios/NeonWidget/NeonWidget.swift` (keep Xcode's generated `@main … Bundle.swift`).
 3. **App Group on BOTH targets:** select the project → for **Runner** and **NeonWidgetExtension**,
    Signing & Capabilities → **+ Capability ▸ App Groups** → add the landscape's group
-   (**`group.cloud.atomi.<landscape>.alcohol.neon`** — or keep the `$(NEON_APP_GROUP)`
+   (**`group.cloud.atomi.<landscape>.alcohol.neon.app`** — or keep the `$(NEON_APP_GROUP)`
    entitlements the repo already carries).
    - On the **Simulator** the App Group works without portal registration.
    - For a **real device / TestFlight**, an Admin/App Manager runs **`pls register`** once —
@@ -40,7 +40,7 @@ from the package name, the iOS targets from the `NEON_APP_GROUP` build setting.
 6. `flutter run` → long-press the home screen → **+** → add **Today's habits**.
 
 ## Data contract
-App Group `group.cloud.atomi.<landscape>.alcohol.neon`, key `today_schedule`, widget kind `NeonWidget`:
+App Group `group.cloud.atomi.<landscape>.alcohol.neon.app`, key `today_schedule`, widget kind `NeonWidget`:
 ```json
 { "date": "2026-06-06", "done": 1, "total": 3,
   "items": [ { "time": "06:30", "name": "Morning run", "done": false } ] }

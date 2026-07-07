@@ -27,11 +27,13 @@ err() {
   fail=1
 }
 
-# id → 0 if it matches cloud.atomi.<L>.<platform>.<service>(.module)* for a known L.
+# id → 0 if it matches cloud.atomi.<L>.<platform>.<service>.<module>[.<module>]*
+# for a known L. The module segment is MANDATORY (the main app is the `app`
+# module); a module-less id is a grammar violation.
 allowed() {
   local id=$1 l
   while IFS= read -r l; do
-    [[ $id =~ ^cloud\.atomi\.$l\.$P\.$S(\.[a-z][a-z0-9]*)*$ ]] && return 0
+    [[ $id =~ ^cloud\.atomi\.$l\.$P\.$S(\.[a-z][a-z0-9]*)+$ ]] && return 0
   done <<<"$landscapes"
   return 1
 }
@@ -65,7 +67,7 @@ while IFS= read -r l; do
   f="$ROOT/config/$l.yaml"
   [ "$l" = lapras ] && f="$ROOT/config/base.yaml"
   [ -f "$f" ] || continue
-  want="cloud.atomi.$l.$P.$S://callback"
+  want="cloud.atomi.$l.$P.$S.app://callback"
   got=$(sed -n "s/^redirectUri: '\(.*\)'$/\1/p" "$f")
   [ -z "$got" ] || [ "$got" = "$want" ] ||
     err "$(basename "$f"): redirectUri '$got' should be '$want'"
@@ -73,7 +75,7 @@ done <<<"$landscapes"
 
 # 5. Every release landscape must actually have an app target in Xcode.
 while IFS= read -r l; do
-  grep -q "PRODUCT_BUNDLE_IDENTIFIER = cloud\.atomi\.$l\.$P\.$S;" "$PBXPROJ" ||
+  grep -q "PRODUCT_BUNDLE_IDENTIFIER = cloud\.atomi\.$l\.$P\.$S\.app;" "$PBXPROJ" ||
     err "lpsm.yaml landscape '$l' has no app target in the Xcode project"
 done <<<"$release_landscapes"
 

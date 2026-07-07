@@ -1,6 +1,7 @@
 # LPSM service tree — the single source of truth for store identifiers.
 # Grammar (docs/developer/standard/bundle-id.md):
-#   bundle id == Android applicationId == cloud.atomi.<landscape>.<platform>.<service>[.<module>]
+#   bundle id == Android applicationId == cloud.atomi.<landscape>.<platform>.<service>.<module>
+#   (module is mandatory: the main app is `app`, its widget `app.widget`, tests `tests`)
 #   App Group == group.<app bundle id>       Logto redirect == <app bundle id>://callback
 #
 # Consumers: scripts/ci/cd-matrix.sh (CD build matrix), scripts/register-apple.sh

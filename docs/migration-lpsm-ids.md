@@ -3,13 +3,13 @@
 The repo now uses LPSM identifiers everywhere (see
 [docs/developer/standard/bundle-id.md](developer/standard/bundle-id.md)):
 
-|                | old                                           | new                                                  |
-| -------------- | --------------------------------------------- | ---------------------------------------------------- |
-| iOS app        | `cloud.atomi.alcohol.neon.<L>`                | `cloud.atomi.<L>.alcohol.neon`                       |
-| iOS widget     | `cloud.atomi.alcohol.neon.<L>.NeonWidget`     | `cloud.atomi.<L>.alcohol.neon.widget`                |
-| Android app    | `cloud.atomi.alcohol_neon.<L>`                | `cloud.atomi.<L>.alcohol.neon` (same as iOS)         |
-| App Group      | `group.cloud.atomi.alcoholNeon` (one, shared) | `group.cloud.atomi.<L>.alcohol.neon` (per landscape) |
-| Logto redirect | `cloud.atomi.alcohol.neon.<L>://callback`     | `cloud.atomi.<L>.alcohol.neon://callback`            |
+|                | old                                           | new                                                      |
+| -------------- | --------------------------------------------- | -------------------------------------------------------- |
+| iOS app        | `cloud.atomi.alcohol.neon.<L>`                | `cloud.atomi.<L>.alcohol.neon.app`                       |
+| iOS widget     | `cloud.atomi.alcohol.neon.<L>.NeonWidget`     | `cloud.atomi.<L>.alcohol.neon.app.widget`                |
+| Android app    | `cloud.atomi.alcohol_neon.<L>`                | `cloud.atomi.<L>.alcohol.neon.app` (same as iOS)         |
+| App Group      | `group.cloud.atomi.alcoholNeon` (one, shared) | `group.cloud.atomi.<L>.alcohol.neon.app` (per landscape) |
+| Logto redirect | `cloud.atomi.alcohol.neon.<L>://callback`     | `cloud.atomi.<L>.alcohol.neon.app://callback`            |
 
 New bundle ids = new store apps. The code side ships in this PR; the following
 finishes the cutover. Steps 2–3 are manual forever because Apple/Google expose
@@ -39,7 +39,7 @@ which landscape to fix and you just re-run after renaming.
 App creation has no API here either. For each landscape:
 
 1. All apps → **Create app** → name as above, App/Game, Free.
-2. Package name is fixed by the first upload: `cloud.atomi.<L>.alcohol.neon`.
+2. Package name is fixed by the first upload: `cloud.atomi.<L>.alcohol.neon.app`.
 3. Ensure the CI service account (`GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`) has access
    to the new app (skip if it has account-wide access).
 4. Complete the minimum setup for the **internal testing** track. The first CD
@@ -48,7 +48,7 @@ App creation has no API here either. For each landscape:
 ## 3. Logto — redirect URIs (~3 min, or scriptable via Logto Management API)
 
 On each landscape's Native app in Logto, add the new redirect URI
-`cloud.atomi.<L>.alcohol.neon://callback` (keep the old one during cutover;
+`cloud.atomi.<L>.alcohol.neon.app://callback` (keep the old one during cutover;
 delete it once the new builds are live).
 
 ## 4. Cut a release and let the doctor check you

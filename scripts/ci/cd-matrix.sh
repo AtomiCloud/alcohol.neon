@@ -30,7 +30,7 @@ PLATFORM=$(yq '.platform' "$LPSM")
 SERVICE=$(yq '.service' "$LPSM")
 
 ALL=$(yq -o=json -I=0 '.landscapes' "$LPSM" | jq -c --arg p "$PLATFORM" --arg s "$SERVICE" \
-  '[.[] | {flavor: .name, apple_id: (.apple_id // ""), package_name: "cloud.atomi.\(.name).\($p).\($s)"}]')
+  '[.[] | {flavor: .name, apple_id: (.apple_id // ""), package_name: "cloud.atomi.\(.name).\($p).\($s).app"}]')
 
 if [ "${EVENT:-}" = "workflow_dispatch" ]; then
   FILTERED=$(echo "$ALL" | jq -c --arg f "${SEL:-}" '[.[] | select(.flavor==$f)]')

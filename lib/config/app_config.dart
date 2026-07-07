@@ -14,7 +14,7 @@ import 'landscape.dart';
 ///   `--dart-define=NEON_*`     overrides everything (local dev / CI)
 ///
 /// The landscape is chosen from the app's **own bundle id** (bundle-id-as-marker):
-/// LPSM ids put it in segment 3 — `cloud.atomi.pichu.alcohol.neon` → pichu, etc.
+/// LPSM ids put it in segment 3 — `cloud.atomi.pichu.alcohol.neon.app` → pichu, etc.
 /// An unrecognized id falls back to raichu (release) / pichu (debug).
 /// `--dart-define=NEON_LANDSCAPE=…` forces a landscape (e.g. `lapras` for local).
 ///
@@ -43,7 +43,7 @@ class AppConfig {
     required this.logtoAppId,
     required this.zincResource,
     required this.airwallexEnv,
-    this.redirectUri = 'cloud.atomi.lapras.alcohol.neon://callback',
+    this.redirectUri = 'cloud.atomi.lapras.alcohol.neon.app://callback',
     this.scopes = const [
       'openid',
       'profile',

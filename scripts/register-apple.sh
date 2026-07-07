@@ -105,11 +105,18 @@ end
 
 lane :appids do
   require "spaceship"
-  Spaceship::Tunes.login(ENV["FASTLANE_USER"])
-  Spaceship::Tunes.select_team
+  # ConnectAPI (web-session), not the legacy Spaceship::Tunes — Apple has been
+  # dismantling the old iTC endpoints and Tunes lookups fail on modern fastlane.
+  # An ASC app's resource id IS the numeric Apple ID.
+  Spaceship::ConnectAPI.login(
+    ENV["FASTLANE_USER"],
+    use_portal: false,
+    use_tunes: true,
+    tunes_team_id: ENV["FASTLANE_ITC_TEAM_ID"]
+  )
   ENV["NEON_BUNDLE_IDS"].split(",").each do |bid|
-    app = Spaceship::Tunes::Application.find(bid)
-    puts "APP\t#{bid}\t#{app ? app.apple_id : ""}"
+    app = Spaceship::ConnectAPI::App.find(bid)
+    puts "APP\t#{bid}\t#{app ? app.id : ""}"
   end
 end
 RUBY
@@ -121,7 +128,9 @@ RUBY
 # invisible hang), so enumerate and choose everything up front.
 echo
 echo "==> Looking up your teams…"
-team_lines=$( (cd "$tmpdir" && fastlane teams 2>&1) | grep -E $'^(TEAM|ITCTEAM)\t' || true)
+# fastlane timestamps every captured line ("[23:16:29]: TEAM…"), so match the
+# marker anywhere and strip everything before it.
+team_lines=$( (cd "$tmpdir" && fastlane teams 2>&1) | sed -nE 's/.*\b(ITCTEAM|TEAM)\t/\1\t/p' || true)
 
 # pick_team <label> <lines> <default_id> — prints the chosen id.
 pick_team() {
@@ -317,17 +326,23 @@ done
 # and write it into lpsm.yaml (the source of truth the CD matrix reads).
 echo
 echo "==> Looking up numeric apple_ids…"
-ids=$(
+appids_out=$(
   cd "$tmpdir" &&
     NEON_BUNDLE_IDS=$(
       IFS=,
       echo "${APP_IDS[*]}"
-    ) fastlane appids 2>&1 | grep $'^APP\t' || true
-)
+    ) fastlane appids 2>&1
+) || true
+# Strip fastlane's timestamp prefix before parsing ("[23:16:29]: APP…").
+ids=$(sed -nE 's/.*\bAPP\t/APP\t/p' <<<"$appids_out" || true)
 patched=0
 while IFS=$'\t' read -r _ bid aid; do
-  [ -n "$bid" ] && [ -n "$aid" ] || continue
+  [ -n "$bid" ] || continue
   land=$(cut -d. -f3 <<<"$bid")
+  if [ -z "$aid" ]; then
+    echo "  ⚠ $land: no ASC app record found for $bid — apple_id not filled" >&2
+    continue
+  fi
   current=$(yq ".landscapes[] | select(.name == \"$land\") | .apple_id" "$LPSM")
   if [ "$current" = "$aid" ]; then
     echo "  ✓ $land: apple_id $aid (already in lpsm.yaml)"
@@ -337,7 +352,13 @@ while IFS=$'\t' read -r _ bid aid; do
   echo "  ✓ $land: apple_id $aid → written to lpsm.yaml"
   patched=1
 done <<<"$ids"
-[ -n "$ids" ] || echo "  (no records found yet — nothing to fill)"
+if [ -z "$ids" ]; then
+  # Don't pretend the records don't exist when the lookup itself broke.
+  echo "  ⚠ apple_id lookup returned nothing — fastlane's last lines:" >&2
+  tail -6 <<<"$appids_out" | sed 's/^/    /' >&2
+  echo "    Records can lag a few minutes after creation; re-run later, or fill" >&2
+  echo "    the apple_id fields in lpsm.yaml by hand (ASC → App Information)." >&2
+fi
 
 # ── 5. Summary ────────────────────────────────────────────────────────────────
 echo

@@ -11,13 +11,10 @@
 domain: atomi.cloud
 platform: alcohol
 service: neon
-
 # Apple Developer portal team (signing) — pls register refuses other teams.
 apple_team: SY4WNY5G7U
-
 # Base App Store name: prod (raichu) bare, other landscapes suffixed below.
 app_name: LazyTax
-
 # Release landscapes, in matrix order.
 # - store_suffix: appended to app_name for the STORE LISTING name. Automated
 #   for the App Store (pls register creates the ASC record with it); Google
@@ -29,10 +26,10 @@ app_name: LazyTax
 landscapes:
   - name: pichu
     store_suffix: ' (Pichu)'
-    apple_id: ''
+    apple_id: '6788238572'
   - name: pikachu
     store_suffix: ' (Pikachu)'
-    apple_id: ''
+    apple_id: '6788238606'
   - name: raichu
     store_suffix: ': Stake Habits'
-    apple_id: ''
+    apple_id: '6788238999'

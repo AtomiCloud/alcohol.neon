@@ -52,14 +52,17 @@ if ! command -v fastlane >/dev/null; then
   exit 1
 fi
 
-# The public-facing store name per landscape (must match the old apps' naming;
-# rename the old app first if it still holds the name).
+# The public-facing App Store name per landscape. Prod gets the bare name;
+# other landscapes are suffixed so all three can coexist (store names are
+# globally unique). Override the base with NEON_APP_NAME=… ; individual names
+# can also be edited later in App Store Connect (freely before first release).
+APP_NAME=${NEON_APP_NAME:-LazyTax}
 store_name() {
   case $1 in
-  raichu) echo "LazyTax" ;;
-  pichu) echo "LazyTax (Pichu)" ;;
-  pikachu) echo "LazyTax (Pikachu)" ;;
-  *) echo "LazyTax ($1)" ;;
+  raichu) echo "$APP_NAME" ;;
+  pichu) echo "$APP_NAME (Pichu)" ;;
+  pikachu) echo "$APP_NAME (Pikachu)" ;;
+  *) echo "$APP_NAME ($1)" ;;
   esac
 }
 

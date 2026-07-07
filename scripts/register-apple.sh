@@ -103,6 +103,20 @@ lane :teams do
   end
 end
 
+lane :rotate_profiles do
+  require "spaceship"
+  # Profiles minted before a group association never gain it retroactively,
+  # and CD reuses any valid existing profile — delete ours so the next CD run
+  # mints fresh ones carrying the current entitlements.
+  Spaceship::Portal.login(ENV["FASTLANE_USER"])
+  ids = ENV["NEON_BUNDLE_IDS"].split(",")
+  Spaceship::Portal::ProvisioningProfile::AppStore.all.each do |p|
+    next unless ids.include?(p.app.bundle_id)
+    puts "ROTATE\t#{p.app.bundle_id}\t#{p.name}"
+    p.delete!
+  end
+end
+
 lane :appids do
   require "spaceship"
   # ConnectAPI (web-session), not the legacy Spaceship::Tunes — Apple has been
@@ -282,6 +296,7 @@ ensure_record() {
 # ── 3. Register every landscape ──────────────────────────────────────────────
 PENDING_RENAME=()
 APP_IDS=()
+ALL_TARGET_IDS=()
 for L in "${LANDSCAPES[@]}"; do
   # Captured (not process-substituted) so a discovery failure aborts the run.
   targets=$("$HERE/ci/ios-signing-targets.sh" "$L")
@@ -296,6 +311,7 @@ for L in "${LANDSCAPES[@]}"; do
     fastlane produce group -g "$GROUP" -n "LazyTax $L shared"
 
   while IFS= read -r bundle_id; do
+    ALL_TARGET_IDS+=("$bundle_id")
     module=${bundle_id#cloud.atomi."$L"."$PLATFORM"."$SERVICE".}
     name="LazyTax $L ${module//./ }"
 
@@ -321,7 +337,33 @@ for L in "${LANDSCAPES[@]}"; do
   fi
 done
 
-# ── 4. Fill apple_ids into lpsm.yaml ──────────────────────────────────────────
+# ── 4. Rotate provisioning profiles ──────────────────────────────────────────
+# A profile minted before a group association never gains it retroactively, and
+# CD reuses any valid existing profile — the doctor would then fail forever
+# ("profile lacks App Group"). Delete our targets' App Store profiles; the next
+# CD run mints fresh ones carrying the current entitlements.
+echo
+echo "==> Rotating provisioning profiles (CD re-mints them with current entitlements)"
+rotate_out=$(
+  cd "$tmpdir" &&
+    NEON_BUNDLE_IDS=$(
+      IFS=,
+      echo "${ALL_TARGET_IDS[*]}"
+    ) fastlane rotate_profiles 2>&1
+) || true
+rotated=$(sed -nE 's/.*\bROTATE\t/  ✓ deleted profile for /p' <<<"$rotate_out" | tr '\t' ' ' || true)
+if [ -n "$rotated" ]; then
+  printf '%s\n' "$rotated"
+elif grep -qi "error" <<<"$rotate_out"; then
+  echo "  ⚠ profile rotation failed — if the CD doctor reports a profile lacking" >&2
+  echo "    the App Group, delete the stale profiles at developer.apple.com →" >&2
+  echo "    Profiles and re-run CD. fastlane said:" >&2
+  tail -4 <<<"$rotate_out" | sed 's/^/    /' >&2
+else
+  echo "  (no existing profiles to rotate)"
+fi
+
+# ── 5. Fill apple_ids into lpsm.yaml ──────────────────────────────────────────
 # The numeric ASC app id feeds get-latest-build-number in CD; look each one up
 # and write it into lpsm.yaml (the source of truth the CD matrix reads).
 echo
@@ -360,7 +402,7 @@ if [ -z "$ids" ]; then
   echo "    the apple_id fields in lpsm.yaml by hand (ASC → App Information)." >&2
 fi
 
-# ── 5. Summary ────────────────────────────────────────────────────────────────
+# ── 6. Summary ────────────────────────────────────────────────────────────────
 echo
 echo "Done — ${#LANDSCAPES[@]} landscape(s): ${LANDSCAPES[*]}"
 echo "CI verifies the signing wiring on every release (scripts/ci/doctor-ios.sh)."

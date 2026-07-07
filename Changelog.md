@@ -1,3 +1,10 @@
+## [1.7.2](https://github.com/AtomiCloud/alcohol.neon/compare/v1.7.1...v1.7.2) (2026-07-07)
+
+
+### 🐛 Bug Fixes 🐛
+
+* **ios:** stop the widget target compiling Runner's bridging header ([53e1bfa](https://github.com/AtomiCloud/alcohol.neon/commit/53e1bfa2baff7dd7de0ae4aed7ecef8393e3e675))
+
 ## [1.7.1](https://github.com/AtomiCloud/alcohol.neon/compare/v1.7.0...v1.7.1) (2026-07-07)
 
 

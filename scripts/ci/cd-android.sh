@@ -37,8 +37,15 @@ flutter pub get
 
 # versionCode must top every existing Play release (including the prior Codemagic ones),
 # or Play rejects the rollout — so query the highest across all tracks and increment.
+# The query can miss draft releases on a brand-new app (first uploads), which
+# would recompute an already-used code — floor it with the CI run number, which
+# only ever grows (same guard as iOS).
 LATEST=$(google-play get-latest-build-number --package-name "$PACKAGE_NAME" || echo 0)
 VERSION_CODE=$((${LATEST:-0} + 1))
+RUN_NUMBER=${GITHUB_RUN_NUMBER:-0}
+if [ "$RUN_NUMBER" -gt "$VERSION_CODE" ]; then
+  VERSION_CODE=$RUN_NUMBER
+fi
 
 # Version name = release tag (v1.2.3 -> 1.2.3). Dropped on non-tag (manual) runs.
 build_args=(--release --flavor "$FLAVOR" --build-number="$VERSION_CODE")

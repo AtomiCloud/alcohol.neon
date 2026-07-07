@@ -613,7 +613,7 @@
 			baseConfigurationReference = 0F439A466E0EFB7F3E542AB4 /* raichuRelease.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
-				DEVELOPMENT_TEAM = SY4WNY5G7U;
+				DEVELOPMENT_TEAM = MNPSXJP9PN;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Release-raichu";
@@ -629,7 +629,7 @@
 				CODE_SIGN_ENTITLEMENTS = NeonWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = SY4WNY5G7U;
+				DEVELOPMENT_TEAM = MNPSXJP9PN;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NeonWidget/Info.plist;
@@ -662,7 +662,7 @@
 			baseConfigurationReference = 8F37BDEDDF1B79C4D5FF1055 /* pichuRelease.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
-				DEVELOPMENT_TEAM = SY4WNY5G7U;
+				DEVELOPMENT_TEAM = MNPSXJP9PN;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Release-pichu";
@@ -727,7 +727,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
-				DEVELOPMENT_TEAM = SY4WNY5G7U;
+				DEVELOPMENT_TEAM = MNPSXJP9PN;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -754,7 +754,7 @@
 				CODE_SIGN_ENTITLEMENTS = NeonWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = SY4WNY5G7U;
+				DEVELOPMENT_TEAM = MNPSXJP9PN;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NeonWidget/Info.plist;
@@ -975,7 +975,7 @@
 			baseConfigurationReference = B030497F541F78CA8CBDC0F2 /* pikachuRelease.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
-				DEVELOPMENT_TEAM = SY4WNY5G7U;
+				DEVELOPMENT_TEAM = MNPSXJP9PN;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Release-pikachu";
@@ -1064,7 +1064,7 @@
 				CODE_SIGN_ENTITLEMENTS = NeonWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = SY4WNY5G7U;
+				DEVELOPMENT_TEAM = MNPSXJP9PN;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NeonWidget/Info.plist;
@@ -1103,7 +1103,7 @@
 				CODE_SIGN_ENTITLEMENTS = NeonWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = SY4WNY5G7U;
+				DEVELOPMENT_TEAM = MNPSXJP9PN;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NeonWidget/Info.plist;
@@ -1218,7 +1218,7 @@
 				CODE_SIGN_ENTITLEMENTS = NeonWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = SY4WNY5G7U;
+				DEVELOPMENT_TEAM = MNPSXJP9PN;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NeonWidget/Info.plist;
@@ -1247,7 +1247,7 @@
 			baseConfigurationReference = 5C29F99E32D8B8DA6C57187C /* pichuDebug.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
-				DEVELOPMENT_TEAM = SY4WNY5G7U;
+				DEVELOPMENT_TEAM = MNPSXJP9PN;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Debug-pichu";
@@ -1263,7 +1263,7 @@
 				CODE_SIGN_ENTITLEMENTS = NeonWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = SY4WNY5G7U;
+				DEVELOPMENT_TEAM = MNPSXJP9PN;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NeonWidget/Info.plist;
@@ -1298,7 +1298,7 @@
 				CODE_SIGN_ENTITLEMENTS = NeonWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = SY4WNY5G7U;
+				DEVELOPMENT_TEAM = MNPSXJP9PN;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NeonWidget/Info.plist;
@@ -1441,7 +1441,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
-				DEVELOPMENT_TEAM = SY4WNY5G7U;
+				DEVELOPMENT_TEAM = MNPSXJP9PN;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1466,7 +1466,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
-				DEVELOPMENT_TEAM = SY4WNY5G7U;
+				DEVELOPMENT_TEAM = MNPSXJP9PN;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1640,7 +1640,7 @@
 				CODE_SIGN_ENTITLEMENTS = NeonWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = SY4WNY5G7U;
+				DEVELOPMENT_TEAM = MNPSXJP9PN;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NeonWidget/Info.plist;
@@ -1815,7 +1815,7 @@
 			baseConfigurationReference = 912A37FF08CB1E1873AC75CC /* pikachuProfile.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
-				DEVELOPMENT_TEAM = SY4WNY5G7U;
+				DEVELOPMENT_TEAM = MNPSXJP9PN;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Profile-pikachu";
@@ -1831,7 +1831,7 @@
 				CODE_SIGN_ENTITLEMENTS = NeonWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = SY4WNY5G7U;
+				DEVELOPMENT_TEAM = MNPSXJP9PN;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NeonWidget/Info.plist;
@@ -1866,7 +1866,7 @@
 				CODE_SIGN_ENTITLEMENTS = NeonWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = SY4WNY5G7U;
+				DEVELOPMENT_TEAM = MNPSXJP9PN;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NeonWidget/Info.plist;
@@ -1895,7 +1895,7 @@
 			baseConfigurationReference = 733693DFCA5C75CC096C1A70 /* pikachuDebug.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
-				DEVELOPMENT_TEAM = SY4WNY5G7U;
+				DEVELOPMENT_TEAM = MNPSXJP9PN;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Debug-pikachu";
@@ -1905,7 +1905,7 @@
 			baseConfigurationReference = FD2B992E2EDACEB95E322D65 /* pichuProfile.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
-				DEVELOPMENT_TEAM = SY4WNY5G7U;
+				DEVELOPMENT_TEAM = MNPSXJP9PN;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Profile-pichu";
@@ -1915,7 +1915,7 @@
 			baseConfigurationReference = 119F0BF53AEAA4E2F4D97B03 /* raichuProfile.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
-				DEVELOPMENT_TEAM = SY4WNY5G7U;
+				DEVELOPMENT_TEAM = MNPSXJP9PN;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Profile-raichu";
@@ -1925,7 +1925,7 @@
 			baseConfigurationReference = A30DCDA8212D9607376E8C5C /* raichuDebug.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
-				DEVELOPMENT_TEAM = SY4WNY5G7U;
+				DEVELOPMENT_TEAM = MNPSXJP9PN;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = "Debug-raichu";
@@ -2017,7 +2017,7 @@
 				CODE_SIGN_ENTITLEMENTS = NeonWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = SY4WNY5G7U;
+				DEVELOPMENT_TEAM = MNPSXJP9PN;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NeonWidget/Info.plist;
@@ -2056,7 +2056,7 @@
 				CODE_SIGN_ENTITLEMENTS = NeonWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = SY4WNY5G7U;
+				DEVELOPMENT_TEAM = MNPSXJP9PN;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NeonWidget/Info.plist;

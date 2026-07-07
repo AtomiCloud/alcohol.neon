@@ -12,7 +12,7 @@ domain: atomi.cloud
 platform: alcohol
 service: neon
 # Apple Developer portal team (signing) — pls register refuses other teams.
-apple_team: SY4WNY5G7U
+apple_team: MNPSXJP9PN
 # Base App Store name: prod (raichu) bare, other landscapes suffixed below.
 app_name: LazyTax
 # Release landscapes, in matrix order.

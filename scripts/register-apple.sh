@@ -337,8 +337,12 @@ appids_out=$(
 ids=$(sed -nE 's/.*\bAPP\t/APP\t/p' <<<"$appids_out" || true)
 patched=0
 while IFS=$'\t' read -r _ bid aid; do
-  [ -n "$bid" ] && [ -n "$aid" ] || continue
+  [ -n "$bid" ] || continue
   land=$(cut -d. -f3 <<<"$bid")
+  if [ -z "$aid" ]; then
+    echo "  ⚠ $land: no ASC app record found for $bid — apple_id not filled" >&2
+    continue
+  fi
   current=$(yq ".landscapes[] | select(.name == \"$land\") | .apple_id" "$LPSM")
   if [ "$current" = "$aid" ]; then
     echo "  ✓ $land: apple_id $aid (already in lpsm.yaml)"

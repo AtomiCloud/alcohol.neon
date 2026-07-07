@@ -105,11 +105,18 @@ end
 
 lane :appids do
   require "spaceship"
-  Spaceship::Tunes.login(ENV["FASTLANE_USER"])
-  Spaceship::Tunes.select_team
+  # ConnectAPI (web-session), not the legacy Spaceship::Tunes — Apple has been
+  # dismantling the old iTC endpoints and Tunes lookups fail on modern fastlane.
+  # An ASC app's resource id IS the numeric Apple ID.
+  Spaceship::ConnectAPI.login(
+    ENV["FASTLANE_USER"],
+    use_portal: false,
+    use_tunes: true,
+    tunes_team_id: ENV["FASTLANE_ITC_TEAM_ID"]
+  )
   ENV["NEON_BUNDLE_IDS"].split(",").each do |bid|
-    app = Spaceship::Tunes::Application.find(bid)
-    puts "APP\t#{bid}\t#{app ? app.apple_id : ""}"
+    app = Spaceship::ConnectAPI::App.find(bid)
+    puts "APP\t#{bid}\t#{app ? app.id : ""}"
   end
 end
 RUBY
@@ -317,13 +324,14 @@ done
 # and write it into lpsm.yaml (the source of truth the CD matrix reads).
 echo
 echo "==> Looking up numeric apple_ids…"
-ids=$(
+appids_out=$(
   cd "$tmpdir" &&
     NEON_BUNDLE_IDS=$(
       IFS=,
       echo "${APP_IDS[*]}"
-    ) fastlane appids 2>&1 | grep $'^APP\t' || true
-)
+    ) fastlane appids 2>&1
+) || true
+ids=$(grep $'^APP\t' <<<"$appids_out" || true)
 patched=0
 while IFS=$'\t' read -r _ bid aid; do
   [ -n "$bid" ] && [ -n "$aid" ] || continue
@@ -337,7 +345,13 @@ while IFS=$'\t' read -r _ bid aid; do
   echo "  ✓ $land: apple_id $aid → written to lpsm.yaml"
   patched=1
 done <<<"$ids"
-[ -n "$ids" ] || echo "  (no records found yet — nothing to fill)"
+if [ -z "$ids" ]; then
+  # Don't pretend the records don't exist when the lookup itself broke.
+  echo "  ⚠ apple_id lookup returned nothing — fastlane's last lines:" >&2
+  tail -6 <<<"$appids_out" | sed 's/^/    /' >&2
+  echo "    Records can lag a few minutes after creation; re-run later, or fill" >&2
+  echo "    the apple_id fields in lpsm.yaml by hand (ASC → App Information)." >&2
+fi
 
 # ── 5. Summary ────────────────────────────────────────────────────────────────
 echo

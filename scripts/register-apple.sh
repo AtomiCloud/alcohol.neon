@@ -128,7 +128,9 @@ RUBY
 # invisible hang), so enumerate and choose everything up front.
 echo
 echo "==> Looking up your teams…"
-team_lines=$( (cd "$tmpdir" && fastlane teams 2>&1) | grep -E $'^(TEAM|ITCTEAM)\t' || true)
+# fastlane timestamps every captured line ("[23:16:29]: TEAM…"), so match the
+# marker anywhere and strip everything before it.
+team_lines=$( (cd "$tmpdir" && fastlane teams 2>&1) | sed -nE 's/.*\b(ITCTEAM|TEAM)\t/\1\t/p' || true)
 
 # pick_team <label> <lines> <default_id> — prints the chosen id.
 pick_team() {
@@ -331,7 +333,8 @@ appids_out=$(
       echo "${APP_IDS[*]}"
     ) fastlane appids 2>&1
 ) || true
-ids=$(grep $'^APP\t' <<<"$appids_out" || true)
+# Strip fastlane's timestamp prefix before parsing ("[23:16:29]: APP…").
+ids=$(sed -nE 's/.*\bAPP\t/APP\t/p' <<<"$appids_out" || true)
 patched=0
 while IFS=$'\t' read -r _ bid aid; do
   [ -n "$bid" ] && [ -n "$aid" ] || continue

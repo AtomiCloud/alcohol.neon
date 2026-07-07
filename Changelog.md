@@ -1,3 +1,15 @@
+## [1.6.1](https://github.com/AtomiCloud/alcohol.neon/compare/v1.6.0...v1.6.1) (2026-07-07)
+
+
+### 📜 Documentation 📜
+
+* Play service-account setup runbook ([28c9b4a](https://github.com/AtomiCloud/alcohol.neon/commit/28c9b4ab91c83054199900e1cec62d6a37f56a4f))
+
+
+### 🐛 Bug Fixes 🐛
+
+* **ci:** doctor scans the Xcode 16 provisioning-profile directory ([f832510](https://github.com/AtomiCloud/alcohol.neon/commit/f83251089b8cd31e3a9749b225bd2aa65b92127c))
+
 ## [1.6.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.5.0...v1.6.0) (2026-07-07)
 
 

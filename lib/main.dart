@@ -34,22 +34,22 @@ class AlcoholNeonApp extends StatefulWidget {
 
 class _AlcoholNeonAppState extends State<AlcoholNeonApp> {
   final _navigatorKey = GlobalKey<NavigatorState>();
-  AuthService? _auth;
-  AuthStatus? _lastStatus;
+  late final AuthService _auth;
+  late AuthStatus _lastStatus;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final auth = context.read<AuthService>();
-    if (identical(auth, _auth)) return;
-    _auth?.removeListener(_onAuthChanged);
-    _auth = auth..addListener(_onAuthChanged);
-    _lastStatus = auth.status;
+  void initState() {
+    super.initState();
+    // One-time attach: the AuthService instance is created once in main() and
+    // never replaced, and read() registers no dependency anyway.
+    _auth = context.read<AuthService>();
+    _auth.addListener(_onAuthChanged);
+    _lastStatus = _auth.status;
   }
 
   @override
   void dispose() {
-    _auth?.removeListener(_onAuthChanged);
+    _auth.removeListener(_onAuthChanged);
     super.dispose();
   }
 
@@ -58,7 +58,7 @@ class _AlcoholNeonAppState extends State<AlcoholNeonApp> {
   /// habit editor, vacations, …). Pop back to the first route so the signed-out
   /// experience is actually visible, whatever screen the user was on.
   void _onAuthChanged() {
-    final status = _auth!.status;
+    final status = _auth.status;
     if (_lastStatus == AuthStatus.authenticated &&
         status != AuthStatus.authenticated) {
       _navigatorKey.currentState?.popUntil((r) => r.isFirst);

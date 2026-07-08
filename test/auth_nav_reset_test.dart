@@ -94,8 +94,6 @@ Future<void> _pushPlaceholder(WidgetTester tester) async {
 }
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
-
   setUp(() {
     // The Logto SDK reads flutter_secure_storage during bootstrap; back it with
     // an empty store so no MissingPluginException escapes into the test zone.

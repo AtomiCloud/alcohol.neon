@@ -67,13 +67,16 @@ class AuthService extends ChangeNotifier {
   }
 
   Future<void> signOut() async {
+    // Flip local state first so the shell swap (and the navigator pop it
+    // triggers) never stalls behind the network — the Logto revocation is
+    // best-effort cleanup and may hang on a dead connection.
+    _status = AuthStatus.unauthenticated;
+    notifyListeners();
     try {
       await _client.signOut(config.redirectUri);
     } catch (_) {
-      // Best-effort; we sign out locally regardless.
+      // Best-effort; we're already signed out locally.
     }
-    _status = AuthStatus.unauthenticated;
-    notifyListeners();
   }
 
   /// ID-token claims (available offline once signed in).

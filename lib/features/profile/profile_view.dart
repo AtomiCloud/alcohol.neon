@@ -145,12 +145,13 @@ class _ProfileViewState extends State<ProfileView> {
     switch (res) {
       case Ok():
         // Account + Logto identity are gone server-side; clear the local session.
-        // signOut() is best-effort and always lands on unauthenticated (a failure
-        // is benign here — the identity is already purged), which pops the
-        // navigator back to the signed-out shell and disposes this screen. Grab
-        // the app-level messenger first so the confirmation outlives this route.
+        // signOut() flips to unauthenticated up front (its network revocation is
+        // best-effort and benign here — the identity is already purged), which
+        // pops the navigator back to the signed-out shell and disposes this
+        // screen. Deliberately not awaited so the confirmation never stalls
+        // behind the network; the messenger is app-level and outlives this route.
         final messenger = ScaffoldMessenger.of(context);
-        await auth.signOut();
+        auth.signOut();
         messenger.showSnackBar(
           const SnackBar(content: Text('Your account has been deleted.')),
         );

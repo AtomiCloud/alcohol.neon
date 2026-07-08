@@ -10,14 +10,23 @@ merge feat:/fix: to main
   → CI (ci.yaml) green
   → Release (release.yaml) runs semantic-release → cuts tag vX.Y.Z
   → tag push triggers CD (cd.yaml)
-       ├─ ios job     (3 flavors) → build signed IPA → TestFlight
-       └─ android job (3 flavors) → build signed AAB → Play internal track
+       ├─ ios job     (3 flavors)     → build signed IPA → TestFlight
+       └─ android job (1 build)       → stamp per landscape → Play internal track
 ```
 
 - **iOS** runs on a Namespace macOS runner (`nscloud-macos-sequoia-arm64-6x14`, Xcode preinstalled).
-- **Android** runs on the standard Namespace Linux runner.
-- A small `setup` job resolves the build matrix: **all 3 flavors on a tag**, or **just one** on a
-  manual run.
+- **Android** runs on the standard Namespace Linux runner — **once**. The Dart/native payload is
+  identical across landscapes (bundle-id-as-marker, verified byte-for-byte 2026-07-07), so the job
+  builds one raichu AAB and `scripts/ci/stamp-android.sh` re-badges it per landscape: it patches the
+  protobuf `AndroidManifest.xml` (applicationId — which is also the Logto scheme and the
+  provider-authority prefix — plus label and versionCode) and the resource table's `package_name`
+  via a `protoc` text-format round-trip, swaps the launcher-icon PNGs (release PNG crunch is
+  disabled so repo bytes match AAB bytes 1:1), re-signs with `jarsigner`, and runs a doctor
+  (`bundletool validate` + dump assertions) before anything is uploaded. Never edit inside the
+  resource table's `source_pool` blob — it's a length-prefixed string pool and any width change
+  corrupts it.
+- A small `setup` job resolves the flavor set: **all 3 on a tag**, or **just one** on a
+  manual run (iOS consumes it as a matrix; Android as a flat list for the single stamp job).
 - **raichu (prod)** uploads to TestFlight / Play **internal** automatically; promotion to the public
   App Store / Play production is **manual** (App Store Connect "Submit"; Play Console "promote").
 

@@ -43,6 +43,10 @@ with packages;
   android = [
     androidsdk
     jdk17
+    # stamp-android.sh: protoc patches the AAB's protobuf manifest/resource table
+    # per landscape; bundletool validates + dumps the result (doctor).
+    protobuf
+    bundletool
   ];
 
   releaser = [

@@ -31,6 +31,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set.outputs.matrix }}
+      landscapes: ${{ steps.set.outputs.landscapes }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -39,7 +40,13 @@ jobs:
         env:
           EVENT: ${{ github.event_name }}
           SEL: ${{ github.event.inputs.flavor }}
-        run: echo "matrix=$(./scripts/ci/cd-matrix.sh)" >> "$GITHUB_OUTPUT"
+        run: |
+          set -euo pipefail
+          MATRIX=$(./scripts/ci/cd-matrix.sh)
+          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+          # Android runs as ONE job that stamps every landscape (build-once model)
+          # and takes the flat list instead of the matrix.
+          echo "landscapes=$(echo "$MATRIX" | jq -r '[.include[].flavor] | join(" ")')" >> "$GITHUB_OUTPUT"
 
   ios:
     name: iOS ${{ matrix.flavor }}
@@ -53,14 +60,12 @@ jobs:
       apple-id: ${{ matrix.apple_id }}
     secrets: inherit
 
+  # One job: build once, stamp + publish every landscape (scripts/ci/
+  # stamp-android.sh). iOS keeps the per-flavor matrix until its stamp path lands.
   android:
-    name: Android ${{ matrix.flavor }}
+    name: Android
     needs: setup
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
     uses: ./.github/workflows/⚡reusable-cd-android.yaml
     with:
-      flavor: ${{ matrix.flavor }}
-      package-name: ${{ matrix.package_name }}
+      landscapes: ${{ needs.setup.outputs.landscapes }}
     secrets: inherit

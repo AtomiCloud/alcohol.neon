@@ -1,23 +1,21 @@
 name: ⚡ Reusable CD Android
 
-# Build, sign, and publish one Android flavor to the Play internal track. Secrets
-# come from the caller via `secrets: inherit`. See docs/github-actions-release.md.
+# Build ONE release AAB, stamp it per landscape (scripts/ci/stamp-android.sh),
+# publish each to its Play internal track. One runner instead of a 3-job matrix —
+# the Dart/native payload is identical across landscapes, only packaging differs.
+# Secrets come from the caller via `secrets: inherit`. See docs/github-actions-release.md.
 
 on:
   workflow_call:
     inputs:
-      flavor:
-        description: Flutter flavor (pichu | pikachu | raichu)
-        required: true
-        type: string
-      package-name:
-        description: Play applicationId (for get-latest-build-number)
+      landscapes:
+        description: Space-separated landscapes to stamp + publish (e.g. "pichu pikachu raichu")
         required: true
         type: string
 
 jobs:
   android:
-    name: Android ${{ inputs.flavor }}
+    name: Android ${{ inputs.landscapes }}
     # 8 GB runner — cd-android.sh sizes the Gradle JVM for it.
     runs-on:
       - nscloud-ubuntu-22.04-amd64-4x8-with-cache
@@ -25,8 +23,7 @@ jobs:
       - nscloud-cache-tag-atomi-nix-store-cache
     timeout-minutes: 60
     env:
-      FLAVOR: ${{ inputs.flavor }}
-      PACKAGE_NAME: ${{ inputs.package-name }}
+      LANDSCAPES: ${{ inputs.landscapes }}
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
       ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
@@ -43,22 +40,45 @@ jobs:
           nix develop .#cd-android -c pipx install codemagic-cli-tools
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
-      - name: Build signed AAB
+      - name: Build once, stamp per landscape
         run: nix develop .#cd-android -c ./scripts/ci/cd-android.sh
 
-      - name: Publish to Play internal track
+      # Package names below are LPSM literals (cloud.atomi.<landscape>.alcohol.neon.app,
+      # docs/developer/standard/bundle-id.md) — workflow `with:` blocks can't run yq.
+      - name: Publish pichu to Play internal track
+        if: contains(inputs.landscapes, 'pichu')
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
-          packageName: ${{ inputs.package-name }}
-          releaseFiles: build/app/outputs/bundle/${{ inputs.flavor }}Release/*.aab
+          packageName: cloud.atomi.pichu.alcohol.neon.app
+          releaseFiles: build/app/outputs/stamped/pichu.aab
+          track: internal
+          status: completed
+
+      - name: Publish pikachu to Play internal track
+        if: contains(inputs.landscapes, 'pikachu')
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: cloud.atomi.pikachu.alcohol.neon.app
+          releaseFiles: build/app/outputs/stamped/pikachu.aab
+          track: internal
+          status: completed
+
+      - name: Publish raichu to Play internal track
+        if: contains(inputs.landscapes, 'raichu')
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: cloud.atomi.raichu.alcohol.neon.app
+          releaseFiles: build/app/outputs/stamped/raichu.aab
           track: internal
           status: completed
 
       - uses: actions/upload-artifact@v4
         with:
-          name: aab-${{ inputs.flavor }}
+          name: aab-stamped
           path: |
-            build/app/outputs/bundle/${{ inputs.flavor }}Release/*.aab
-            build/app/outputs/mapping/${{ inputs.flavor }}Release/mapping.txt
+            build/app/outputs/stamped/*.aab
+            build/app/outputs/mapping/raichuRelease/mapping.txt
           if-no-files-found: warn

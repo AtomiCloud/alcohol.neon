@@ -75,6 +75,10 @@ let
           rsync
           resvg
           jdk17
+          # protoc + bundletool power scripts/ci/stamp-android.sh (re-badge the
+          # single built AAB per landscape) and its doctor assertions.
+          protobuf
+          bundletool
           # mikefarah yq (v4) — reads lpsm.yaml (cd-matrix.sh, register-apple.sh,
           # lpsm-lint pre-commit hook).
           yq-go

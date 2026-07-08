@@ -50,6 +50,14 @@ class Problem implements Exception {
     status: 401,
   );
 
+  /// What to render to the user: the detail when it carries real text, else the
+  /// title. zinc can emit problems whose `detail` is `""` (non-null!), so a bare
+  /// `detail ?? title` renders an invisible empty Text — always use this instead.
+  String get displayMessage {
+    final d = detail?.trim();
+    return (d == null || d.isEmpty) ? title : d;
+  }
+
   @override
   String toString() =>
       'Problem($status $title${detail != null ? ': $detail' : ''})';

@@ -96,7 +96,7 @@ class _SubscriptionViewState extends State<SubscriptionView>
         if (c.openError != null) ...[
           const SizedBox(height: 12),
           Text(
-            c.openError!.detail ?? c.openError!.title,
+            c.openError!.displayMessage,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: Theme.of(context).colorScheme.error,
             ),

@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:http/http.dart' as http;
 import 'package:logto_dart_sdk/logto_dart_sdk.dart';
 
@@ -29,16 +30,19 @@ class AuthService extends ChangeNotifier {
   AuthStatus get status => _status;
   Problem? get lastError => _lastError;
 
-  AuthService(this.config) {
-    _client = LogtoClient(
-      config: LogtoConfig(
-        endpoint: config.logtoEndpoint,
-        appId: config.logtoAppId,
-        scopes: config.scopes,
-        resources: config.apiResources,
-      ),
-      httpClient: http.Client(),
-    );
+  /// [client] lets tests inject a fake SDK client; production uses the real one.
+  AuthService(this.config, {LogtoClient? client}) {
+    _client =
+        client ??
+        LogtoClient(
+          config: LogtoConfig(
+            endpoint: config.logtoEndpoint,
+            appId: config.logtoAppId,
+            scopes: config.scopes,
+            resources: config.apiResources,
+          ),
+          httpClient: http.Client(),
+        );
     _bootstrap();
   }
 
@@ -56,15 +60,45 @@ class AuthService extends ChangeNotifier {
           ? AuthStatus.authenticated
           : AuthStatus.unauthenticated;
     } catch (e) {
-      _lastError = Problem.local(
-        'Sign-in failed',
-        detail: e.toString(),
-        type: 'neon:auth',
-      );
-      _status = AuthStatus.failed;
+      if (isAlreadySigningIn(e)) {
+        // A second tap while the login sheet is already up — the first
+        // attempt is still in flight and owns the state; change nothing.
+        return;
+      }
+      if (isUserCancellation(e)) {
+        // The user closed the login sheet — benign, not a failure.
+        _lastError = null;
+        _status = AuthStatus.unauthenticated;
+      } else {
+        _lastError = Problem.local(
+          'Sign-in failed',
+          detail: e.toString(),
+          type: 'neon:auth',
+        );
+        _status = AuthStatus.failed;
+      }
     }
     notifyListeners();
   }
+
+  /// Whether [e] is the user dismissing the system login sheet
+  /// (ASWebAuthenticationSession on iOS / Custom Tab on Android).
+  /// flutter_web_auth_2 surfaces that as `PlatformException(code: 'CANCELED')`
+  /// and logto_dart_sdk rethrows it unwrapped (its `signIn` only has a
+  /// `finally`), so this is exactly what reaches us. `USER_CANCELED` covers
+  /// flutter_web_auth_2 variants that renamed the code.
+  @visibleForTesting
+  static bool isUserCancellation(Object e) =>
+      e is PlatformException &&
+      (e.code == 'CANCELED' || e.code == 'USER_CANCELED');
+
+  /// Whether [e] is the SDK refusing a second `signIn` while one is already
+  /// in flight (logto_dart_sdk `signIn` throws `isLoadingError` while
+  /// `_loading` — logto_client.dart:202-205). The in-flight attempt owns the
+  /// state, so the caller should change nothing.
+  @visibleForTesting
+  static bool isAlreadySigningIn(Object e) =>
+      e is LogtoAuthException && e.code == LogtoAuthExceptions.isLoadingError;
 
   Future<void> signOut() async {
     try {

@@ -1,3 +1,17 @@
+## [1.8.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.7.2...v1.8.0) (2026-07-08)
+
+
+### ✨ Features ✨
+
+* **ci:** build Android once and stamp per landscape ([e6a57ef](https://github.com/AtomiCloud/alcohol.neon/commit/e6a57ef34c3eafa271176dab28f1ccad39ae5aeb))
+* **ci:** stamp iOS from one build; codemagic-cli-tools via nix ([4a1c9bc](https://github.com/AtomiCloud/alcohol.neon/commit/4a1c9bc9f8dfbfd093e3cd5b75af9c157c1746f5))
+
+
+### 🐛 Bug Fixes 🐛
+
+* **ci:** attempt every landscape's publish even after one fails ([a66dea4](https://github.com/AtomiCloud/alcohol.neon/commit/a66dea4a33b0825552c709bacfff36a8915d2b75))
+* **ci:** keep embedded.mobileprovision in the stamped IPA ([00360a6](https://github.com/AtomiCloud/alcohol.neon/commit/00360a6ef9711f15bc505f743eb066fe3a32155a))
+
 ## [1.7.2](https://github.com/AtomiCloud/alcohol.neon/compare/v1.7.1...v1.7.2) (2026-07-07)
 
 

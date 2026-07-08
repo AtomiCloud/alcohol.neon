@@ -28,10 +28,9 @@ with packages;
     flutter
     rsync
     resvg
-    # pipx installs codemagic-cli-tools (not in nixpkgs) for the CD signing /
-    # publishing / versionCode-query tools (keychain, app-store-connect,
-    # xcode-project, google-play).
-    pipx
+    # CD signing / publishing / versionCode-query tools (keychain,
+    # app-store-connect, xcode-project, google-play) — from the atomi registry.
+    codemagic-cli-tools
   ]
   # CocoaPods is iOS-only (macOS); keep it off the Linux CI shell.
   ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
@@ -43,6 +42,10 @@ with packages;
   android = [
     androidsdk
     jdk17
+    # stamp-android.sh: protoc patches the AAB's protobuf manifest/resource table
+    # per landscape; bundletool validates + dumps the result (doctor).
+    protobuf
+    bundletool
   ];
 
   releaser = [

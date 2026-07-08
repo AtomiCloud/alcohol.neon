@@ -10,14 +10,33 @@ merge feat:/fix: to main
   → CI (ci.yaml) green
   → Release (release.yaml) runs semantic-release → cuts tag vX.Y.Z
   → tag push triggers CD (cd.yaml)
-       ├─ ios job     (3 flavors) → build signed IPA → TestFlight
-       └─ android job (3 flavors) → build signed AAB → Play internal track
+       ├─ ios job     (1 build) → stamp per landscape → TestFlight
+       └─ android job (1 build) → stamp per landscape → Play internal track
 ```
 
-- **iOS** runs on a Namespace macOS runner (`nscloud-macos-sequoia-arm64-6x14`, Xcode preinstalled).
-- **Android** runs on the standard Namespace Linux runner.
-- A small `setup` job resolves the build matrix: **all 3 flavors on a tag**, or **just one** on a
-  manual run.
+- **iOS** runs on a Namespace macOS runner (`nscloud-macos-sequoia-arm64-6x14`, Xcode
+  preinstalled) — **once**. The raichu Release archive is the donor: it compiles every
+  `AppIcon-*` set into `Assets.car` (`ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS`,
+  raichuRelease.xcconfig), and `scripts/ci/stamp-ios.sh` re-badges the IPA per landscape:
+  PlistBuddy patches to app + widget Info.plists (bundle ids, display name, icon pointer,
+  App Group, CFBundleVersion from the landscape's ASC app record), the landscape's
+  provisioning profiles embedded, entitlements taken verbatim from those profiles, then
+  `codesign` re-signs appex→app and a doctor asserts every field plus the signed App Group
+  before upload. Donor profiles are fetched before the build; other landscapes' profiles
+  only after the archive, so `use-profiles`/export see exactly the single-flavor setup.
+- **Android** runs on the standard Namespace Linux runner — **once**. The Dart/native payload is
+  identical across landscapes (bundle-id-as-marker, verified byte-for-byte 2026-07-07), so the job
+  builds one raichu AAB and `scripts/ci/stamp-android.sh` re-badges it per landscape: it patches the
+  protobuf `AndroidManifest.xml` (applicationId — which is also the Logto scheme and the
+  provider-authority prefix — plus label and versionCode) and the resource table's `package_name`
+  via a `protoc` text-format round-trip, swaps the launcher-icon PNGs (release PNG crunch is
+  disabled so repo bytes match AAB bytes 1:1), re-signs with `jarsigner`, and runs a doctor
+  (`bundletool validate` + dump assertions) before anything is uploaded. Never edit inside the
+  resource table's `source_pool` blob — it's a length-prefixed string pool and any width change
+  corrupts it.
+- A small `setup` job resolves the flavor set: **all 3 on a tag**, or **just one** on a
+  manual run — both platform jobs take it as a flat landscape list for their single
+  build-once/stamp run.
 - **raichu (prod)** uploads to TestFlight / Play **internal** automatically; promotion to the public
   App Store / Play production is **manual** (App Store Connect "Submit"; Play Console "promote").
 

@@ -6,13 +6,6 @@
   pkgs-android,
 }:
 let
-  # pipx 1.8.0 in nixpkgs currently fails its test suite (a `packaging`-lib
-  # formatting regression in tests/test_package_specifier.py, not a runtime bug),
-  # which breaks the build on darwin. Skip the test phase — we only need the CLI.
-  pipx = pkgs-2605.pipx.overridePythonAttrs (_: {
-    doCheck = false;
-    doInstallCheck = false;
-  });
   # codemagic-cli-tools' `xcode-project use-profiles` shells out to ruby and needs the
   # `xcodeproj` gem. The macOS runner's system ruby lacks it, so provide a ruby that has it
   # (shadows /usr/bin/ruby on PATH in the .#cd-ios shell).
@@ -56,6 +49,9 @@ let
           atomiutils
           pls
           sg
+          # signing/publishing + store versionCode/build-number queries in the CD
+          # shells (keychain, app-store-connect, xcode-project, google-play).
+          codemagic-cli-tools
           ;
       }
     );
@@ -75,14 +71,14 @@ let
           rsync
           resvg
           jdk17
+          # protoc + bundletool power scripts/ci/stamp-android.sh (re-badge the
+          # single built AAB per landscape) and its doctor assertions.
+          protobuf
+          bundletool
           # mikefarah yq (v4) — reads lpsm.yaml (cd-matrix.sh, register-apple.sh,
           # lpsm-lint pre-commit hook).
           yq-go
           ;
-      }
-      // {
-        # pipx with its broken test phase disabled (see top of file).
-        inherit pipx;
       }
     );
 

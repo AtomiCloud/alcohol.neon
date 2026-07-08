@@ -102,6 +102,11 @@ android {
                 // No keystore configured (local dev) — debug-sign so builds still run.
                 signingConfigs.getByName("debug")
             }
+            // Copy PNGs into the bundle verbatim: scripts/ci/stamp-android.sh swaps
+            // launcher icons per landscape by matching repo bytes 1:1 (crunching
+            // would make the AAB bytes diverge from the repo files). The launcher
+            // art is a few KB — the size win from crunching is noise.
+            isCrunchPngs = false
         }
     }
 }

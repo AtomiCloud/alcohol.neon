@@ -46,8 +46,16 @@ PROFILE_DIRS=(
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 
-unzip -qq "$IN" -d "$WORK"
-APP="$WORK/Payload/Runner.app"
+# The IPA tree and the signing scratch files live in separate dirs — the repack
+# zips the IPA dir verbatim, so nothing extra can leak in and no exclusion
+# pattern can eat a payload file (an -x '*.mobileprovision*' here once stripped
+# the app's embedded.mobileprovision and App Store validation 409'd).
+IPA_DIR="$WORK/ipa"
+SCRATCH="$WORK/scratch"
+mkdir -p "$IPA_DIR" "$SCRATCH"
+
+unzip -qq "$IN" -d "$IPA_DIR"
+APP="$IPA_DIR/Payload/Runner.app"
 APPEX="$APP/PlugIns/NeonWidgetExtension.appex"
 [ -d "$APP" ] && [ -d "$APPEX" ] || {
   echo "stamp-ios: unexpected IPA layout in $IN" >&2
@@ -83,8 +91,8 @@ find_profile() {
   return 1
 }
 
-find_profile "$NEW_ID" "$WORK/app.mobileprovision"
-find_profile "$WIDGET_ID" "$WORK/widget.mobileprovision"
+find_profile "$NEW_ID" "$SCRATCH/app.mobileprovision"
+find_profile "$WIDGET_ID" "$SCRATCH/widget.mobileprovision"
 
 # --- patch the app's Info.plist -----------------------------------------------
 INFO="$APP/Info.plist"
@@ -123,8 +131,8 @@ pb "Set :NeonAppGroup $GROUP" "$WINFO"
 # --- embed profiles + re-sign inner→outer --------------------------------------
 # Frameworks are untouched (their signatures stay valid); re-signing the outer
 # bundles re-seals the resource envelope that covers them.
-cp "$WORK/app.mobileprovision" "$APP/embedded.mobileprovision"
-cp "$WORK/widget.mobileprovision" "$APPEX/embedded.mobileprovision"
+cp "$SCRATCH/app.mobileprovision" "$APP/embedded.mobileprovision"
+cp "$SCRATCH/widget.mobileprovision" "$APPEX/embedded.mobileprovision"
 
 IDENTITY=$(security find-identity -v -p codesigning | sed -n 's/.*\([0-9A-F]\{40\}\) "Apple Distribution.*/\1/p' | head -1)
 [ -n "$IDENTITY" ] || {
@@ -133,14 +141,14 @@ IDENTITY=$(security find-identity -v -p codesigning | sed -n 's/.*\([0-9A-F]\{40
 }
 
 codesign --force --sign "$IDENTITY" \
-  --entitlements "$WORK/widget.mobileprovision.entitlements" "$APPEX"
+  --entitlements "$SCRATCH/widget.mobileprovision.entitlements" "$APPEX"
 codesign --force --sign "$IDENTITY" \
-  --entitlements "$WORK/app.mobileprovision.entitlements" "$APP"
+  --entitlements "$SCRATCH/app.mobileprovision.entitlements" "$APP"
 
 # --- repack (keep Symbols/ SwiftSupport/ etc. from the donor export) ----------
 rm -f "$OUT"
 OUT_ABS=$(cd "$(dirname "$OUT")" && pwd)/$(basename "$OUT")
-(cd "$WORK" && zip -qry "$OUT_ABS" . -x "*.mobileprovision*" -x "app.mobileprovision.entitlements" -x "widget.mobileprovision.entitlements")
+(cd "$IPA_DIR" && zip -qry "$OUT_ABS" .)
 
 # --- doctor --------------------------------------------------------------------
 # Assert every stamped field before this artifact goes anywhere near TestFlight.
@@ -169,5 +177,18 @@ codesign -d --entitlements :- "$APPEX" 2>/dev/null | grep -qF "$GROUP" || {
   echo "stamp-ios doctor: widget signature lacks App Group $GROUP" >&2
   exit 1
 }
+# The checks above ran against the extracted tree — also assert the packed IPA
+# itself carries the pieces App Store validation demands.
+PACKED=$(unzip -Z1 "$OUT")
+for entry in \
+  "Payload/Runner.app/embedded.mobileprovision" \
+  "Payload/Runner.app/PlugIns/NeonWidgetExtension.appex/embedded.mobileprovision" \
+  "Payload/Runner.app/Info.plist" \
+  "Payload/Runner.app/Assets.car"; do
+  grep -qxF "$entry" <<<"$PACKED" || {
+    echo "stamp-ios doctor: packed IPA is missing $entry" >&2
+    exit 1
+  }
+done
 
 echo "stamp-ios: $LANDSCAPE ok — $NEW_ID build=$BUILD_NUMBER name='$NEW_NAME'"

@@ -57,9 +57,13 @@ jobs:
       - name: Publish to TestFlight
         run: |
           set -euo pipefail
+          # Attempt every landscape even if one upload fails (raichu — prod —
+          # globs last); fail the step at the end if any did.
+          fail=0
           for ipa in build/ios/stamped/*.ipa; do
-            nix develop .#cd-ios -c app-store-connect publish --path "$ipa"
+            nix develop .#cd-ios -c app-store-connect publish --path "$ipa" || fail=1
           done
+          exit "$fail"
 
       - uses: actions/upload-artifact@v4
         with:

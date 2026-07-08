@@ -38,8 +38,10 @@ jobs:
 
       # Package names below are LPSM literals (cloud.atomi.<landscape>.alcohol.neon.app,
       # docs/developer/standard/bundle-id.md) — workflow `with:` blocks can't run yq.
+      # `!cancelled()` so one landscape's upload failure never skips the others
+      # (raichu — prod — runs last); the failed step still fails the job.
       - name: Publish pichu to Play internal track
-        if: contains(inputs.landscapes, 'pichu')
+        if: ${{ !cancelled() && contains(inputs.landscapes, 'pichu') }}
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
@@ -49,7 +51,7 @@ jobs:
           status: completed
 
       - name: Publish pikachu to Play internal track
-        if: contains(inputs.landscapes, 'pikachu')
+        if: ${{ !cancelled() && contains(inputs.landscapes, 'pikachu') }}
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
@@ -59,7 +61,7 @@ jobs:
           status: completed
 
       - name: Publish raichu to Play internal track
-        if: contains(inputs.landscapes, 'raichu')
+        if: ${{ !cancelled() && contains(inputs.landscapes, 'raichu') }}
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
@@ -69,6 +71,7 @@ jobs:
           status: completed
 
       - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
         with:
           name: aab-stamped
           path: |

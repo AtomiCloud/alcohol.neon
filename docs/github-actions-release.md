@@ -35,7 +35,8 @@ merge feat:/fix: to main
   resource table's `source_pool` blob — it's a length-prefixed string pool and any width change
   corrupts it.
 - A small `setup` job resolves the flavor set: **all 3 on a tag**, or **just one** on a
-  manual run (iOS consumes it as a matrix; Android as a flat list for the single stamp job).
+  manual run — both platform jobs take it as a flat landscape list for their single
+  build-once/stamp run.
 - **raichu (prod)** uploads to TestFlight / Play **internal** automatically; promotion to the public
   App Store / Play production is **manual** (App Store Connect "Submit"; Play Console "promote").
 

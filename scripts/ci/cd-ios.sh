@@ -1,20 +1,24 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Builds + signs one iOS flavor into a release IPA. Runs inside `nix develop .#cd-ios`;
-# the build itself goes through scripts/flutter-ios.sh, which un-hijacks the nix C/C++
-# toolchain so xcodebuild uses real Xcode. See docs/github-actions-release.md.
+# Builds ONE signed iOS release IPA (raichu — the donor; the compiled app is
+# landscape-agnostic, see scripts/ci/stamp-ios.sh), then stamps it into each
+# requested landscape's IPA. Runs inside `nix develop .#cd-ios`; the build goes
+# through scripts/flutter-ios.sh, which un-hijacks the nix C/C++ toolchain so
+# xcodebuild uses real Xcode. See docs/github-actions-release.md.
 #
 # Env:
-#   FLAVOR                            flutter flavor (bundle ids are discovered from
-#                                     the Xcode project via ios-signing-targets.sh)
-#   APP_STORE_APPLE_ID                numeric Apple ID (for get-latest-build-number;
-#                                     empty until the ASC app record exists)
+#   LANDSCAPES                        space-separated landscapes to stamp
+#                                     (e.g. "pichu pikachu raichu")
 #   APP_STORE_CONNECT_ISSUER_ID       ) ASC API key — read by codemagic-cli-tools by name
 #   APP_STORE_CONNECT_KEY_IDENTIFIER  )
 #   APP_STORE_CONNECT_PRIVATE_KEY     )
 #   CERTIFICATE_PRIVATE_KEY           Apple Distribution cert private key
 #   GITHUB_REF_TYPE / GITHUB_REF_NAME version name = tag (v1.2.3 -> 1.2.3) on a tag build
+#
+# Outputs: build/ios/stamped/<landscape>.ipa per requested landscape.
+
+DONOR=raichu
 
 flutter pub get
 
@@ -27,41 +31,53 @@ flutter pub get
 # --create self-heals missing bundle ids/profiles, but App Group creation and
 # group⇄bundle-id association have no API: an App Manager must run `pls register`
 # once per new target (see docs/developer/standard/bundle-id.md).
+#
+# Only the DONOR's profiles are fetched before the build — `use-profiles` maps
+# profiles onto the project per config, and keeping the other landscapes'
+# profiles off-disk here keeps the proven single-flavor export path untouched.
 keychain initialize
-# Capture discovery instead of a process substitution: a substitution's failure
-# would be silently swallowed and sign nothing; this aborts the build instead.
-SIGNING_TARGETS=$(./scripts/ci/ios-signing-targets.sh "$FLAVOR")
-while IFS= read -r target_id; do
-  app-store-connect fetch-signing-files "$target_id" \
-    --type IOS_APP_STORE \
-    --certificate-key @env:CERTIFICATE_PRIVATE_KEY \
-    --create
-done <<<"$SIGNING_TARGETS"
+fetch_signing_files() {
+  local landscape=$1 targets target_id
+  # Captured (not a process substitution) so a discovery failure aborts the run
+  # instead of being swallowed as an empty loop.
+  targets=$(./scripts/ci/ios-signing-targets.sh "$landscape")
+  while IFS= read -r target_id; do
+    app-store-connect fetch-signing-files "$target_id" \
+      --type IOS_APP_STORE \
+      --certificate-key @env:CERTIFICATE_PRIVATE_KEY \
+      --create
+  done <<<"$targets"
+  # Doctor: every fetched profile must carry the App Group entitlement — catches
+  # a skipped `pls register` here instead of as an opaque xcodebuild/App Store
+  # rejection after a 30-minute build.
+  ./scripts/ci/doctor-ios.sh "$landscape"
+}
+fetch_signing_files "$DONOR"
 keychain add-certificates
 xcode-project use-profiles --export-options-plist "$HOME/export_options.plist"
 
-# Doctor: every fetched profile must carry the App Group entitlement — catches a
-# skipped `pls register` here, at the signing step, instead of as an opaque
-# xcodebuild/App Store rejection after a 30-minute build.
-./scripts/ci/doctor-ios.sh "$FLAVOR"
-
-# CFBundleVersion must top every previous upload, but get-latest-build-number lags while a
-# fresh upload is still processing — max with the CI run number so reruns never collide.
-# APP_STORE_APPLE_ID is empty until the landscape's ASC app record exists
-# (docs/migration-lpsm-ids.md) — fall back to the CI run number alone.
-LATEST=0
-if [ -n "${APP_STORE_APPLE_ID:-}" ]; then
-  LATEST=$(app-store-connect get-latest-build-number "$APP_STORE_APPLE_ID" || echo 0)
-fi
-BUILD_NUMBER=$((${LATEST:-0} + 1))
-RUN_NUMBER=${GITHUB_RUN_NUMBER:-0}
-if [ "$RUN_NUMBER" -gt "$BUILD_NUMBER" ]; then
-  BUILD_NUMBER=$RUN_NUMBER
-fi
+# CFBundleVersion must top every previous upload for the landscape's ASC app
+# record, but get-latest-build-number lags while a fresh upload is still
+# processing — max with the CI run number so reruns never collide. apple_id
+# comes from lpsm.yaml (filled by `pls register`); while empty, fall back to
+# the CI run number alone.
+build_number_for() {
+  local landscape=$1 apple_id latest n
+  apple_id=$(yq ".landscapes[] | select(.name==\"$landscape\") | .apple_id // \"\"" lpsm.yaml)
+  latest=0
+  if [ -n "$apple_id" ]; then
+    latest=$(app-store-connect get-latest-build-number "$apple_id" || echo 0)
+  fi
+  n=$((${latest:-0} + 1))
+  if [ "${GITHUB_RUN_NUMBER:-0}" -gt "$n" ]; then
+    n=${GITHUB_RUN_NUMBER}
+  fi
+  echo "$n"
+}
 
 # Version name = release tag; manual runs fall back to pubspec's version.
-build_args=(--release --flavor "$FLAVOR" --build-number="$BUILD_NUMBER"
-  --export-options-plist="$HOME/export_options.plist")
+build_args=(--release --flavor "$DONOR" --build-number="$(build_number_for "$DONOR")"
+--export-options-plist="$HOME/export_options.plist")
 if [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
   build_args+=(--build-name="${GITHUB_REF_NAME#v}")
 fi
@@ -93,3 +109,19 @@ else
   echo "iOS archive was not produced (rc=$build_rc)" >&2
   exit "${build_rc:-1}"
 fi
+
+DONOR_IPA=$(find build/ios/ipa -name '*.ipa' | head -1)
+
+# Stamp each requested landscape from the donor. The donor itself ships
+# as-built (its ids/name/icons are already correct — re-signing identical
+# content would only add risk).
+mkdir -p build/ios/stamped
+for landscape in $LANDSCAPES; do
+  if [ "$landscape" = "$DONOR" ]; then
+    cp "$DONOR_IPA" "build/ios/stamped/$landscape.ipa"
+    continue
+  fi
+  fetch_signing_files "$landscape"
+  ./scripts/ci/stamp-ios.sh "$DONOR_IPA" "$landscape" \
+    "$(build_number_for "$landscape")" "build/ios/stamped/$landscape.ipa"
+done

@@ -48,20 +48,16 @@ jobs:
           # and takes the flat list instead of the matrix.
           echo "landscapes=$(echo "$MATRIX" | jq -r '[.include[].flavor] | join(" ")')" >> "$GITHUB_OUTPUT"
 
+  # One job per platform: build once, stamp + publish every landscape
+  # (scripts/ci/stamp-ios.sh / stamp-android.sh).
   ios:
-    name: iOS ${{ matrix.flavor }}
+    name: iOS
     needs: setup
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
     uses: ./.github/workflows/⚡reusable-cd-ios.yaml
     with:
-      flavor: ${{ matrix.flavor }}
-      apple-id: ${{ matrix.apple_id }}
+      landscapes: ${{ needs.setup.outputs.landscapes }}
     secrets: inherit
 
-  # One job: build once, stamp + publish every landscape (scripts/ci/
-  # stamp-android.sh). iOS keeps the per-flavor matrix until its stamp path lands.
   android:
     name: Android
     needs: setup

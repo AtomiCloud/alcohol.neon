@@ -33,13 +33,6 @@ jobs:
     steps:
       - uses: AtomiCloud/actions.setup-nix@v3
 
-      # Not in nixpkgs; provides `google-play` for the versionCode query.
-      - name: Install codemagic-cli-tools
-        run: |
-          set -euo pipefail
-          nix develop .#cd-android -c pipx install codemagic-cli-tools
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-
       - name: Build once, stamp per landscape
         run: nix develop .#cd-android -c ./scripts/ci/cd-android.sh
 

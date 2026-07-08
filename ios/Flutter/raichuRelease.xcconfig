@@ -4,3 +4,8 @@
 ASSET_PREFIX=raichu
 BUNDLE_NAME=LazyTax
 BUNDLE_DISPLAY_NAME=LazyTax
+
+// The raichu Release archive is CD's donor for every landscape: compile ALL
+// AppIcon-* sets into Assets.car so scripts/ci/stamp-ios.sh can re-point
+// CFBundleIconName per landscape without rebuilding.
+ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS=YES

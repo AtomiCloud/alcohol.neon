@@ -10,11 +10,20 @@ merge feat:/fix: to main
   → CI (ci.yaml) green
   → Release (release.yaml) runs semantic-release → cuts tag vX.Y.Z
   → tag push triggers CD (cd.yaml)
-       ├─ ios job     (3 flavors)     → build signed IPA → TestFlight
-       └─ android job (1 build)       → stamp per landscape → Play internal track
+       ├─ ios job     (1 build) → stamp per landscape → TestFlight
+       └─ android job (1 build) → stamp per landscape → Play internal track
 ```
 
-- **iOS** runs on a Namespace macOS runner (`nscloud-macos-sequoia-arm64-6x14`, Xcode preinstalled).
+- **iOS** runs on a Namespace macOS runner (`nscloud-macos-sequoia-arm64-6x14`, Xcode
+  preinstalled) — **once**. The raichu Release archive is the donor: it compiles every
+  `AppIcon-*` set into `Assets.car` (`ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS`,
+  raichuRelease.xcconfig), and `scripts/ci/stamp-ios.sh` re-badges the IPA per landscape:
+  PlistBuddy patches to app + widget Info.plists (bundle ids, display name, icon pointer,
+  App Group, CFBundleVersion from the landscape's ASC app record), the landscape's
+  provisioning profiles embedded, entitlements taken verbatim from those profiles, then
+  `codesign` re-signs appex→app and a doctor asserts every field plus the signed App Group
+  before upload. Donor profiles are fetched before the build; other landscapes' profiles
+  only after the archive, so `use-profiles`/export see exactly the single-flavor setup.
 - **Android** runs on the standard Namespace Linux runner — **once**. The Dart/native payload is
   identical across landscapes (bundle-id-as-marker, verified byte-for-byte 2026-07-07), so the job
   builds one raichu AAB and `scripts/ci/stamp-android.sh` re-badges it per landscape: it patches the

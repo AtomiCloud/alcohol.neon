@@ -306,11 +306,11 @@ class _ProfileViewState extends State<ProfileView> {
         if (_deleteError != null) ...[
           const SizedBox(height: 12),
           Text(
-            _deleteError!.status == 409
-                ? (_deleteError!.detail ??
-                      'You have an outstanding debt. Please settle it before '
-                          'deleting your account.')
-                : (_deleteError!.detail ?? _deleteError!.title),
+            _deleteError!.status == 409 &&
+                    (_deleteError!.detail?.trim().isEmpty ?? true)
+                ? 'You have an outstanding debt. Please settle it before '
+                      'deleting your account.'
+                : _deleteError!.displayMessage,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.error,
             ),

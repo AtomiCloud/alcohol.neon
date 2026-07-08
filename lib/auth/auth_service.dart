@@ -122,11 +122,17 @@ class AuthService extends ChangeNotifier {
 
   /// The raw OIDC id_token (JWT). Sent to `POST /User` so zinc can provision the
   /// user from Logto on first sign-in. Null if unauthenticated.
-  Future<String?> idToken() => _client.idToken;
+  /// Gated on local [_status]: signOut() flips it before the (best-effort)
+  /// revocation, and no caller may keep minting tokens once we're signed out.
+  Future<String?> idToken() async {
+    if (_status != AuthStatus.authenticated) return null;
+    return _client.idToken;
+  }
 
   /// A zinc-scoped access token for the Bearer header. Null if unauthenticated or no
-  /// resource is configured.
+  /// resource is configured. Gated on local [_status] like [idToken].
   Future<String?> zincAccessToken() async {
+    if (_status != AuthStatus.authenticated) return null;
     if (config.zincResource.isEmpty) return null;
     if (!await _client.isAuthenticated) return null;
     final token = await _client.getAccessToken(resource: config.zincResource);

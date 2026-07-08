@@ -188,7 +188,7 @@ class _VacationCreateViewState extends State<VacationCreateView> {
           'or the dates are out of order.';
     }
     // Otherwise prefer a genuinely human server detail, else the title.
-    return detail.isNotEmpty ? detail : p.title;
+    return p.displayMessage;
   }
 
   @override

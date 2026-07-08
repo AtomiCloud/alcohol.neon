@@ -328,7 +328,7 @@ class _SettingsViewState extends State<SettingsView> {
         if (_saveError != null) ...[
           const SizedBox(height: 12),
           Text(
-            _saveError!.detail ?? _saveError!.title,
+            _saveError!.displayMessage,
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.error,
             ),
@@ -454,7 +454,7 @@ class _ConsentCard extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: Text(
-                error!.detail ?? error!.title,
+                error!.displayMessage,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.error,
                 ),

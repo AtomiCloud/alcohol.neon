@@ -14,10 +14,10 @@ import 'package:alcohol_neon/main.dart' show AlcoholNeonApp;
 import 'package:alcohol_neon/networking/api_client.dart';
 import 'package:alcohol_neon/session/session_controller.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:logto_dart_sdk/logto_dart_sdk.dart';
 import 'package:provider/provider.dart';
 
 final _config = AppConfig(
@@ -29,12 +29,28 @@ final _config = AppConfig(
   airwallexEnv: Environment.demo,
 );
 
-/// AuthService whose status is driven by the test. The real Logto client is
-/// still constructed (secure storage is mocked empty) but never talked to.
+/// Inert Logto client so AuthService never constructs the real SDK client
+/// (whose bootstrap reads flutter_secure_storage over a platform channel).
+class _InertLogtoClient extends LogtoClient {
+  _InertLogtoClient()
+    : super(
+        config: LogtoConfig(
+          endpoint: _config.logtoEndpoint,
+          appId: _config.logtoAppId,
+        ),
+        httpClient: http.Client(),
+      );
+
+  @override
+  Future<bool> get isAuthenticated async => false;
+}
+
+/// AuthService whose status is driven by the test; the injected inert client
+/// keeps the SDK (and its platform channels) out of the picture entirely.
 class _FakeAuthService extends AuthService {
   _FakeAuthService({http.Client? zincClient})
     : _zincClient = zincClient,
-      super(_config);
+      super(_config, client: _InertLogtoClient());
 
   final http.Client? _zincClient;
   AuthStatus _testStatus = AuthStatus.authenticated;
@@ -94,19 +110,6 @@ Future<void> _pushPlaceholder(WidgetTester tester) async {
 }
 
 void main() {
-  setUp(() {
-    // The Logto SDK reads flutter_secure_storage during bootstrap; back it with
-    // an empty store so no MissingPluginException escapes into the test zone.
-    const channel = MethodChannel(
-      'plugins.it_nomads.com/flutter_secure_storage',
-    );
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, (call) async {
-          if (call.method == 'readAll') return <String, String>{};
-          return null;
-        });
-  });
-
   testWidgets('sign-out pops pushed routes so SignInView is visible', (
     tester,
   ) async {

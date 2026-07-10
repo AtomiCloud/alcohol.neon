@@ -1,3 +1,19 @@
+## [1.9.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.8.0...v1.9.0) (2026-07-10)
+
+
+### 🐛 Bug Fixes 🐛
+
+* flip auth state before Logto revocation so sign-out never stalls ([af1c6a3](https://github.com/AtomiCloud/alcohol.neon/commit/af1c6a3078cb563c3fb7473d2b9135ec006ebadb))
+* gate token providers on local auth state and surface empty-detail delete errors ([cbf8634](https://github.com/AtomiCloud/alcohol.neon/commit/cbf8634d64c69f51cf7f7b81e52f6423fdbe52db)), closes [#32](https://github.com/AtomiCloud/alcohol.neon/issues/32)
+* pop navigator to root when auth session ends ([f018c40](https://github.com/AtomiCloud/alcohol.neon/commit/f018c40a4ab53f240c49d0996bd5fd8c8c84956b))
+* surface tier-limit errors that arrived with an empty detail ([d74f38f](https://github.com/AtomiCloud/alcohol.neon/commit/d74f38f9b862f8b0af753f19ca5007e227a08745))
+* treat cancelled login as benign instead of a failure ([194306b](https://github.com/AtomiCloud/alcohol.neon/commit/194306b43a7d48573751264ac21e7a1fca499677))
+
+
+### 🧪 Tests 🧪
+
+* inject an inert Logto client instead of stubbing secure storage ([49d02ab](https://github.com/AtomiCloud/alcohol.neon/commit/49d02ab8557b60237b12ac37ff54439ddb3c6327)), closes [#32](https://github.com/AtomiCloud/alcohol.neon/issues/32)
+
 ## [1.8.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.7.2...v1.8.0) (2026-07-08)
 
 

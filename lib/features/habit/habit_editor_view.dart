@@ -169,6 +169,22 @@ class _HabitEditorViewState extends State<HabitEditorView> {
     }
   }
 
+  /// Friendly message for save failures, mirroring the vacation view's mapping.
+  /// zinc's TierInsufficient (RFC7807 type ending in `/v1/tier_insufficient`,
+  /// title "Tier Insufficient") historically arrived with an EMPTY detail, so
+  /// match it explicitly and explain that the plan's habit limit was hit instead
+  /// of leaking a blank or raw server string. (Upgrade CTA sheet: 86ey77mr6.)
+  String _friendly(Problem p) {
+    final type = p.type.toLowerCase();
+    final title = p.title.toLowerCase();
+    if (type.contains('tier_insufficient') ||
+        (title.contains('tier') && title.contains('insufficient'))) {
+      return 'You’ve reached your plan’s habit limit. '
+          'Remove a habit or upgrade your plan to add more.';
+    }
+    return p.displayMessage;
+  }
+
   String? _validate() {
     if (_task.text.trim().isEmpty) return 'Give the habit a name';
     if (_days.isEmpty) return 'Choose at least one day';
@@ -385,7 +401,7 @@ class _HabitEditorViewState extends State<HabitEditorView> {
                 if (_error != null) ...[
                   const SizedBox(height: 12),
                   Text(
-                    _error!.detail ?? _error!.title,
+                    _friendly(_error!),
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.error,
                     ),

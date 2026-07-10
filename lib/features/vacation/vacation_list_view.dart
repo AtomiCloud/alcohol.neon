@@ -56,8 +56,7 @@ class _VacationScaffold extends StatelessWidget {
       body: switch (c.phase) {
         VacationPhase.loading => const AppLoader(),
         VacationPhase.error => _ErrorRetry(
-          message:
-              c.error?.detail ?? c.error?.title ?? 'Could not load vacations',
+          message: c.error?.displayMessage ?? 'Could not load vacations',
           onRetry: c.load,
         ),
         VacationPhase.ready => _List(c: c),
@@ -79,7 +78,7 @@ class _List extends StatelessWidget {
         children: [
           if (c.actionError != null)
             _ActionErrorBanner(
-              message: c.actionError!.detail ?? c.actionError!.title,
+              message: c.actionError!.displayMessage,
               onDismiss: c.clearActionError,
             ),
           if (c.items.isEmpty)

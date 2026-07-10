@@ -145,8 +145,16 @@ class _ProfileViewState extends State<ProfileView> {
     switch (res) {
       case Ok():
         // Account + Logto identity are gone server-side; clear the local session.
-        // RootView swaps to the signed-out shell, disposing this screen.
+        // signOut() flips to unauthenticated up front (its network revocation is
+        // best-effort and benign here — the identity is already purged), which
+        // pops the navigator back to the signed-out shell and disposes this
+        // screen. Deliberately not awaited so the confirmation never stalls
+        // behind the network; the messenger is app-level and outlives this route.
+        final messenger = ScaffoldMessenger.of(context);
         auth.signOut();
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Your account has been deleted.')),
+        );
       case Err(:final problem):
         setState(() {
           _deleting = false;
@@ -298,11 +306,11 @@ class _ProfileViewState extends State<ProfileView> {
         if (_deleteError != null) ...[
           const SizedBox(height: 12),
           Text(
-            _deleteError!.status == 409
-                ? (_deleteError!.detail ??
-                      'You have an outstanding debt. Please settle it before '
-                          'deleting your account.')
-                : (_deleteError!.detail ?? _deleteError!.title),
+            _deleteError!.status == 409 &&
+                    (_deleteError!.detail?.trim().isEmpty ?? true)
+                ? 'You have an outstanding debt. Please settle it before '
+                      'deleting your account.'
+                : _deleteError!.displayMessage,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.error,
             ),

@@ -152,7 +152,7 @@ class _OnboardingViewState extends State<OnboardingView> {
           if (_error != null) ...[
             const SizedBox(height: 12),
             Text(
-              _error!.detail ?? _error!.title,
+              _error!.displayMessage,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.error,
               ),

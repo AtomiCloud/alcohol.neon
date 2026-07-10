@@ -143,7 +143,7 @@ class _DashboardScaffoldState extends State<_DashboardScaffold>
       body: switch (c.phase) {
         DashboardPhase.loading => const AppLoader(),
         DashboardPhase.error => _ErrorRetry(
-          message: c.error?.detail ?? c.error?.title ?? 'Could not load habits',
+          message: c.error?.displayMessage ?? 'Could not load habits',
           onRetry: c.load,
         ),
         DashboardPhase.ready => _Content(c: c),
@@ -168,7 +168,7 @@ class _Content extends StatelessWidget {
         children: [
           if (c.actionError != null)
             _ActionErrorBanner(
-              message: c.actionError!.detail ?? c.actionError!.title,
+              message: c.actionError!.displayMessage,
               onDismiss: c.clearActionError,
             ),
           _BuffersCard(dashboard: c, buffers: buffers),

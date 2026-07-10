@@ -25,14 +25,53 @@ void main() async {
   );
 }
 
-class AlcoholNeonApp extends StatelessWidget {
+class AlcoholNeonApp extends StatefulWidget {
   const AlcoholNeonApp({super.key});
+
+  @override
+  State<AlcoholNeonApp> createState() => _AlcoholNeonAppState();
+}
+
+class _AlcoholNeonAppState extends State<AlcoholNeonApp> {
+  final _navigatorKey = GlobalKey<NavigatorState>();
+  late final AuthService _auth;
+  late AuthStatus _lastStatus;
+
+  @override
+  void initState() {
+    super.initState();
+    // One-time attach: the AuthService instance is created once in main() and
+    // never replaced, and read() registers no dependency anyway.
+    _auth = context.read<AuthService>();
+    _auth.addListener(_onAuthChanged);
+    _lastStatus = _auth.status;
+  }
+
+  @override
+  void dispose() {
+    _auth.removeListener(_onAuthChanged);
+    super.dispose();
+  }
+
+  /// When the session ends, RootView swaps to the signed-out shell — but that
+  /// swap happens *underneath* any routes pushed on the root navigator (profile,
+  /// habit editor, vacations, …). Pop back to the first route so the signed-out
+  /// experience is actually visible, whatever screen the user was on.
+  void _onAuthChanged() {
+    final status = _auth.status;
+    if (_lastStatus == AuthStatus.authenticated &&
+        status != AuthStatus.authenticated) {
+      _navigatorKey.currentState?.popUntil((r) => r.isFirst);
+    }
+    _lastStatus = status;
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'LazyTax',
       debugShowCheckedModeBanner: false,
+      navigatorKey: _navigatorKey,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: ThemeMode.system,

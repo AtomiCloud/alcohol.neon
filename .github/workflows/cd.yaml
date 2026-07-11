@@ -1,11 +1,11 @@
 name: CD
 
-# Stamp, sign, and publish the 3 flavors on every v*.*.* tag — iOS → TestFlight,
-# Android → Play internal; promotion to the public stores stays manual. The
-# donors job pulls the CI-built artifacts for the tagged commit so the platform
-# jobs usually only stamp + publish; if a donor is missing they build themselves
-# (fallback). A manual dispatch smoke-tests a single flavor.
-# See docs/github-actions-release.md.
+# Release the 3 flavors on every v*.*.* tag — iOS → TestFlight, Android → Play
+# internal; promotion to the public stores stays manual. Shape: one donor build
+# per platform (in parallel), staged as run artifacts, then one small publish
+# job per landscape (download → stamp → upload, also parallel) — a failed
+# upload retries in minutes without rebuilding. A manual dispatch smoke-tests a
+# single flavor. See docs/github-actions-release.md.
 
 on:
   push:
@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
     inputs:
       flavor:
-        description: Flavor to build (manual runs only)
+        description: Flavor to publish (manual runs only)
         type: choice
         default: pichu
         options: [pichu, pikachu, raichu]
@@ -25,7 +25,6 @@ concurrency:
 
 permissions:
   contents: read
-  actions: read
 
 jobs:
   # All 3 flavors on a tag, just the chosen one on a manual run — filtered in the
@@ -35,7 +34,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set.outputs.matrix }}
-      landscapes: ${{ steps.set.outputs.landscapes }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -44,93 +42,37 @@ jobs:
         env:
           EVENT: ${{ github.event_name }}
           SEL: ${{ github.event.inputs.flavor }}
-        run: |
-          set -euo pipefail
-          MATRIX=$(./scripts/ci/cd-matrix.sh)
-          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
-          # Each platform runs as ONE job that stamps every landscape
-          # (build-once model) and takes the flat list instead of the matrix.
-          echo "landscapes=$(echo "$MATRIX" | jq -r '[.include[].flavor] | join(" ")')" >> "$GITHUB_OUTPUT"
+        run: echo "matrix=$(./scripts/ci/cd-matrix.sh)" >> "$GITHUB_OUTPUT"
 
-  # Await CI's donor artifacts for this exact commit on a cheap runner, then
-  # re-publish them into this run — so the expensive macOS runner never idles
-  # waiting on CI. A missing/failed donor degrades to `found: false` and the
-  # platform job builds for itself.
-  donors:
-    name: Await CI donors
-    runs-on: ubuntu-latest
-    outputs:
-      ios: ${{ steps.fetch.outputs.ios }}
-      android: ${{ steps.fetch.outputs.android }}
-    steps:
-      - id: fetch
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          fetch_donor() {
-            local name=$1
-            local deadline=$((SECONDS + 1800)) id ci_status
-            while :; do
-              id=$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?name=$name&per_page=100" \
-                --jq "[.artifacts[] | select(.workflow_run.head_sha==\"$GITHUB_SHA\" and .expired==false)] | sort_by(.created_at) | reverse | .[0].id" 2>/dev/null || true)
-              if [ -n "$id" ] && [ "$id" != "null" ]; then
-                gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$id/zip" >"$name.zip"
-                mkdir -p "$name" && unzip -o -qq "$name.zip" -d "$name"
-                echo "$name: artifact $id"
-                return 0
-              fi
-              # Keep polling only while a CI run for this commit is still going.
-              ci_status=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$GITHUB_SHA&per_page=100" \
-                --jq '[.workflow_runs[] | select(.path==".github/workflows/ci.yaml")] | sort_by(.created_at) | reverse | .[0].status' 2>/dev/null || true)
-              case "$ci_status" in
-                queued | in_progress | waiting | pending | requested) ;;
-                *)
-                  echo "$name: no donor (CI status: ${ci_status:-none}) — platform job will build"
-                  return 1
-                  ;;
-              esac
-              if [ "$SECONDS" -ge "$deadline" ]; then
-                echo "$name: timed out waiting on CI — platform job will build"
-                return 1
-              fi
-              sleep 30
-            done
-          }
-          for platform in ios android; do
-            if fetch_donor "donor-$platform"; then
-              echo "$platform=true" >>"$GITHUB_OUTPUT"
-            else
-              echo "$platform=false" >>"$GITHUB_OUTPUT"
-            fi
-          done
-      - uses: actions/upload-artifact@v4
-        if: steps.fetch.outputs.ios == 'true'
-        with:
-          name: cd-donor-ios
-          path: donor-ios/
-      - uses: actions/upload-artifact@v4
-        if: steps.fetch.outputs.android == 'true'
-        with:
-          name: cd-donor-android
-          path: donor-android/
-
-  # One job per platform: stamp + publish every landscape from the donor
-  # (scripts/ci/stamp-ios.sh / stamp-android.sh), building only as fallback.
-  ios:
-    name: iOS
-    needs: [setup, donors]
-    uses: ./.github/workflows/⚡reusable-cd-ios.yaml
-    with:
-      landscapes: ${{ needs.setup.outputs.landscapes }}
-      donor: ${{ needs.donors.outputs.ios == 'true' }}
+  build-ios:
+    name: Build
+    uses: ./.github/workflows/⚡reusable-build-ios.yaml
     secrets: inherit
 
-  android:
-    name: Android
-    needs: [setup, donors]
-    uses: ./.github/workflows/⚡reusable-cd-android.yaml
+  build-android:
+    name: Build
+    uses: ./.github/workflows/⚡reusable-build-android.yaml
+    secrets: inherit
+
+  publish-ios:
+    name: Publish iOS
+    needs: [setup, build-ios]
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
+    uses: ./.github/workflows/⚡reusable-publish-ios.yaml
     with:
-      landscapes: ${{ needs.setup.outputs.landscapes }}
-      donor: ${{ needs.donors.outputs.android == 'true' }}
+      flavor: ${{ matrix.flavor }}
+    secrets: inherit
+
+  publish-android:
+    name: Publish Android
+    needs: [setup, build-android]
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
+    uses: ./.github/workflows/⚡reusable-publish-android.yaml
+    with:
+      flavor: ${{ matrix.flavor }}
+      package-name: ${{ matrix.package_name }}
     secrets: inherit

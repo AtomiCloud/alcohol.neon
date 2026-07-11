@@ -1,0 +1,54 @@
+name: ⚡ Reusable Donor iOS
+
+# Build the signed donor IPA (raichu, placeholder version fields) on every main
+# push and upload it as the `donor-ios` artifact — CD pulls it by commit SHA at
+# tag time and only stamps + publishes (scripts/ci/stamp-ios.sh). Secrets come
+# from the caller via `secrets: inherit`. See docs/github-actions-release.md.
+
+on:
+  workflow_call: {}
+
+jobs:
+  donor:
+    name: Donor iOS
+    runs-on:
+      - nscloud-macos-sequoia-arm64-6x14-with-cache
+      - nscloud-cache-size-50gb
+      - nscloud-cache-tag-atomi-nix-darwin-cache
+    timeout-minutes: 60
+    env:
+      BUILD_ONLY: '1'
+      LANDSCAPES: ''
+      # codemagic-cli-tools reads these by convention.
+      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.APP_STORE_CONNECT_KEY_IDENTIFIER }}
+      APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+      CERTIFICATE_PRIVATE_KEY: ${{ secrets.CERTIFICATE_PRIVATE_KEY }}
+    steps:
+      # On macOS, setup-nix serves nix from a file:// cache on the Namespace cache
+      # volume — requires the -with-cache runner labels above.
+      - uses: AtomiCloud/actions.setup-nix@v3
+
+      # Must run after checkout (done by setup-nix).
+      - uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          path: |
+            ~/.pub-cache
+            ~/.cocoapods
+
+      # App Store Connect requires the newest SDK; the runner's default Xcode is older.
+      - name: Select newest Xcode
+        run: |
+          set -euo pipefail
+          XCODE=$(printf '%s\n' /Applications/Xcode*.app | sort -V | tail -1)
+          echo "Selected $XCODE"
+          echo "DEVELOPER_DIR_OVERRIDE=$XCODE/Contents/Developer" >> "$GITHUB_ENV"
+
+      - name: Build donor IPA
+        run: nix develop .#cd-ios -c ./scripts/ci/cd-ios.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: donor-ios
+          path: build/ios/ipa/*.ipa
+          if-no-files-found: error

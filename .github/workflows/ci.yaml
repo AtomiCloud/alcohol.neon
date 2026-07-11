@@ -1,6 +1,9 @@
 name: CI
 on:
   push:
+  # Manual runs let a branch build donors so a cd.yaml dispatch on the same
+  # commit can smoke-test the donor-pull path pre-merge.
+  workflow_dispatch:
 jobs:
   precommit:
     name: Pre-Commit
@@ -9,4 +12,18 @@ jobs:
   test:
     name: Test
     uses: ./.github/workflows/⚡reusable-test.yaml
+    secrets: inherit
+  # Donor builds: the release artifacts minus identity/version, built once per
+  # main commit so the tag-triggered CD only stamps + publishes
+  # (docs/github-actions-release.md). Main pushes only — every feat/fix merge
+  # releases anyway, so this adds no builds where it matters.
+  donor-ios:
+    name: Donor iOS
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/⚡reusable-donor-ios.yaml
+    secrets: inherit
+  donor-android:
+    name: Donor Android
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/⚡reusable-donor-android.yaml
     secrets: inherit

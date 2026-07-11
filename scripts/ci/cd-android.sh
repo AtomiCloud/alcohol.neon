@@ -1,10 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Builds ONE Android release AAB (raichu — the artifact is landscape-agnostic
-# apart from packaging, see scripts/ci/stamp-android.sh), then stamps it into
-# each requested landscape's release AAB. Runs inside `nix develop .#cd-android`.
-# See docs/github-actions-release.md.
+# Android half of the build-once/stamp-per-landscape CD model (see
+# scripts/ci/stamp-android.sh). Three modes, driven by env:
+#
+#   BUILD_ONLY=1   build the donor AAB and stop (CI donor job — needs no
+#                  signing secrets; the donor is debug-signed and every
+#                  landscape is re-signed at stamp time anyway)
+#   DONOR_AAB=...  skip the build and stamp from this AAB (CD found a CI donor
+#                  for the tagged commit)
+#   (neither)      build + stamp — the self-contained fallback
+#
+# Runs inside `nix develop .#cd-android`. See docs/github-actions-release.md.
 #
 # Env:
 #   LANDSCAPES                              space-separated landscapes to stamp
@@ -15,41 +22,63 @@ set -euo pipefail
 #   GITHUB_WORKSPACE                        repo root
 #   GITHUB_REF_TYPE / GITHUB_REF_NAME       version name = tag (v1.2.3 -> 1.2.3) on a tag build
 #
-# Outputs: build/app/outputs/stamped/<landscape>.aab per landscape.
+# Outputs: build/app/outputs/stamped/<landscape>.aab per landscape (stamp modes),
+#          build/app/outputs/bundle/raichuRelease/*.aab (BUILD_ONLY).
 
 # key.properties is the existing release-signing path in android/app/build.gradle.kts.
-KS="$GITHUB_WORKSPACE/android/app/upload-keystore.jks"
-echo "$ANDROID_KEYSTORE_BASE64" | base64 -d >"$KS"
-cat >"$GITHUB_WORKSPACE/android/key.properties" <<EOF
+# Skipped when no keystore is provided (BUILD_ONLY in CI) — gradle then
+# debug-signs the donor, which stamping re-signs with the upload key later.
+if [ -n "${ANDROID_KEYSTORE_BASE64:-}" ]; then
+  KS="$GITHUB_WORKSPACE/android/app/upload-keystore.jks"
+  echo "$ANDROID_KEYSTORE_BASE64" | base64 -d >"$KS"
+  cat >"$GITHUB_WORKSPACE/android/key.properties" <<EOF
 storeFile=$KS
 storePassword=$ANDROID_KEYSTORE_PASSWORD
 keyAlias=$ANDROID_KEY_ALIAS
 keyPassword=$ANDROID_KEY_PASSWORD
 EOF
-export ANDROID_KEYSTORE_PATH="$KS"
+  export ANDROID_KEYSTORE_PATH="$KS"
+fi
 
-# GRADLE_USER_HOME is the only properties scope that reaches the flutter_tools included
-# build (its KGP 2.0.x has a daemon-startup race, KT-69929 — in-process avoids the daemon
-# entirely), and it overrides the project's dev-sized -Xmx8G, which doesn't fit the 8 GB
-# runner. Full story: docs/github-actions-release.md.
-mkdir -p "$HOME/.gradle"
-cat >>"$HOME/.gradle/gradle.properties" <<'EOF'
+if [ -z "${DONOR_AAB:-}" ]; then
+  # GRADLE_USER_HOME is the only properties scope that reaches the flutter_tools included
+  # build (its KGP 2.0.x has a daemon-startup race, KT-69929 — in-process avoids the daemon
+  # entirely), and it overrides the project's dev-sized -Xmx8G, which doesn't fit the 8 GB
+  # runner. Full story: docs/github-actions-release.md.
+  mkdir -p "$HOME/.gradle"
+  cat >>"$HOME/.gradle/gradle.properties" <<'EOF'
 kotlin.compiler.execution.strategy=in-process
 org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g -XX:ReservedCodeCacheSize=320m
 EOF
 
-flutter pub get
+  flutter pub get
 
-# Version name = release tag (v1.2.3 -> 1.2.3). Dropped on non-tag (manual) runs.
-# The build's versionCode is a placeholder — stamping sets the real one per
-# landscape (each Play app has its own sequence).
-build_args=(--release --flavor raichu --build-number="${GITHUB_RUN_NUMBER:-1}")
-if [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
-  build_args+=(--build-name="${GITHUB_REF_NAME#v}")
+  # The donor's versionCode/versionName are placeholders — stamping sets the
+  # real ones per landscape (version name from the tag, code per Play app).
+  build_args=(--release --flavor raichu --build-number="${GITHUB_RUN_NUMBER:-1}")
+  if [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
+    build_args+=(--build-name="${GITHUB_REF_NAME#v}")
+  fi
+
+  flutter build appbundle "${build_args[@]}"
+  AAB="build/app/outputs/bundle/raichuRelease/app-raichu-release.aab"
+
+  if [ "${BUILD_ONLY:-}" = "1" ]; then
+    echo "cd-android: donor built ($AAB) — BUILD_ONLY, skipping stamps."
+    exit 0
+  fi
+else
+  AAB="$DONOR_AAB"
+  echo "cd-android: stamping from CI donor $AAB"
 fi
 
-flutter build appbundle "${build_args[@]}"
-AAB="build/app/outputs/bundle/raichuRelease/app-raichu-release.aab"
+# Version name = release tag (v1.2.3 -> 1.2.3); empty keeps the donor's
+# (manual/smoke runs). Stamped into every landscape — CI donors are built
+# before the tag exists.
+VERSION_NAME=""
+if [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
+  VERSION_NAME="${GITHUB_REF_NAME#v}"
+fi
 
 # Stamp each landscape. versionCode must top every existing Play release for
 # that package (including the prior Codemagic ones), or Play rejects the
@@ -69,5 +98,5 @@ for landscape in $LANDSCAPES; do
     VERSION_CODE=$RUN_NUMBER
   fi
   ./scripts/ci/stamp-android.sh "$AAB" "$landscape" "$VERSION_CODE" \
-    "build/app/outputs/stamped/$landscape.aab"
+    "build/app/outputs/stamped/$landscape.aab" "$VERSION_NAME"
 done

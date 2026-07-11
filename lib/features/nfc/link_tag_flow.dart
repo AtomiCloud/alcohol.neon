@@ -90,7 +90,10 @@ Future<void> runLinkTagFlow(
       toast('Could not prepare the tag. Try again.');
       return;
     case NfcTagKind.lazytax:
-      if (tagId == null) return;
+      if (tagId == null) {
+        toast('Could not read the tag id. Try scanning again.');
+        return;
+      }
   }
 
   // Already pointing at another of my habits? Ask before stealing it.

@@ -256,7 +256,12 @@ class NfcService {
     }
 
     final id = candidateTagId!;
-    final url = Uri.parse('$base$id');
+    // Tolerate a config value without the trailing slash — '$base$id' would
+    // otherwise silently produce /t<id> instead of /t/<id>.
+    final baseStr = '$base';
+    final url = Uri.parse(
+      baseStr.endsWith('/') ? '$baseStr$id' : '$baseStr/$id',
+    );
     await ndef.write(NdefMessage([NdefRecord.createUri(url)]));
     // Permanent, deliberate: a locked tag can't be hijacked with a different
     // URL. Re-linking to another habit never needs a rewrite (zinc-side remap).

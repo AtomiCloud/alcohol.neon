@@ -28,7 +28,9 @@ class _TapCompleteViewState extends State<TapCompleteView> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _run());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _run();
+    });
   }
 
   Future<void> _run() async {

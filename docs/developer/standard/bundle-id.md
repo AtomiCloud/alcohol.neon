@@ -97,11 +97,13 @@ else is non-interactive.
 1. The App Group `group.<app bundle id>` exists in the project's portal team.
 2. Every signing target discovered from the Xcode project (app + all
    extensions, `.tests` excluded) has an App ID.
-3. Each of those App IDs has the **App Groups capability** enabled; the **main
-   app id** additionally gets **NFC Tag Reading** and **Associated Domains**
-   (NFC habit tags + `/t/*` Universal Links). No other service — anything new
-   (Push, HealthKit, …) is another `enable_services` flag in the script and an
-   update to this list.
+3. Each App ID has **exactly the capabilities declared for its module in
+   `lpsm.yaml`'s `capabilities:` map** — the Developer portal is IaC'd from
+   that file (values are fastlane `produce enable_services` flag names, so any
+   Apple service fastlane supports can be declared). Enable-only: deleting a
+   declaration does NOT disable the capability in the portal — do that
+   manually. Every capability change needs a `pls register` re-run: profiles
+   embed the capability list, and step 5 rotates them.
 4. The App Group is associated with each App ID.
 5. Every pre-existing App Store provisioning profile for those bundle ids is
    **deleted** (profiles never gain entitlements retroactively; the next CD run

@@ -327,21 +327,24 @@ for L in "${LANDSCAPES[@]}"; do
 
     ensure "App ID $bundle_id" \
       fastlane produce -a "$bundle_id" --app_name "$name" --skip_itc
-    run "  App Groups capability on $bundle_id" \
-      fastlane produce enable_services --app-group -a "$bundle_id"
+
+    # Capabilities are IaC: lpsm.yaml's `capabilities.<module>` declares the
+    # full set as fastlane `produce enable_services` flag names, applied
+    # verbatim. Enable-only — removing a declaration does not disable the
+    # capability in the portal. Profiles embed the capability list, so any
+    # change here relies on the rotation step below to reach signatures.
+    caps=$(yq ".capabilities.\"$module\" // [] | .[]" "$LPSM")
+    if [ -z "$caps" ]; then
+      echo "  ✗ no capabilities declared for module '$module' in lpsm.yaml" >&2
+      exit 1
+    fi
+    while IFS= read -r cap; do
+      run "  capability --$cap on $bundle_id" \
+        fastlane produce enable_services "--$cap" -a "$bundle_id"
+    done <<<"$caps"
+
     run "  associate $GROUP" \
       fastlane produce associate_group -a "$bundle_id" "$GROUP"
-
-    # NFC habit tags: the main app (not the widget) scans tags and handles
-    # /t/* Universal Links, so it needs these two extra capabilities. After
-    # enabling, provisioning profiles must be regenerated (they embed the
-    # capability list).
-    if [ "$bundle_id" = "$app_bundle_id" ]; then
-      run "  NFC Tag Reading capability on $bundle_id" \
-        fastlane produce enable_services --nfc-tag-reading -a "$bundle_id"
-      run "  Associated Domains capability on $bundle_id" \
-        fastlane produce enable_services --associated-domains -a "$bundle_id"
-    fi
   done <<<"$targets"
 
   # The store app record (main app only — extensions ship inside the app).

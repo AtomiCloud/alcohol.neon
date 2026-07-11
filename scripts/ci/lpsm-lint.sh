@@ -79,6 +79,20 @@ while IFS= read -r l; do
     err "lpsm.yaml landscape '$l' has no app target in the Xcode project"
 done <<<"$release_landscapes"
 
+# 6. Capabilities IaC: every signable module in the Xcode project must have a
+# capabilities declaration in lpsm.yaml, and it must include app-group (the
+# LPSM grammar gives every module an App Group; register associates it).
+first_landscape=$(head -1 <<<"$release_landscapes")
+while IFS= read -r id; do
+  module=${id#cloud.atomi."$first_landscape"."$P"."$S".}
+  caps=$(yq ".capabilities.\"$module\" // [] | .[]" "$LPSM")
+  if [ -z "$caps" ]; then
+    err "lpsm.yaml: no capabilities declared for module '$module'"
+  elif ! grep -qx "app-group" <<<"$caps"; then
+    err "lpsm.yaml: capabilities for module '$module' must include app-group"
+  fi
+done < <(sed -n "s/^[[:space:]]*PRODUCT_BUNDLE_IDENTIFIER = \(cloud\.atomi\.$first_landscape\.[a-z0-9.]*\);$/\1/p" "$PBXPROJ" | grep -v '\.tests$' | sort -u)
+
 if [ "$fail" -eq 0 ]; then
   echo "lpsm-lint: OK — all store identifiers derive from lpsm.yaml"
 fi

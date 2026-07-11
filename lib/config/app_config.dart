@@ -33,6 +33,11 @@ class AppConfig {
   /// Airwallex native SDK environment (`demo` for dev, `production` for stage/prod).
   final Environment airwallexEnv;
 
+  /// Base URL written onto physical NFC habit tags (`<base><tagId>`), and the
+  /// URL shape the deep-link handler recognizes. Always the prod web domain —
+  /// its AASA/assetlinks list every flavor, so any landscape's app opens tags.
+  final Uri nfcTagBaseUrl;
+
   final String redirectUri;
   final List<String> scopes;
 
@@ -43,6 +48,7 @@ class AppConfig {
     required this.logtoAppId,
     required this.zincResource,
     required this.airwallexEnv,
+    required this.nfcTagBaseUrl,
     this.redirectUri = 'cloud.atomi.lapras.alcohol.neon.app://callback',
     this.scopes = const [
       'openid',
@@ -122,6 +128,10 @@ class AppConfig {
     final appId = dAppId.isEmpty ? '${m['logtoAppId']}' : dAppId;
     final resource = dResource == _unset ? '${m['zincResource']}' : dResource;
     final airwallex = dAirwallex.isEmpty ? '${m['airwallexEnv']}' : dAirwallex;
+    const dNfcBase = String.fromEnvironment('NEON_NFC_TAG_BASE_URL');
+    final nfcBase = dNfcBase.isEmpty
+        ? '${m['nfcTagBaseUrl'] ?? 'https://lazytax.club/t/'}'
+        : dNfcBase;
     final scopes =
         (m['scopes'] as List?)?.map((e) => '$e').toList() ?? const <String>[];
 
@@ -132,6 +142,7 @@ class AppConfig {
       logtoAppId: appId,
       zincResource: resource,
       airwallexEnv: _parseAirwallexEnv(airwallex),
+      nfcTagBaseUrl: Uri.parse(nfcBase),
       redirectUri: '${m['redirectUri']}',
       scopes: scopes,
     );

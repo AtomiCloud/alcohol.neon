@@ -28,7 +28,9 @@ set -euo pipefail
 # wired by decoding the fetched profiles.
 #
 # Env:
-#   FASTLANE_USER          Apple ID email (skips the prompt)
+#   FASTLANE_USER          Apple ID email (skips the prompt). Must be an Apple ID
+#                          on the team in lpsm.yaml — accounts outside the team
+#                          fail with "account is in no teams".
 #   FASTLANE_TEAM_ID       Developer-portal team (skips the team menu)
 #   FASTLANE_ITC_TEAM_ID   App Store Connect team (skips the team menu)
 #   NEON_APP_NAME          Override the App Store base name from lpsm.yaml
@@ -325,8 +327,22 @@ for L in "${LANDSCAPES[@]}"; do
 
     ensure "App ID $bundle_id" \
       fastlane produce -a "$bundle_id" --app_name "$name" --skip_itc
-    run "  App Groups capability on $bundle_id" \
-      fastlane produce enable_services --app-group -a "$bundle_id"
+
+    # Capabilities are IaC: lpsm.yaml's `capabilities.<module>` declares the
+    # full set as fastlane `produce enable_services` flag names, applied
+    # verbatim. Enable-only — removing a declaration does not disable the
+    # capability in the portal. Profiles embed the capability list, so any
+    # change here relies on the rotation step below to reach signatures.
+    caps=$(yq ".capabilities.\"$module\" // [] | .[]" "$LPSM")
+    if [ -z "$caps" ]; then
+      echo "  ✗ no capabilities declared for module '$module' in lpsm.yaml" >&2
+      exit 1
+    fi
+    while IFS= read -r cap; do
+      run "  capability --$cap on $bundle_id" \
+        fastlane produce enable_services "--$cap" -a "$bundle_id"
+    done <<<"$caps"
+
     run "  associate $GROUP" \
       fastlane produce associate_group -a "$bundle_id" "$GROUP"
   done <<<"$targets"

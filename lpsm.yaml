@@ -33,3 +33,19 @@ landscapes:
   - name: raichu
     store_suffix: ': Stake Habits'
     apple_id: '6788238999'
+# Apple App ID capabilities per LPSM module — IaC for the Developer portal:
+# `pls register` enables exactly what is declared here, for every landscape.
+# Values are fastlane `produce enable_services` flags (any service fastlane
+# supports: push-notification, sign-in-with-apple, health-kit, …); see
+# `fastlane produce enable_services --help`.
+# Enable-only: deleting a line does NOT disable the capability in the portal —
+# disable it there manually, then re-run `pls register` (profiles must rotate
+# after ANY capability change; register does that automatically).
+capabilities:
+  app:
+    - app-group
+    # NFC habit tags: in-app tag scan + /t/* Universal Links (PR #33).
+    - nfc-tag-reading
+    - associated-domains
+  app.widget:
+    - app-group

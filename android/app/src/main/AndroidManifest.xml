@@ -1,4 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- In-app NFC tag read/write/lock (nfc_manager). required=false so devices
+         without NFC can still install; the feature degrades gracefully. -->
+    <uses-permission android:name="android.permission.NFC" />
+    <uses-feature
+        android:name="android.hardware.nfc"
+        android:required="false" />
     <application
         android:label="${appName}"
         android:name="${applicationName}"
@@ -19,9 +25,37 @@
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
+            <!-- app_links owns deep links; disable Flutter's built-in handler
+                 so /t/* intents aren't consumed before our listener sees them. -->
+            <meta-data
+              android:name="flutter_deeplinking_enabled"
+              android:value="false" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+            <!-- App Links for NFC habit tags (https://lazytax.club/t/{tagId}).
+                 autoVerify checks /.well-known/assetlinks.json on the domain
+                 (served by argon); a verified link opens the app directly. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="lazytax.club"
+                    android:pathPrefix="/t/" />
+            </intent-filter>
+            <!-- A physical tag scan is dispatched as NDEF_DISCOVERED, not VIEW —
+                 without this filter the tap opens the browser instead of the
+                 app. app_links reads intent.data regardless of the action. -->
+            <intent-filter>
+                <action android:name="android.nfc.action.NDEF_DISCOVERED" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data
+                    android:scheme="https"
+                    android:host="lazytax.club"
+                    android:pathPrefix="/t/" />
             </intent-filter>
         </activity>
         <!-- flutter_web_auth_2 callback for Logto sign-in redirect

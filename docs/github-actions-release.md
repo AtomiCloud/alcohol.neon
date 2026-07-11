@@ -30,7 +30,9 @@ the run's artifacts (90 days).
   `scripts/ci/stamp-ios.sh` re-badges per landscape: PlistBuddy patches to app + widget
   Info.plists (bundle ids, display name, icon pointer, App Group, CFBundleVersion,
   CFBundleShortVersionString), the landscape's provisioning profiles embedded,
-  entitlements taken verbatim from those profiles, then `codesign` re-signs appex→app and
+  signing entitlements derived from the donor's own signature (identity bits patched;
+  app-authored values like NFC formats and associated domains carry over — profile
+  entitlements would ship Apple's wildcards), then `codesign` re-signs appex→app and
   a doctor asserts every field plus the signed App Group before upload. Only raichu's
   profiles exist at build time, so `use-profiles`/export see exactly the single-flavor
   setup; each publish job fetches its own landscape's profiles.

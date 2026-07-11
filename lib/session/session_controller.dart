@@ -7,6 +7,7 @@ import '../data/charity_repository.dart';
 import '../data/config_repository.dart';
 import '../data/execution_repository.dart';
 import '../data/habit_repository.dart';
+import '../data/nfc_tag_repository.dart';
 import '../data/payment_repository.dart';
 import '../data/protection_repository.dart';
 import '../data/subscription_repository.dart';
@@ -34,6 +35,7 @@ class SessionController extends ChangeNotifier {
   final ProtectionRepository protections;
   final VacationRepository vacations;
   final SubscriptionRepository subscriptions;
+  final NfcTagRepository nfcTags;
 
   SessionController(AuthService auth) : this._(auth, auth.makeApiClient());
 
@@ -47,7 +49,8 @@ class SessionController extends ChangeNotifier {
       payments = PaymentRepository(api),
       protections = ProtectionRepository(api),
       vacations = VacationRepository(api),
-      subscriptions = SubscriptionRepository(api);
+      subscriptions = SubscriptionRepository(api),
+      nfcTags = NfcTagRepository(api);
 
   SessionPhase _phase = SessionPhase.idle;
   Problem? _error;

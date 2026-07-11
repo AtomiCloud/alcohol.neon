@@ -6,5 +6,16 @@
 	<array>
 		<string>$(NEON_APP_GROUP)</string>
 	</array>
+	<!-- TAG only: App Store validation rejects the legacy NDEF value on
+	     min-iOS >= 13 builds ("NDEF is disallowed"); TAG covers NDEF reading
+	     on modern SDKs. -->
+	<key>com.apple.developer.nfc.readersession.formats</key>
+	<array>
+		<string>TAG</string>
+	</array>
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:lazytax.club</string>
+	</array>
 </dict>
 </plist>

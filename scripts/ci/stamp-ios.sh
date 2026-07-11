@@ -69,9 +69,6 @@ pb() { /usr/libexec/PlistBuddy -c "$1" "$2"; }
 pbq() { /usr/libexec/PlistBuddy -c "$1" "$2" 2>/dev/null || true; }
 
 # --- locate the landscape's profiles (by their baked application-identifier) --
-# find_profile <bundle-id> <dest>: also emits the profile's Entitlements dict
-# to <dest>.entitlements — used verbatim for codesign, so the signature always
-# matches what Apple put in the profile (app group, beta-reports-active, team).
 find_profile() {
   local want=$1 dest=$2 plist appid profile
   plist=$(mktemp)
@@ -82,8 +79,6 @@ find_profile() {
       appid=$(pbq "Print :Entitlements:application-identifier" "$plist")
       if [ "${appid#*.}" = "$want" ]; then
         cp "$profile" "$dest"
-        pb "Print :Entitlements" "$plist" >/dev/null # sanity: dict exists
-        plutil -extract Entitlements xml1 -o "$dest.entitlements" "$plist"
         rm -f "$plist"
         return 0
       fi
@@ -92,6 +87,26 @@ find_profile() {
   rm -f "$plist"
   echo "stamp-ios: no provisioning profile for $want — did cd-ios.sh fetch-signing-files for $LANDSCAPE?" >&2
   return 1
+}
+
+# --- signing entitlements: derived from the donor's own signature -------------
+# The donor was built from the real Xcode project, so its signed entitlements
+# carry every app-authored value (NFC reader formats, associated domains,
+# beta-reports-active, team id, …) exactly as a per-flavor build would. Only
+# the identity bits change per landscape. Profile-verbatim entitlements would
+# instead ship Apple's wildcards (associated-domains = *), which break
+# Universal Links and App Store validation.
+derive_entitlements() {
+  local bundle=$1 out=$2 new_appid=$3 cur seed
+  codesign -d --entitlements - --xml "$bundle" >"$out" 2>/dev/null
+  plutil -lint "$out" >/dev/null || {
+    echo "stamp-ios: could not extract entitlements from $bundle" >&2
+    return 1
+  }
+  cur=$(pb "Print :application-identifier" "$out")
+  seed=${cur%%.*}
+  pb "Set :application-identifier $seed.$new_appid" "$out"
+  pb "Set :com.apple.security.application-groups:0 $GROUP" "$out"
 }
 
 find_profile "$NEW_ID" "$SCRATCH/app.mobileprovision"
@@ -135,8 +150,12 @@ if [ -n "$VERSION_NAME" ]; then pb "Set :CFBundleShortVersionString $VERSION_NAM
 pb "Set :NeonAppGroup $GROUP" "$WINFO"
 
 # --- embed profiles + re-sign inner→outer --------------------------------------
-# Frameworks are untouched (their signatures stay valid); re-signing the outer
-# bundles re-seals the resource envelope that covers them.
+# Entitlements are derived from the donor's ORIGINAL signatures (before any
+# re-sign below). Frameworks are untouched (their signatures stay valid);
+# re-signing the outer bundles re-seals the resource envelope that covers them.
+derive_entitlements "$APPEX" "$SCRATCH/widget.entitlements" "$WIDGET_ID"
+derive_entitlements "$APP" "$SCRATCH/app.entitlements" "$NEW_ID"
+
 cp "$SCRATCH/app.mobileprovision" "$APP/embedded.mobileprovision"
 cp "$SCRATCH/widget.mobileprovision" "$APPEX/embedded.mobileprovision"
 
@@ -147,9 +166,9 @@ IDENTITY=$(security find-identity -v -p codesigning | sed -n 's/.*\([0-9A-F]\{40
 }
 
 codesign --force --sign "$IDENTITY" \
-  --entitlements "$SCRATCH/widget.mobileprovision.entitlements" "$APPEX"
+  --entitlements "$SCRATCH/widget.entitlements" "$APPEX"
 codesign --force --sign "$IDENTITY" \
-  --entitlements "$SCRATCH/app.mobileprovision.entitlements" "$APP"
+  --entitlements "$SCRATCH/app.entitlements" "$APP"
 
 # --- repack (keep Symbols/ SwiftSupport/ etc. from the donor export) ----------
 rm -f "$OUT"
@@ -191,6 +210,13 @@ codesign -d --entitlements :- "$APPEX" 2>/dev/null | grep -qF "$GROUP" || {
   echo "stamp-ios doctor: widget signature lacks App Group $GROUP" >&2
   exit 1
 }
+# App-authored entitlement values must survive the stamp — a profile-derived
+# wildcard (e.g. associated-domains = *) in the app signature breaks Universal
+# Links and App Store validation.
+if codesign -d --entitlements - --xml "$APP" 2>/dev/null | grep -qF "<string>*</string>"; then
+  echo "stamp-ios doctor: wildcard entitlement leaked into the app signature" >&2
+  exit 1
+fi
 # The checks above ran against the extracted tree — also assert the packed IPA
 # itself carries the pieces App Store validation demands.
 PACKED=$(unzip -Z1 "$OUT")

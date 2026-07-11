@@ -5,6 +5,10 @@
 # NEON_LOGTO_APP_ID, NEON_ZINC_RESOURCE, NEON_AIRWALLEX_ENV).
 
 zincBaseUrl: 'http://localhost:9003'
+# Base URL written onto physical NFC habit tags (always the prod web domain —
+# the AASA/assetlinks there list every flavor's app id, so any landscape's app
+# opens the same tag; the tag id then resolves against that app's own zinc).
+nfcTagBaseUrl: 'https://lazytax.club/t/'
 logtoEndpoint: 'http://localhost:3301/'
 logtoAppId: 'REPLACE_WITH_NATIVE_LOGTO_APP_ID'
 zincResource: 'https://api.zinc.alcohol.lapras'

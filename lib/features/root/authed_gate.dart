@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../auth/auth_service.dart';
 import '../../session/session_controller.dart';
 import '../dashboard/dashboard_view.dart';
+import '../nfc/nfc_deep_links.dart';
 import '../onboarding/onboarding_view.dart';
 
 /// Shown once the user is authenticated. Runs the session bootstrap and routes to
@@ -36,7 +37,9 @@ class _AuthedGateState extends State<AuthedGate> {
       case SessionPhase.needsOnboarding:
         return const OnboardingView();
       case SessionPhase.ready:
-        return const DashboardView();
+        // NfcTapListener consumes a pending /t/{tagId} link (NFC tap) once the
+        // session is usable, pushing the tap-to-complete screen.
+        return const NfcTapListener(child: DashboardView());
       case SessionPhase.error:
         return _BootstrapError(session: session);
     }

@@ -80,6 +80,7 @@ void main() {
       logtoAppId: 'a',
       zincResource: 'https://api.zinc.alcohol.pichu',
       airwallexEnv: Environment.demo,
+      nfcTagBaseUrl: Uri.parse('https://lazytax.club/t/'),
     );
     final withoutResource = AppConfig(
       landscape: Landscape.pichu,
@@ -88,6 +89,7 @@ void main() {
       logtoAppId: 'a',
       zincResource: '',
       airwallexEnv: Environment.demo,
+      nfcTagBaseUrl: Uri.parse('https://lazytax.club/t/'),
     );
     expect(withResource.apiResources, ['https://api.zinc.alcohol.pichu']);
     expect(withoutResource.apiResources, isEmpty);

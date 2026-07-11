@@ -12,6 +12,9 @@ let
   ruby-xcodeproj = pkgs-unstable.ruby.withPackages (ps: [ ps.xcodeproj ]);
   androidComposition = pkgs-android.androidenv.composeAndroidPackages {
     platformVersions = [
+      # 31: nfc_manager's compileSdk — gradle can't auto-install into the
+      # read-only nix store, so every plugin's platform must be listed here.
+      "31"
       "33"
       "34"
       "35"

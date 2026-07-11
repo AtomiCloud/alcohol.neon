@@ -85,6 +85,56 @@ Flavorless local builds map to the `lapras` landscape
 | ASC app record + apple_id fill       | `pls register` (rename old apps first)                | Apple ID + 2FA     |
 | Play Console app                     | Manual, once per landscape — no API                   | Human              |
 
+### `pls register` — contract
+
+`pls register [landscape ...]` (default: every landscape in `lpsm.yaml`) runs
+`scripts/register-apple.sh` as a human App Manager/Admin: one interactive
+sign-in (password + one 2FA tap, session cached by fastlane), then everything
+else is non-interactive.
+
+**Postconditions — after a successful run, for each requested landscape:**
+
+1. The App Group `group.<app bundle id>` exists in the project's portal team.
+2. Every signing target discovered from the Xcode project (app + all
+   extensions, `.tests` excluded) has an App ID.
+3. Each of those App IDs has the **App Groups capability** enabled — and only
+   that capability; any other service (Push, HealthKit, …) is a new
+   `enable_services` flag in the script, not covered by this contract.
+4. The App Group is associated with each App ID.
+5. Every pre-existing App Store provisioning profile for those bundle ids is
+   **deleted** (profiles never gain entitlements retroactively; the next CD run
+   re-mints fresh ones via `fetch-signing-files --create` carrying the current
+   entitlements).
+6. The ASC app record exists for the main app id (store name = `app_name` +
+   the landscape's `store_suffix`), and its numeric apple_id is written back
+   into `lpsm.yaml` — review and commit that diff.
+
+**Idempotency:** re-running is always safe. "Already exists" outcomes are
+treated as success; the only repeated side effect is step 5's profile rotation,
+which CD self-heals on its next run.
+
+**Failure semantics (per landscape):**
+
+- _Store name still held by an old app record_ → that landscape is **reported
+  and skipped** (exit stays green for the others); rename the old app in ASC
+  and re-run.
+- _Identifier "not available"_ → it exists in another team or is inside
+  Apple's ~48 h post-deletion reservation → fix there and re-run; the run
+  **fails**.
+- _Your Apple ID lacks portal access to the project team_ → the script
+  **refuses** to register into a foreign team (override:
+  `NEON_ALLOW_FOREIGN_TEAM=1`).
+- _apple_id lookup returns nothing_ (records can lag minutes after creation) →
+  warned, not failed; re-run later or fill `lpsm.yaml` by hand.
+
+**Explicit non-goals:** Google Play Console apps and Logto redirect URIs (no
+APIs exist — manual, see the table above); certificates and profiles
+(CD's `fetch-signing-files --create` owns those); freeing store names held by
+old app records.
+
+**Env knobs:** `FASTLANE_USER` / `FASTLANE_TEAM_ID` / `FASTLANE_ITC_TEAM_ID`
+skip the interactive prompts; `NEON_APP_NAME` overrides the store base name.
+
 **Adding a widget/extension/watch target:** add the target in Xcode with its LPSM
 bundle id, run `pls register` (App Manager Apple ID, one 2FA tap), commit. CI
 discovers the target automatically; the doctor step fails any release where

@@ -10,33 +10,42 @@ merge feat:/fix: to main
   → CI (ci.yaml) green
   → Release (release.yaml) runs semantic-release → cuts tag vX.Y.Z
   → tag push triggers CD (cd.yaml)
-       ├─ ios job     (1 build) → stamp per landscape → TestFlight
-       └─ android job (1 build) → stamp per landscape → Play internal track
+       ├─ build-ios     donor IPA (signed raichu)      ┐ staged as run
+       ├─ build-android donor AAB (debug-signed raichu)┘ artifacts, in parallel
+       ├─ publish-ios     ×3: download → stamp → TestFlight        (parallel)
+       └─ publish-android ×3: download → stamp → Play internal track (parallel)
 ```
 
-- **iOS** runs on a Namespace macOS runner (`nscloud-macos-sequoia-arm64-6x14`, Xcode
-  preinstalled) — **once**. The raichu Release archive is the donor: it compiles every
-  `AppIcon-*` set into `Assets.car` (`ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS`,
-  raichuRelease.xcconfig), and `scripts/ci/stamp-ios.sh` re-badges the IPA per landscape:
-  PlistBuddy patches to app + widget Info.plists (bundle ids, display name, icon pointer,
-  App Group, CFBundleVersion from the landscape's ASC app record), the landscape's
-  provisioning profiles embedded, entitlements taken verbatim from those profiles, then
-  `codesign` re-signs appex→app and a doctor asserts every field plus the signed App Group
-  before upload. Donor profiles are fetched before the build; other landscapes' profiles
-  only after the archive, so `use-profiles`/export see exactly the single-flavor setup.
-- **Android** runs on the standard Namespace Linux runner — **once**. The Dart/native payload is
-  identical across landscapes (bundle-id-as-marker, verified byte-for-byte 2026-07-07), so the job
-  builds one raichu AAB and `scripts/ci/stamp-android.sh` re-badges it per landscape: it patches the
-  protobuf `AndroidManifest.xml` (applicationId — which is also the Logto scheme and the
-  provider-authority prefix — plus label and versionCode) and the resource table's `package_name`
-  via a `protoc` text-format round-trip, swaps the launcher-icon PNGs (release PNG crunch is
-  disabled so repo bytes match AAB bytes 1:1), re-signs with `jarsigner`, and runs a doctor
-  (`bundletool validate` + dump assertions) before anything is uploaded. Never edit inside the
-  resource table's `source_pool` blob — it's a length-prefixed string pool and any width change
-  corrupts it.
-- A small `setup` job resolves the flavor set: **all 3 on a tag**, or **just one** on a
-  manual run — both platform jobs take it as a flat landscape list for their single
-  build-once/stamp run.
+The donor is ONE raichu release build per platform — the compiled payload is
+landscape-agnostic (bundle-id-as-marker, verified byte-for-byte 2026-07-07);
+only packaging differs. Each landscape then gets a small publish job that
+downloads the donor, re-badges it (identity, versionCode from the store query,
+version name from the tag), and uploads. Store uploads run in parallel, and a
+failed upload re-runs in minutes **without rebuilding** — the donor stays in
+the run's artifacts (90 days).
+
+- **iOS** (`nscloud-macos-sequoia-arm64-6x14` runners; the publish jobs are macOS too —
+  codesign). The donor archive compiles every `AppIcon-*` set into `Assets.car`
+  (`ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS`, raichuRelease.xcconfig), and
+  `scripts/ci/stamp-ios.sh` re-badges per landscape: PlistBuddy patches to app + widget
+  Info.plists (bundle ids, display name, icon pointer, App Group, CFBundleVersion,
+  CFBundleShortVersionString), the landscape's provisioning profiles embedded,
+  entitlements taken verbatim from those profiles, then `codesign` re-signs appex→app and
+  a doctor asserts every field plus the signed App Group before upload. Only raichu's
+  profiles exist at build time, so `use-profiles`/export see exactly the single-flavor
+  setup; each publish job fetches its own landscape's profiles.
+- **Android** (Linux runners; the donor build needs no secrets — it debug-signs and every
+  publish job re-signs with the upload key). `scripts/ci/stamp-android.sh` re-badges per
+  landscape: it patches the protobuf `AndroidManifest.xml` (applicationId — which is also
+  the Logto scheme and the provider-authority prefix — plus label, versionCode and
+  versionName) and the resource table's `package_name` via a `protoc` text-format
+  round-trip, swaps the launcher-icon PNGs (release PNG crunch is disabled so repo bytes
+  match AAB bytes 1:1), re-signs with `jarsigner`, and runs a doctor (`bundletool
+validate` + dump assertions) before anything is uploaded. Never edit inside the
+  resource table's `source_pool` blob — it's a length-prefixed string pool and any width
+  change corrupts it.
+- A small `setup` job resolves the publish matrix: **all 3 landscapes on a tag**, or
+  **just one** on a manual run (the donors are always built).
 - **raichu (prod)** uploads to TestFlight / Play **internal** automatically; promotion to the public
   App Store / Play production is **manual** (App Store Connect "Submit"; Play Console "promote").
 
@@ -75,11 +84,12 @@ commit them**.
 ## How signing works (nix-cached toolchain)
 
 Following the ci-cd-workflows convention, `cd.yaml` only resolves the flavor matrix and fans out
-to the per-platform reusable workflows (`⚡reusable-cd-ios.yaml` / `⚡reusable-cd-android.yaml`,
-called with `secrets: inherit`); the imperative build/sign logic lives in
-`scripts/ci/cd-{matrix,ios,android}.sh`, run inside a per-platform nix dev shell so flutter,
-Android SDK, JDK, CocoaPods, GNU rsync, and pipx are all cached (no per-run
-`brew`/`apt`/flutter-action downloads). Caching differs per platform:
+to the per-platform reusable workflows (`⚡reusable-build-{ios,android}.yaml` for the donors,
+`⚡reusable-publish-{ios,android}.yaml` per landscape, called with `secrets: inherit`); the
+imperative build/sign logic lives in `scripts/ci/` (`cd-{matrix,ios,android}.sh`,
+`publish-{ios,android}.sh`, `stamp-{ios,android}.sh`, `lib-ios.sh`), run inside a per-platform
+nix dev shell so flutter, Android SDK, JDK, CocoaPods, GNU rsync, and codemagic-cli-tools are
+all cached (no per-run `brew`/`apt`/flutter-action downloads). Caching differs per platform:
 
 - **Android (Linux):** `AtomiCloud/actions.setup-nix` restores the **shared nix store cache**
   (`nscloud-cache-tag-atomi-nix-store-cache`) — warm runs start with `/nix` already populated.
@@ -94,11 +104,12 @@ Android SDK, JDK, CocoaPods, GNU rsync, and pipx are all cached (no per-run
 
 The shells are defined in `nix/shells.nix`:
 
-- `.#cd-ios` — flutter + CocoaPods + GNU rsync + pipx.
-- `.#cd-android` — flutter + Android SDK + JDK + pipx, with `ANDROID_SDK_ROOT`/`ANDROID_HOME`/`JAVA_HOME`.
+- `.#cd-ios` — flutter + CocoaPods + GNU rsync + codemagic-cli-tools.
+- `.#cd-android` — flutter + Android SDK + JDK + codemagic-cli-tools + protoc + bundletool,
+  with `ANDROID_SDK_ROOT`/`ANDROID_HOME`/`JAVA_HOME`.
 
-`codemagic-cli-tools` is **not** in nixpkgs, so each job installs it with the nix-provided `pipx`
-(`nix develop .#<shell> -c pipx install codemagic-cli-tools`) into `~/.local/bin` (added to `PATH`).
+`codemagic-cli-tools` comes from the AtomiCloud nix registry (v3), so there is no per-run
+pipx install step.
 
 - **iOS** (`nix develop .#cd-ios -c ./scripts/ci/cd-ios.sh`)**:** nix exports a C/C++ stdenv that
   hijacks `xcodebuild`, so the actual `flutter build ipa` is run through `scripts/flutter-ios.sh`,

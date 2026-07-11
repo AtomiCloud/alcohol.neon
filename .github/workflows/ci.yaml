@@ -1,6 +1,9 @@
 name: CI
 on:
   push:
+    # Branches only — a tag push already triggers CD; a duplicate CI run on
+    # the same commit would just re-lint it.
+    branches: ['**']
 jobs:
   precommit:
     name: Pre-Commit

@@ -27,7 +27,10 @@ set -euo pipefail
 #   - the protoc text-format round-trip must never edit inside the source_pool
 #     `data:` blob (length-prefixed string pool — any width change corrupts it).
 
-IN=$1 LANDSCAPE=$2 VERSION_CODE=$3 OUT=$4
+# version-name (optional 5th arg): set when the donor was built before the
+# release tag existed (CI-built donors carry pubspec's version); empty keeps
+# the donor's versionName.
+IN=$1 LANDSCAPE=$2 VERSION_CODE=$3 OUT=$4 VERSION_NAME=${5:-}
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 PROTO_DIR="$ROOT/scripts/ci/proto"
@@ -75,14 +78,20 @@ OLD_LABEL=$(awk '/name: "label"/ { grab = 1 } grab && /value: "/ {
 
 # One pass: swap the applicationId everywhere it appears (package attr, Logto
 # scheme, provider authorities, dynamic-receiver permissions), retag the app
-# label, and rewrite versionCode (its attribute carries the value twice: the
-# raw string and the compiled int).
+# label, rewrite versionCode (its attribute carries the value twice: the raw
+# string and the compiled int), and — when given — versionName (plain string
+# attribute, no compiled twin).
 awk -v old_id="$OLD_ID" -v new_id="$NEW_ID" \
   -v old_label="$OLD_LABEL" -v new_label="$NEW_LABEL" \
-  -v vc="$VERSION_CODE" '
+  -v vc="$VERSION_CODE" -v vn="$VERSION_NAME" '
   /name: "versionCode"/ { in_vc = 1 }
   in_vc && /value: "/            { sub(/value: "[^"]*"/, "value: \"" vc "\"") }
   in_vc && /int_decimal_value: / { sub(/int_decimal_value: [0-9]*/, "int_decimal_value: " vc); in_vc = 0 }
+  /name: "versionName"/ { in_vn = 1 }
+  in_vn && /value: "/ {
+    if (vn != "") sub(/value: "[^"]*"/, "value: \"" vn "\"")
+    in_vn = 0
+  }
   /name: "label"/ { in_label = 1 }
   in_label && /value: "/ {
     if (index($0, "value: \"" old_label "\"")) sub(/value: "[^"]*"/, "value: \"" new_label "\"")
@@ -136,11 +145,14 @@ jarsigner -keystore "$ANDROID_KEYSTORE_PATH" \
 # Assert every stamped field before this artifact goes anywhere near Play.
 bundletool validate --bundle="$OUT" >/dev/null
 DUMP=$(bundletool dump manifest --bundle="$OUT")
-for want in \
-  "package=\"$NEW_ID\"" \
-  "android:versionCode=\"$VERSION_CODE\"" \
-  "android:label=\"$NEW_LABEL\"" \
-  "android:scheme=\"$NEW_ID\""; do
+wants=(
+  "package=\"$NEW_ID\""
+  "android:versionCode=\"$VERSION_CODE\""
+  "android:label=\"$NEW_LABEL\""
+  "android:scheme=\"$NEW_ID\""
+)
+if [ -n "$VERSION_NAME" ]; then wants+=("android:versionName=\"$VERSION_NAME\""); fi
+for want in "${wants[@]}"; do
   grep -qF "$want" <<<"$DUMP" || {
     echo "stamp-android doctor: missing $want" >&2
     exit 1

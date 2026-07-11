@@ -49,10 +49,11 @@ jobs:
     uses: ./.github/workflows/⚡reusable-build-ios.yaml
     secrets: inherit
 
+  # No `secrets: inherit` — the Android donor build is deliberately secret-free
+  # (debug-signed; the publish jobs re-sign with the upload key).
   build-android:
     name: Build
     uses: ./.github/workflows/⚡reusable-build-android.yaml
-    secrets: inherit
 
   publish-ios:
     name: Publish iOS

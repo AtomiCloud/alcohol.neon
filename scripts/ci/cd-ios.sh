@@ -66,6 +66,10 @@ elif [ -d build/ios/archive/Runner.xcarchive ]; then
     -archivePath build/ios/archive/Runner.xcarchive \
     -exportPath build/ios/ipa \
     -exportOptionsPlist "$HOME/export_options.plist"
+  ls build/ios/ipa/*.ipa >/dev/null 2>&1 || {
+    echo "re-export reported success but produced no IPA" >&2
+    exit 1
+  }
 else
   echo "iOS archive was not produced (rc=$build_rc)" >&2
   exit "${build_rc:-1}"

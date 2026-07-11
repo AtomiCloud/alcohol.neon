@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+set -euo pipefail
+
 # Shared iOS CD helpers — sourced by cd-ios.sh (build) and publish-ios.sh
 # (stamp + upload). Requires codemagic-cli-tools + yq (nix cd-ios shell) and
 # the APP_STORE_CONNECT_* / CERTIFICATE_PRIVATE_KEY env.

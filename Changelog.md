@@ -1,3 +1,28 @@
+## [1.12.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.11.0...v1.12.0) (2026-07-11)
+
+
+### 📜 Documentation 📜
+
+* note the team Apple ID in register-apple.sh header ([94e9e88](https://github.com/AtomiCloud/alcohol.neon/commit/94e9e8844ffb57c58a468f9af3489b2285333387))
+* **register:** pin down the pls register contract ([8a58cba](https://github.com/AtomiCloud/alcohol.neon/commit/8a58cbafeced1bb1a6c73650a7079341ad5e64b0))
+* redact personal apple id email from register script comment ([131f1c5](https://github.com/AtomiCloud/alcohol.neon/commit/131f1c5fe8cfa8dd156b2be684c84b982578db8d))
+* refer to lpsm.yaml for the apple team instead of inlining the id ([c83a3f3](https://github.com/AtomiCloud/alcohol.neon/commit/c83a3f376f791126b4d23fed976472a70f2f7530))
+
+
+### ✨ Features ✨
+
+* **register:** declare Apple capabilities in lpsm.yaml (portal IaC) ([aa1c27d](https://github.com/AtomiCloud/alcohol.neon/commit/aa1c27d2d4e53913b4a1b13af1832f60839840ac))
+* NFC habit tags - link, tap-to-complete, inspector ([e7048c0](https://github.com/AtomiCloud/alcohol.neon/commit/e7048c00234cd6145ba55d6979e972085078d722))
+* register enables NFC + Associated Domains on the app id ([ca9af3b](https://github.com/AtomiCloud/alcohol.neon/commit/ca9af3b4830d35e5637a962c5afb8132f8df5a44))
+
+
+### 🐛 Bug Fixes 🐛
+
+* CodeRabbit nits - tag-id toast, base-url slash, mounted guard ([939f287](https://github.com/AtomiCloud/alcohol.neon/commit/939f2873dbd598c48442d4766e55335ddbfb02c5))
+* **ios:** drop legacy NDEF value from the NFC formats entitlement ([4f20a9b](https://github.com/AtomiCloud/alcohol.neon/commit/4f20a9b5273c0e4b30aa44fea5a2a201e8bb9408))
+* NFC review findings - cold-start links + NDEF dispatch ([3df9b70](https://github.com/AtomiCloud/alcohol.neon/commit/3df9b701ebdccb1fc7baf560f3620649c6a30145)), closes [llfbandit/app_links#209](https://github.com/llfbandit/app_links/issues/209) [#253](https://github.com/AtomiCloud/alcohol.neon/issues/253)
+* **ci:** stamp with donor-derived entitlements for NFC capabilities ([f2cffbb](https://github.com/AtomiCloud/alcohol.neon/commit/f2cffbb25d32a33831f328f886ae5772bac98ffb))
+
 ## [1.11.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.10.0...v1.11.0) (2026-07-11)
 
 

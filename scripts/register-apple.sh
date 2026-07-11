@@ -329,6 +329,17 @@ for L in "${LANDSCAPES[@]}"; do
       fastlane produce enable_services --app-group -a "$bundle_id"
     run "  associate $GROUP" \
       fastlane produce associate_group -a "$bundle_id" "$GROUP"
+
+    # NFC habit tags: the main app (not the widget) scans tags and handles
+    # /t/* Universal Links, so it needs these two extra capabilities. After
+    # enabling, provisioning profiles must be regenerated (they embed the
+    # capability list).
+    if [ "$bundle_id" = "$app_bundle_id" ]; then
+      run "  NFC Tag Reading capability on $bundle_id" \
+        fastlane produce enable_services --nfc-tag-reading -a "$bundle_id"
+      run "  Associated Domains capability on $bundle_id" \
+        fastlane produce enable_services --associated-domains -a "$bundle_id"
+    fi
   done <<<"$targets"
 
   # The store app record (main app only — extensions ship inside the app).

@@ -68,7 +68,14 @@ class _TagInspectorViewState extends State<TagInspectorView> {
     }
 
     final tagId = scan.tagId;
-    if (tagId == null || uid == null) return;
+    if (tagId == null || uid == null) {
+      // Never strand the page in "scanning" with a disabled button.
+      setState(() {
+        _phase = _Phase.error;
+        _problem = Problem.local('Scan failed', type: 'neon:nfc');
+      });
+      return;
+    }
     setState(() => _tagId = tagId);
 
     final resolved = await session.nfcTags.resolve(uid, tagId);
@@ -116,12 +123,29 @@ class _TagInspectorViewState extends State<TagInspectorView> {
     }
   }
 
-  void _complete() {
+  Future<void> _complete() async {
     final tagId = _tagId;
     if (tagId == null) return;
-    Navigator.of(
+    await Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (_) => TapCompleteView(tagId: tagId)));
+    if (!mounted) return;
+    // Re-resolve so the card reflects the completion instead of still
+    // offering "Complete now".
+    await _refreshResolution();
+  }
+
+  Future<void> _refreshResolution() async {
+    final session = context.read<SessionController>();
+    final uid = session.userId;
+    final tagId = _tagId;
+    if (uid == null || tagId == null) return;
+    final resolved = await session.nfcTags.resolve(uid, tagId);
+    if (!mounted) return;
+    if (resolved case Ok(:final value)) {
+      setState(() => _resolution = value);
+    }
+    // A failed refresh keeps the previous card — the action itself succeeded.
   }
 
   @override

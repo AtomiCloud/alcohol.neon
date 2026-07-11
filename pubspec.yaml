@@ -68,8 +68,10 @@ dependencies:
   # 4.x split into nfc_manager_ndef + ndef_record; 3.x is the stable
   # single-package API (Ndef.from / cachedMessage / write / writeLock).
   nfc_manager: ^3.5.0
-  # Universal/App Links (lazytax.club/t/{tagId} → tap-to-complete).
-  app_links: ^6.4.0
+  # Universal/App Links (lazytax.club/t/{tagId} → tap-to-complete). ≥7.0 is
+  # required: this app uses the UIScene lifecycle (SceneDelegate), and 6.x
+  # never receives cold-start links under it (llfbandit/app_links#209/#253).
+  app_links: ^7.0.0
 
 # Pin path_provider_foundation below the version that adopted Flutter's experimental
 # native-assets/FFI (objective_c), which doesn't build cleanly under the nixpkgs Flutter

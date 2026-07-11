@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/problem.dart';
 import '../../data/nfc_tag_repository.dart';
 import '../../session/session_controller.dart';
+import 'habit_schedule.dart';
 
 /// Landing screen for a tag tap (plan Flow 2): resolve the tag, then either
 /// complete the habit or explain today's state. Repeat taps are idempotent —
@@ -38,7 +39,18 @@ class _TapCompleteViewState extends State<TapCompleteView> {
 
     final session = context.read<SessionController>();
     final uid = session.userId;
-    if (uid == null) return; // authed shell guarantees this in practice
+    if (uid == null) {
+      // Shouldn't happen inside the authed shell — but never leave a spinner.
+      setState(() {
+        _phase = _Phase.error;
+        _problem = Problem.local(
+          'Not signed in',
+          status: 401,
+          type: 'neon:auth',
+        );
+      });
+      return;
+    }
 
     final resolved = await session.nfcTags.resolve(uid, widget.tagId);
     if (!mounted) return;
@@ -92,10 +104,10 @@ class _TapCompleteViewState extends State<TapCompleteView> {
     }
 
     // Not on today's schedule → friendly status instead of a rogue completion.
-    final weekday = _weekdayName(DateTime.now().weekday);
+    // "Today" is the server-resolved date in the habit's timezone — the device
+    // clock may sit on a different calendar day (travel, around midnight).
     final days = version.daysOfWeek ?? const [];
-    final scheduledToday = days.any((d) => d.toLowerCase() == weekday);
-    if (!scheduledToday) {
+    if (!scheduledOnDate(days, resolution.today)) {
       setState(() => _phase = _Phase.notScheduled);
       return;
     }
@@ -117,16 +129,6 @@ class _TapCompleteViewState extends State<TapCompleteView> {
         }
     }
   }
-
-  static String _weekdayName(int weekday) => const [
-    'monday',
-    'tuesday',
-    'wednesday',
-    'thursday',
-    'friday',
-    'saturday',
-    'sunday',
-  ][weekday - 1];
 
   @override
   Widget build(BuildContext context) {

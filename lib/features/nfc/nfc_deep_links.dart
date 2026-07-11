@@ -13,18 +13,20 @@ import 'tap_complete_view.dart';
 /// sign-in/bootstrap complete, so the link is parked here and consumed by
 /// [NfcTapListener] once the session reaches `ready`.
 class NfcDeepLinkService extends ChangeNotifier {
-  final AppLinks _appLinks;
+  /// Injectable for tests; defaults to the platform stream, which (app_links
+  /// ≥6) also replays the link that launched the app, so cold and warm starts
+  /// take the same path.
+  final Stream<Uri> Function() _links;
   StreamSubscription<Uri>? _sub;
   String? _pendingTagId;
 
-  NfcDeepLinkService({AppLinks? appLinks}) : _appLinks = appLinks ?? AppLinks();
+  NfcDeepLinkService({Stream<Uri> Function()? links})
+    : _links = links ?? (() => AppLinks().uriLinkStream);
 
   String? get pendingTagId => _pendingTagId;
 
-  /// Starts listening. `uriLinkStream` (app_links ≥6) also replays the link
-  /// that launched the app, so cold and warm starts take the same path.
   void start(Uri nfcTagBase) {
-    _sub ??= _appLinks.uriLinkStream.listen((uri) {
+    _sub ??= _links().listen((uri) {
       final tagId = tagIdFromUri(uri, nfcTagBase);
       if (tagId == null) return;
       _pendingTagId = tagId;
@@ -79,7 +81,9 @@ class _NfcTapListenerState extends State<NfcTapListener> {
             MaterialPageRoute(builder: (_) => TapCompleteView(tagId: tagId)),
           );
         }
-        if (mounted) _navigating = false;
+        // setState, not a bare assignment: a link that arrived *while* we were
+        // navigating is parked in the service, and only a rebuild re-checks it.
+        if (mounted) setState(() => _navigating = false);
       });
     }
 

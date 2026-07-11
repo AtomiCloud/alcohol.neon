@@ -88,14 +88,44 @@ class NfcService {
     );
 
     final completer = Completer<Result<NfcScanResult>>();
-    Future<void> finish(Result<NfcScanResult> result) async {
+
+    // stop=false when iOS already invalidated the session (onError) — calling
+    // stopSession again would throw. stopSession itself is wrapped anyway:
+    // double-stops are harmless on both platforms, but never fatal here.
+    Future<void> finish(
+      Result<NfcScanResult> result, {
+      bool stop = true,
+    }) async {
       if (completer.isCompleted) return;
-      // iOS: the system sheet shows the success/error text; Android ignores it.
-      switch (result) {
-        case Ok():
-          await NfcManager.instance.stopSession(alertMessage: 'Done');
-        case Err(:final problem):
-          await NfcManager.instance.stopSession(errorMessage: problem.title);
+      if (stop) {
+        try {
+          // iOS: the system sheet shows this text; Android ignores it.
+          switch (result) {
+            case Ok(:final value):
+              switch (value.kind) {
+                case NfcTagKind.lazytax:
+                  await NfcManager.instance.stopSession(alertMessage: 'Done');
+                case NfcTagKind.blank:
+                  await NfcManager.instance.stopSession(
+                    alertMessage: 'Empty tag',
+                  );
+                case NfcTagKind.foreignWritable:
+                  await NfcManager.instance.stopSession(
+                    errorMessage: 'Tag has other data',
+                  );
+                case NfcTagKind.unusable:
+                  await NfcManager.instance.stopSession(
+                    errorMessage: 'Tag not usable',
+                  );
+              }
+            case Err(:final problem):
+              await NfcManager.instance.stopSession(
+                errorMessage: problem.title,
+              );
+          }
+        } catch (_) {
+          // Session already gone — nothing to stop.
+        }
       }
       completer.complete(result);
     }
@@ -103,6 +133,20 @@ class NfcService {
     try {
       await NfcManager.instance.startSession(
         alertMessage: 'Hold your iPhone near the tag',
+        // User-cancel / system invalidation only surfaces here — without this
+        // handler a cancelled iOS sheet would hang the flow until [timeout].
+        onError: (NfcError error) async {
+          await finish(
+            Err(
+              Problem.local(
+                'Scan cancelled',
+                type: 'neon:nfc',
+                detail: error.message,
+              ),
+            ),
+            stop: false, // the session is already invalidated
+          );
+        },
         onDiscovered: (NfcTag tag) async {
           try {
             await finish(
@@ -140,14 +184,17 @@ class NfcService {
     return completer.future.timeout(
       timeout,
       onTimeout: () async {
-        await NfcManager.instance.stopSession(errorMessage: 'Timed out');
-        return Err(
+        // Complete through finish() so a tap racing the deadline can't also
+        // complete (and so the session actually stops).
+        final err = Err<NfcScanResult>(
           Problem.local(
             'No tag detected',
             type: 'neon:nfc',
             detail: 'No tag was tapped in time. Try again.',
           ),
         );
+        await finish(err);
+        return err;
       },
     );
   }
@@ -213,6 +260,9 @@ class NfcService {
     await ndef.write(NdefMessage([NdefRecord.createUri(url)]));
     // Permanent, deliberate: a locked tag can't be hijacked with a different
     // URL. Re-linking to another habit never needs a rewrite (zinc-side remap).
+    // Known 3.x limitation: Android's plugin ignores makeReadOnly()'s boolean,
+    // so a tag that refuses locking still reports success — the URL is written
+    // either way; only the tamper-proofing is best-effort there.
     await ndef.writeLock();
     return Ok(NfcScanResult(NfcTagKind.lazytax, tagId: id, provisioned: true));
   }

@@ -12,7 +12,7 @@ PODS:
     - Airwallex (~> 6.4.3)
     - Airwallex/AirwallexWeChatPay (~> 6.4.3)
     - Flutter
-  - app_links (6.4.1):
+  - app_links (7.0.0):
     - Flutter
   - Flutter (1.0.0)
   - flutter_local_notifications (0.0.1):
@@ -88,7 +88,7 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   Airwallex: 9a3948df34af2c445e99e65b8fb49b675d22f4c5
   airwallex_payment_flutter: 7c213f5b449384e78bc3116e36f2a18783e76d4f
-  app_links: 585674be3c6661708e6cd794ab4f39fb9d8356f9
+  app_links: 6d01271b3907b0ee7325c5297c75d697c4226c4d
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   flutter_local_notifications: ff50f8405aaa0ccdc7dcfb9022ca192e8ad9688f
   flutter_secure_storage: d33dac7ae2ea08509be337e775f6b59f1ff45f12

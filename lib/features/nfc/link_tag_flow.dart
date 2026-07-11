@@ -22,7 +22,12 @@ Future<void> runLinkTagFlow(
   final session = context.read<SessionController>();
   final uid = session.userId;
   final messenger = ScaffoldMessenger.of(context);
-  if (uid == null) return;
+  if (uid == null) {
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Sign in again to link a tag.')),
+    );
+    return;
+  }
 
   final nfc = NfcService();
   final base = AppConfig.current.nfcTagBaseUrl;
@@ -89,24 +94,31 @@ Future<void> runLinkTagFlow(
   }
 
   // Already pointing at another of my habits? Ask before stealing it.
-  // (404 = fresh/unclaimed — expected, proceed silently.)
+  // (404 = fresh/unclaimed — expected, proceed silently. Any other failure
+  // aborts: linking blind could silently re-point an existing mapping.)
   if (!scan.provisioned) {
     final resolved = await session.nfcTags.resolve(uid, tagId);
     if (!context.mounted) return;
-    if (resolved case Ok(:final value)) {
-      if (value.tag.habitId == habitId) {
-        toast('This tag already completes "$habitName".');
+    switch (resolved) {
+      case Ok(:final value):
+        if (value.tag.habitId == habitId) {
+          toast('This tag already completes "$habitName".');
+          return;
+        }
+        final relink = await _confirm(
+          context,
+          title: 'Tag already linked',
+          body:
+              'This tag currently completes "${value.habitVersion.task ?? 'another habit'}". '
+              'Re-link it to "$habitName" instead?',
+          confirmLabel: 'Re-link',
+        );
+        if (!context.mounted || !relink) return;
+      case Err(:final problem) when problem.status != 404:
+        toast(problem.detail ?? problem.title);
         return;
-      }
-      final relink = await _confirm(
-        context,
-        title: 'Tag already linked',
-        body:
-            'This tag currently completes "${value.habitVersion.task ?? 'another habit'}". '
-            'Re-link it to "$habitName" instead?',
-        confirmLabel: 'Re-link',
-      );
-      if (!context.mounted || !relink) return;
+      case Err():
+        break; // 404 — unclaimed, proceed
     }
   }
 

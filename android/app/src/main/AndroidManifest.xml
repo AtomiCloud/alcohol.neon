@@ -46,6 +46,17 @@
                     android:host="lazytax.club"
                     android:pathPrefix="/t/" />
             </intent-filter>
+            <!-- A physical tag scan is dispatched as NDEF_DISCOVERED, not VIEW —
+                 without this filter the tap opens the browser instead of the
+                 app. app_links reads intent.data regardless of the action. -->
+            <intent-filter>
+                <action android:name="android.nfc.action.NDEF_DISCOVERED" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data
+                    android:scheme="https"
+                    android:host="lazytax.club"
+                    android:pathPrefix="/t/" />
+            </intent-filter>
         </activity>
         <!-- flutter_web_auth_2 callback for Logto sign-in redirect
              (cloud.atomi.<landscape>.alcohol.neon.app://callback). Must match AppConfig.redirectUri. -->

@@ -9,6 +9,7 @@ import '../../generated/zinc/models/update_habit_req.dart';
 import '../../session/session_controller.dart';
 import '../../theme/app_theme.dart';
 import '../charity/charity_picker.dart';
+import '../nfc/link_tag_flow.dart';
 import '../payment/consent_service.dart';
 import 'stake_sheet.dart';
 
@@ -396,6 +397,24 @@ class _HabitEditorViewState extends State<HabitEditorView> {
                     subtitle: const Text('Pause without deleting'),
                     value: _enabled,
                     onChanged: (v) => setState(() => _enabled = v),
+                  ),
+                  const SizedBox(height: 8),
+                  Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.nfc),
+                      title: const Text('Link NFC tag'),
+                      subtitle: const Text(
+                        'Tap a sticker to complete this habit',
+                      ),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => runLinkTagFlow(
+                        context,
+                        habitId: widget.habitId!,
+                        habitName: _task.text.trim().isEmpty
+                            ? 'this habit'
+                            : _task.text.trim(),
+                      ),
+                    ),
                   ),
                 ],
                 if (_error != null) ...[

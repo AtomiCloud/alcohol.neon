@@ -12,6 +12,8 @@ PODS:
     - Airwallex (~> 6.4.3)
     - Airwallex/AirwallexWeChatPay (~> 6.4.3)
     - Flutter
+  - app_links (6.4.1):
+    - Flutter
   - Flutter (1.0.0)
   - flutter_local_notifications (0.0.1):
     - Flutter
@@ -26,6 +28,8 @@ PODS:
   - in_app_purchase_storekit (0.0.1):
     - Flutter
     - FlutterMacOS
+  - nfc_manager (0.0.1):
+    - Flutter
   - package_info_plus (0.4.5):
     - Flutter
   - path_provider_foundation (0.0.1):
@@ -36,6 +40,7 @@ PODS:
 
 DEPENDENCIES:
   - airwallex_payment_flutter (from `.symlinks/plugins/airwallex_payment_flutter/ios`)
+  - app_links (from `.symlinks/plugins/app_links/ios`)
   - Flutter (from `Flutter`)
   - flutter_local_notifications (from `.symlinks/plugins/flutter_local_notifications/ios`)
   - flutter_secure_storage (from `.symlinks/plugins/flutter_secure_storage/ios`)
@@ -43,6 +48,7 @@ DEPENDENCIES:
   - flutter_web_auth_2 (from `.symlinks/plugins/flutter_web_auth_2/ios`)
   - home_widget (from `.symlinks/plugins/home_widget/ios`)
   - in_app_purchase_storekit (from `.symlinks/plugins/in_app_purchase_storekit/darwin`)
+  - nfc_manager (from `.symlinks/plugins/nfc_manager/ios`)
   - package_info_plus (from `.symlinks/plugins/package_info_plus/ios`)
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
   - url_launcher_ios (from `.symlinks/plugins/url_launcher_ios/ios`)
@@ -54,6 +60,8 @@ SPEC REPOS:
 EXTERNAL SOURCES:
   airwallex_payment_flutter:
     :path: ".symlinks/plugins/airwallex_payment_flutter/ios"
+  app_links:
+    :path: ".symlinks/plugins/app_links/ios"
   Flutter:
     :path: Flutter
   flutter_local_notifications:
@@ -68,6 +76,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/home_widget/ios"
   in_app_purchase_storekit:
     :path: ".symlinks/plugins/in_app_purchase_storekit/darwin"
+  nfc_manager:
+    :path: ".symlinks/plugins/nfc_manager/ios"
   package_info_plus:
     :path: ".symlinks/plugins/package_info_plus/ios"
   path_provider_foundation:
@@ -78,6 +88,7 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   Airwallex: 9a3948df34af2c445e99e65b8fb49b675d22f4c5
   airwallex_payment_flutter: 7c213f5b449384e78bc3116e36f2a18783e76d4f
+  app_links: 585674be3c6661708e6cd794ab4f39fb9d8356f9
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   flutter_local_notifications: ff50f8405aaa0ccdc7dcfb9022ca192e8ad9688f
   flutter_secure_storage: d33dac7ae2ea08509be337e775f6b59f1ff45f12
@@ -85,6 +96,7 @@ SPEC CHECKSUMS:
   flutter_web_auth_2: 06d500582775790a0d4c323222fcb6d7990f9603
   home_widget: fdbbfaa90f06f3022cb57f79678d4d58b9c5e140
   in_app_purchase_storekit: 2342c0a5da86593124d08dd13d920f39a52b273a
+  nfc_manager: d7da7cb781f7744b94df5fe9dbca904ac4a0939e
   package_info_plus: c0502532a26c7662a62a356cebe2692ec5fe4ec4
   path_provider_foundation: 2b6b4c569c0fb62ec74538f866245ac84301af46
   url_launcher_ios: bb13df5870e8c4234ca12609d04010a21be43dfa

@@ -64,6 +64,12 @@ dependencies:
   path_provider: ^2.1.5
   # Lottie loading animation (the sloth loader, shared with argon).
   lottie: ^3.1.2
+  # NFC habit tags: read/write/lock NDEF stickers. Pinned to 3.x deliberately —
+  # 4.x split into nfc_manager_ndef + ndef_record; 3.x is the stable
+  # single-package API (Ndef.from / cachedMessage / write / writeLock).
+  nfc_manager: ^3.5.0
+  # Universal/App Links (lazytax.club/t/{tagId} → tap-to-complete).
+  app_links: ^6.4.0
 
 # Pin path_provider_foundation below the version that adopted Flutter's experimental
 # native-assets/FFI (objective_c), which doesn't build cleanly under the nixpkgs Flutter

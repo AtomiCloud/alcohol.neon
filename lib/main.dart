@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'auth/auth_service.dart';
 import 'config/app_config.dart';
+import 'features/nfc/nfc_deep_links.dart';
 import 'features/root/root_view.dart';
 import 'session/session_controller.dart';
 import 'theme/app_theme.dart';
@@ -18,6 +19,12 @@ void main() async {
         ChangeNotifierProxyProvider<AuthService, SessionController>(
           create: (ctx) => SessionController(ctx.read<AuthService>()),
           update: (ctx, auth, previous) => previous ?? SessionController(auth),
+        ),
+        // Parks /t/{tagId} Universal/App Links until the session is ready
+        // (consumed by NfcTapListener inside the authed shell).
+        ChangeNotifierProvider(
+          create: (_) =>
+              NfcDeepLinkService()..start(AppConfig.current.nfcTagBaseUrl),
         ),
       ],
       child: const AlcoholNeonApp(),

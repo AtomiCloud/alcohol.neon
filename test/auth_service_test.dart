@@ -72,6 +72,7 @@ void main() {
     logtoAppId: 'test-app-id',
     zincResource: '',
     airwallexEnv: Environment.demo,
+    nfcTagBaseUrl: Uri.parse('https://lazytax.club/t/'),
   );
 
   _FakeLogtoClient makeClient({Object? signInError}) => _FakeLogtoClient(

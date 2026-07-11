@@ -6,5 +6,14 @@
 	<array>
 		<string>$(NEON_APP_GROUP)</string>
 	</array>
+	<key>com.apple.developer.nfc.readersession.formats</key>
+	<array>
+		<string>NDEF</string>
+		<string>TAG</string>
+	</array>
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:lazytax.club</string>
+	</array>
 </dict>
 </plist>

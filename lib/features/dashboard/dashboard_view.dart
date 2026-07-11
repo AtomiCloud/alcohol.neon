@@ -8,6 +8,7 @@ import '../../generated/zinc/models/week_status_res.dart';
 import '../../session/session_controller.dart';
 import '../charity/charity_picker.dart';
 import '../habit/habit_editor_view.dart';
+import '../nfc/tag_inspector_view.dart';
 import '../profile/profile_view.dart';
 import '../vacation/vacation_list_view.dart';
 import 'buffers_controller.dart';
@@ -288,6 +289,17 @@ class _BuffersCard extends StatelessWidget {
               trailing: const Icon(Icons.chevron_right),
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const VacationListView()),
+              ),
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+              leading: const Icon(Icons.nfc),
+              title: const Text('NFC tags'),
+              subtitle: const Text('See what a tag is linked to'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const TagInspectorView()),
               ),
             ),
           ],

@@ -70,5 +70,9 @@
       <string>UIInterfaceOrientationLandscapeLeft</string>
       <string>UIInterfaceOrientationLandscapeRight</string>
     </array>
+    <key>NFCReaderUsageDescription</key>
+    <string>LazyTax scans NFC habit tags so a tap can complete the linked habit, and writes new tags when you link one.</string>
+    <key>FlutterDeepLinkingEnabled</key>
+    <false/>
   </dict>
 </plist>

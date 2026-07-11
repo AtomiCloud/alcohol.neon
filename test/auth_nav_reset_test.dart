@@ -27,6 +27,7 @@ final _config = AppConfig(
   logtoAppId: 'app',
   zincResource: '',
   airwallexEnv: Environment.demo,
+  nfcTagBaseUrl: Uri.parse('https://lazytax.club/t/'),
 );
 
 /// Inert Logto client so AuthService never constructs the real SDK client

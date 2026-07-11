@@ -29,8 +29,8 @@ set -euo pipefail
 #
 # Env:
 #   FASTLANE_USER          Apple ID email (skips the prompt). Must be an Apple ID
-#                          on team MNPSXJP9PN — accounts outside the team fail
-#                          with "account is in no teams".
+#                          on the team in lpsm.yaml — accounts outside the team
+#                          fail with "account is in no teams".
 #   FASTLANE_TEAM_ID       Developer-portal team (skips the team menu)
 #   FASTLANE_ITC_TEAM_ID   App Store Connect team (skips the team menu)
 #   NEON_APP_NAME          Override the App Store base name from lpsm.yaml

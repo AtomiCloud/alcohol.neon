@@ -28,9 +28,9 @@ set -euo pipefail
 # wired by decoding the fetched profiles.
 #
 # Env:
-#   FASTLANE_USER          Apple ID email (skips the prompt). The account on
-#                          team MNPSXJP9PN is speedykrab98@gmail.com — other
-#                          personal Apple IDs fail with "account is in no teams".
+#   FASTLANE_USER          Apple ID email (skips the prompt). Must be an Apple ID
+#                          on team MNPSXJP9PN — accounts outside the team fail
+#                          with "account is in no teams".
 #   FASTLANE_TEAM_ID       Developer-portal team (skips the team menu)
 #   FASTLANE_ITC_TEAM_ID   App Store Connect team (skips the team menu)
 #   NEON_APP_NAME          Override the App Store base name from lpsm.yaml

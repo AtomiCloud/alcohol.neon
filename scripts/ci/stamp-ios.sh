@@ -12,7 +12,7 @@ set -euo pipefail
 # re-signed inner→outer with codesign.
 #
 # Usage:
-#   stamp-ios.sh <in.ipa> <landscape> <build-number> <out.ipa>
+#   stamp-ios.sh <in.ipa> <landscape> <build-number> <out.ipa> [version-name]
 #
 # Expects (prepared by cd-ios.sh):
 #   - the landscape's App Store profiles fetched to the standard profile dirs
@@ -20,7 +20,10 @@ set -euo pipefail
 #   - the Apple Distribution certificate in the keychain (keychain
 #     add-certificates), matching those profiles.
 
-IN=$1 LANDSCAPE=$2 BUILD_NUMBER=$3 OUT=$4
+# version-name (optional 5th arg): set when the donor was built before the
+# release tag existed (CI-built donors carry pubspec's version); empty keeps
+# the donor's CFBundleShortVersionString.
+IN=$1 LANDSCAPE=$2 BUILD_NUMBER=$3 OUT=$4 VERSION_NAME=${5:-}
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 LPSM="$ROOT/lpsm.yaml"
@@ -100,6 +103,7 @@ pb "Set :CFBundleIdentifier $NEW_ID" "$INFO"
 pb "Set :CFBundleName $NEW_NAME" "$INFO"
 pbq "Set :CFBundleDisplayName $NEW_NAME" "$INFO"
 pb "Set :CFBundleVersion $BUILD_NUMBER" "$INFO"
+if [ -n "$VERSION_NAME" ]; then pb "Set :CFBundleShortVersionString $VERSION_NAME" "$INFO"; fi
 pb "Set :NeonAppGroup $GROUP" "$INFO"
 # Re-point every icon reference from the donor's set to this landscape's
 # (Assets.car carries all sets — see raichuRelease.xcconfig).
@@ -109,7 +113,7 @@ for keypath in \
   ":CFBundleIcons~ipad:CFBundlePrimaryIcon:CFBundleIconName" \
   ":CFBundleIconName"; do
   cur=$(pbq "Print $keypath" "$INFO")
-  [ -n "$cur" ] && pb "Set $keypath AppIcon-$LANDSCAPE" "$INFO"
+  if [ -n "$cur" ]; then pb "Set $keypath AppIcon-$LANDSCAPE" "$INFO"; fi
 done
 # CFBundleIconFiles entries keep the donor prefix (e.g. AppIcon-raichu60x60).
 for icons in ":CFBundleIcons" ":CFBundleIcons~ipad"; do
@@ -126,6 +130,8 @@ done
 WINFO="$APPEX/Info.plist"
 pb "Set :CFBundleIdentifier $WIDGET_ID" "$WINFO"
 pb "Set :CFBundleVersion $BUILD_NUMBER" "$WINFO"
+# ASC requires the extension's short version to match the app's.
+if [ -n "$VERSION_NAME" ]; then pb "Set :CFBundleShortVersionString $VERSION_NAME" "$WINFO"; fi
 pb "Set :NeonAppGroup $GROUP" "$WINFO"
 
 # --- embed profiles + re-sign inner→outer --------------------------------------
@@ -153,12 +159,20 @@ OUT_ABS=$(cd "$(dirname "$OUT")" && pwd)/$(basename "$OUT")
 # --- doctor --------------------------------------------------------------------
 # Assert every stamped field before this artifact goes anywhere near TestFlight.
 codesign --verify --deep --strict "$APP"
-for check in \
-  "CFBundleIdentifier=$NEW_ID=$INFO" \
-  "CFBundleVersion=$BUILD_NUMBER=$INFO" \
-  "NeonAppGroup=$GROUP=$INFO" \
-  "CFBundleIdentifier=$WIDGET_ID=$WINFO" \
-  "NeonAppGroup=$GROUP=$WINFO"; do
+checks=(
+  "CFBundleIdentifier=$NEW_ID=$INFO"
+  "CFBundleVersion=$BUILD_NUMBER=$INFO"
+  "NeonAppGroup=$GROUP=$INFO"
+  "CFBundleIdentifier=$WIDGET_ID=$WINFO"
+  "NeonAppGroup=$GROUP=$WINFO"
+)
+if [ -n "$VERSION_NAME" ]; then
+  checks+=(
+    "CFBundleShortVersionString=$VERSION_NAME=$INFO"
+    "CFBundleShortVersionString=$VERSION_NAME=$WINFO"
+  )
+fi
+for check in "${checks[@]}"; do
   key=${check%%=*}
   rest=${check#*=}
   want=${rest%%=*}

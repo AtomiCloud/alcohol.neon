@@ -7,12 +7,22 @@ replacing Codemagic. It builds, signs, and publishes all 3 flavors on every `v*.
 
 ```
 merge feat:/fix: to main
-  → CI (ci.yaml) green
+  → CI (ci.yaml): lint/test green + builds the DONOR artifacts
+       ├─ donor-ios     signed raichu IPA, placeholder version fields
+       └─ donor-android debug-signed raichu AAB (stamping re-signs anyway)
   → Release (release.yaml) runs semantic-release → cuts tag vX.Y.Z
   → tag push triggers CD (cd.yaml)
-       ├─ ios job     (1 build) → stamp per landscape → TestFlight
-       └─ android job (1 build) → stamp per landscape → Play internal track
+       ├─ donors job (cheap) awaits + pulls CI's donors for the tagged commit
+       ├─ ios job     → stamp per landscape → TestFlight
+       └─ android job → stamp per landscape → Play internal track
 ```
+
+Stamping sets the identity **and** the version (name from the tag, code from the
+store query), so donors are built before the tag exists. If a donor is missing
+(expired artifact, failed CI job, dispatch on an unbuilt ref) the platform job
+builds it itself — the pipeline never depends on CI having run. Re-running CD
+(or re-tagging) reuses the same donor: uploads retry and rollbacks re-stamp
+**without rebuilding**.
 
 - **iOS** runs on a Namespace macOS runner (`nscloud-macos-sequoia-arm64-6x14`, Xcode
   preinstalled) — **once**. The raichu Release archive is the donor: it compiles every

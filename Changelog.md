@@ -1,3 +1,10 @@
+## [1.12.4](https://github.com/AtomiCloud/alcohol.neon/compare/v1.12.3...v1.12.4) (2026-07-12)
+
+
+### 🚀 Performance Improvement 🚀
+
+* **ci:** build the iOS donor with constant version fields too ([7fdea0c](https://github.com/AtomiCloud/alcohol.neon/commit/7fdea0c66534f4c16a5abe29da551b8c8ba631ea)), closes [#39](https://github.com/AtomiCloud/alcohol.neon/issues/39)
+
 ## [1.12.3](https://github.com/AtomiCloud/alcohol.neon/compare/v1.12.2...v1.12.3) (2026-07-12)
 
 

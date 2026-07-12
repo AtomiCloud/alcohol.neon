@@ -23,6 +23,9 @@ kotlin.compiler.execution.strategy=in-process
 org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g -XX:ReservedCodeCacheSize=320m
 EOF
 fi
+if ! grep -q "org.gradle.caching" "$HOME/.gradle/gradle.properties" 2>/dev/null; then
+  echo "org.gradle.caching=true" >>"$HOME/.gradle/gradle.properties"
+fi
 
 flutter pub get
 

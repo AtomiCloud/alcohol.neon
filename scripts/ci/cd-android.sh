@@ -29,11 +29,8 @@ fi
 
 flutter pub get
 
-# The donor carries a placeholder versionCode (each Play app has its own
-# sequence — publish jobs stamp the real one) and the tag's version name.
-build_args=(--release --flavor raichu --build-number="${GITHUB_RUN_NUMBER:-1}")
-if [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
-  build_args+=(--build-name="${GITHUB_REF_NAME#v}")
-fi
-
-flutter build appbundle "${build_args[@]}"
+# The donor's version fields are placeholders that stamping replaces per
+# landscape — build with constants so the manifest → resources → R8 task
+# chain stays release-invariant and the Gradle build cache hits across
+# releases (varying versionName re-keyed it all).
+flutter build appbundle --release --flavor raichu --build-number=1 --build-name=1.0.0

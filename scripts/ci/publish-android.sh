@@ -36,9 +36,12 @@ if [ "${GITHUB_RUN_NUMBER:-0}" -gt "$VERSION_CODE" ]; then
   VERSION_CODE=${GITHUB_RUN_NUMBER}
 fi
 
-VERSION_NAME=""
+# The donor carries constant placeholder version fields, so the stamp must
+# always set a real version name: the tag on releases, pubspec's on manual runs.
 if [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
   VERSION_NAME="${GITHUB_REF_NAME#v}"
+else
+  VERSION_NAME=$(yq -r '.version' pubspec.yaml | cut -d+ -f1)
 fi
 
 mkdir -p build/app/outputs/stamped

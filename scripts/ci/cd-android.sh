@@ -17,10 +17,12 @@ set -euo pipefail
 # entirely), and it overrides the project's dev-sized -Xmx8G, which doesn't fit the 8 GB
 # runner. Full story: docs/github-actions-release.md.
 mkdir -p "$HOME/.gradle"
-cat >>"$HOME/.gradle/gradle.properties" <<'EOF'
+if ! grep -q "kotlin.compiler.execution.strategy" "$HOME/.gradle/gradle.properties" 2>/dev/null; then
+  cat >>"$HOME/.gradle/gradle.properties" <<'EOF'
 kotlin.compiler.execution.strategy=in-process
 org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g -XX:ReservedCodeCacheSize=320m
 EOF
+fi
 
 flutter pub get
 

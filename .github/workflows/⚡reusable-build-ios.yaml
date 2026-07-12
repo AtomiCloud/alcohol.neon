@@ -49,3 +49,4 @@ jobs:
           name: ipa
           path: build/ios/ipa/*.ipa
           if-no-files-found: error
+          retention-days: 14

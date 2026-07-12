@@ -32,3 +32,4 @@ jobs:
             build/app/outputs/bundle/raichuRelease/*.aab
             build/app/outputs/mapping/raichuRelease/mapping.txt
           if-no-files-found: error
+          retention-days: 14

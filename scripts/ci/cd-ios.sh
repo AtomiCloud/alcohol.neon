@@ -33,15 +33,10 @@ fetch_signing_files "$DONOR"
 keychain add-certificates
 xcode-project use-profiles --export-options-plist "$HOME/export_options.plist"
 
-# The donor carries raichu's real build number and the tag's version name; the
-# publish jobs re-stamp both per landscape anyway (each ASC record has its own
-# build-number sequence).
-build_args=(--release --flavor "$DONOR" --build-number="$(build_number_for "$DONOR")"
---export-options-plist="$HOME/export_options.plist")
-VERSION_NAME=$(release_version_name)
-if [ -n "$VERSION_NAME" ]; then
-  build_args+=(--build-name="$VERSION_NAME")
-fi
+# The donor's version fields are placeholders the stamp replaces on every
+# landscape — constants keep the donor deterministic and skip an ASC query.
+build_args=(--release --flavor "$DONOR" --build-number=1 --build-name=1.0.0
+  --export-options-plist="$HOME/export_options.plist")
 
 # The archive needs nix's GNU rsync (openrsync ignores --chmod → lipo fails), but
 # xcodebuild's export needs Apple's rsync — so let flutter's export fail and re-export

@@ -46,9 +46,13 @@ build_number_for() {
   echo "$n"
 }
 
-# Version name = release tag (v1.2.3 -> 1.2.3); empty on non-tag (manual) runs.
+# Version name = release tag (v1.2.3 -> 1.2.3); pubspec's on non-tag (manual)
+# runs — the donor carries constant placeholders, so the stamp must always set
+# a real one.
 release_version_name() {
   if [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
     echo "${GITHUB_REF_NAME#v}"
+  else
+    yq -r '.version' pubspec.yaml | cut -d+ -f1
   fi
 }

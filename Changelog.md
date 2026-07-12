@@ -1,3 +1,10 @@
+## [1.12.3](https://github.com/AtomiCloud/alcohol.neon/compare/v1.12.2...v1.12.3) (2026-07-12)
+
+
+### 🚀 Performance Improvement 🚀
+
+* **ci:** build the Android donor with constant version fields ([68d5466](https://github.com/AtomiCloud/alcohol.neon/commit/68d546679e6576ee6a6d129c1a56ca8f94e89be1))
+
 ## [1.12.2](https://github.com/AtomiCloud/alcohol.neon/compare/v1.12.1...v1.12.2) (2026-07-12)
 
 

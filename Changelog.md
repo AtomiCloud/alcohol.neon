@@ -1,3 +1,10 @@
+## [1.12.2](https://github.com/AtomiCloud/alcohol.neon/compare/v1.12.1...v1.12.2) (2026-07-12)
+
+
+### 🚀 Performance Improvement 🚀
+
+* **ci:** retain release artifacts for 14 days instead of 90 ([5d98421](https://github.com/AtomiCloud/alcohol.neon/commit/5d984217586f41167857b33c4f2cc775f54f32a3))
+
 ## [1.12.1](https://github.com/AtomiCloud/alcohol.neon/compare/v1.12.0...v1.12.1) (2026-07-12)
 
 

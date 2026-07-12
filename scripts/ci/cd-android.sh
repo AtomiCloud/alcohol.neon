@@ -27,6 +27,17 @@ if ! grep -q "org.gradle.caching" "$HOME/.gradle/gradle.properties" 2>/dev/null;
   echo "org.gradle.caching=true" >>"$HOME/.gradle/gradle.properties"
 fi
 
+# Remote Gradle build cache (Namespace): shared across ALL refs, unlike cache
+# volumes, which fork per git ref from the default branch — tag-triggered
+# releases always forked a cold base, so task outputs never reused. nsc is
+# preinstalled on Namespace runners with ambient auth; degrade gracefully
+# anywhere else.
+if command -v nsc >/dev/null 2>&1; then
+  mkdir -p "$HOME/.gradle/init.d"
+  nsc cache gradle setup --init-gradle "$HOME/.gradle/init.d/nsc-remote-cache.gradle" ||
+    echo "nsc gradle cache setup failed — building without the remote cache"
+fi
+
 flutter pub get
 
 # The donor's version fields are placeholders that stamping replaces per

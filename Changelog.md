@@ -1,3 +1,11 @@
+## [1.12.1](https://github.com/AtomiCloud/alcohol.neon/compare/v1.12.0...v1.12.1) (2026-07-12)
+
+
+### 🚀 Performance Improvement 🚀
+
+* **ci:** enable the Gradle build cache for the donor build ([d9d945d](https://github.com/AtomiCloud/alcohol.neon/commit/d9d945d56f4ca006261596a8078d33dedba0e88a))
+* **ci:** persist the Gradle cache in the Android donor build ([a4abcc8](https://github.com/AtomiCloud/alcohol.neon/commit/a4abcc82c444a05f5c1db12373a2cb2c22736c85))
+
 ## [1.12.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.11.0...v1.12.0) (2026-07-11)
 
 

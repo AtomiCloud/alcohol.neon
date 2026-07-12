@@ -20,6 +20,8 @@ jobs:
     steps:
       - uses: AtomiCloud/actions.setup-nix@v3
 
+      - uses: AtomiCloud/actions.cache-gradle@v1
+
       - name: Build donor AAB
         run: nix develop .#cd-android -c ./scripts/ci/cd-android.sh
 

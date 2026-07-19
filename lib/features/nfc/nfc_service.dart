@@ -216,9 +216,19 @@ class NfcService {
       return const Ok(NfcScanResult(NfcTagKind.unusable));
     }
 
-    // What's on it already?
-    final cached = ndef.cachedMessage;
-    final records = cached?.records ?? const [];
+    // What's on it already? iOS fills cachedMessage from a read it performs at
+    // discovery, but a failed read is silently swallowed there and leaves it
+    // null — indistinguishable from a blank tag. Before trusting "empty",
+    // re-read in-session: a written tag returns its message, a genuinely blank
+    // one throws (zero-length NDEF), which keeps the blank classification.
+    var records = ndef.cachedMessage?.records ?? const <NdefRecord>[];
+    if (records.isEmpty || records.every((r) => r.payload.isEmpty)) {
+      try {
+        records = (await ndef.read()).records;
+      } catch (_) {
+        // Truly blank or unreadable — fall through with the cached view.
+      }
+    }
     for (final r in records) {
       if (r.typeNameFormat == NdefTypeNameFormat.nfcWellknown &&
           r.type.length == 1 &&

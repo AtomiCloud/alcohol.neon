@@ -1,3 +1,10 @@
+## [1.12.5](https://github.com/AtomiCloud/alcohol.neon/compare/v1.12.4...v1.12.5) (2026-07-19)
+
+
+### 🐛 Bug Fixes 🐛
+
+* poll only iso14443/iso15693 so ios does not demand felica config ([b867fad](https://github.com/AtomiCloud/alcohol.neon/commit/b867fad71f4226dede9b2d67d60448af3d727e6c))
+
 ## [1.12.4](https://github.com/AtomiCloud/alcohol.neon/compare/v1.12.3...v1.12.4) (2026-07-12)
 
 

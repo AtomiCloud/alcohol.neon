@@ -132,6 +132,11 @@ class NfcService {
 
     try {
       await NfcManager.instance.startSession(
+        // Only the technologies our tags use (NTAG21x = iso14443, Type-5 =
+        // iso15693). The plugin's default adds iso18092 (FeliCa), which iOS
+        // refuses without felica.systemcodes in Info.plist — nfcd then kills
+        // the session with a misleading "Missing required entitlement".
+        pollingOptions: {NfcPollingOption.iso14443, NfcPollingOption.iso15693},
         alertMessage: 'Hold your iPhone near the tag',
         // User-cancel / system invalidation only surfaces here — without this
         // handler a cancelled iOS sheet would hang the flow until [timeout].

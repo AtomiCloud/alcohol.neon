@@ -1,3 +1,10 @@
+## [1.12.6](https://github.com/AtomiCloud/alcohol.neon/compare/v1.12.5...v1.12.6) (2026-07-19)
+
+
+### 🐛 Bug Fixes 🐛
+
+* re-read ndef in-session before classifying a tag as blank ([19d31b4](https://github.com/AtomiCloud/alcohol.neon/commit/19d31b4a6de42fcce29a448cd5c0eed042ffae53))
+
 ## [1.12.5](https://github.com/AtomiCloud/alcohol.neon/compare/v1.12.4...v1.12.5) (2026-07-19)
 
 

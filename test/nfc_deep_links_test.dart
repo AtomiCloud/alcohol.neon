@@ -7,7 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// NfcDeepLinkService parking/consume semantics (via an injected link stream —
 /// no platform channels) and the pure tap-day schedule check.
 void main() {
-  final base = Uri.parse('https://lazytax.club/t/');
+  final base = Uri.parse('https://t.lazytax.club/t/');
   const tagId = '3f9c2b7e-1a2b-4c3d-8e9f-0a1b2c3d4e5f';
 
   group('NfcDeepLinkService', () {
@@ -18,7 +18,7 @@ void main() {
       svc.addListener(() => notified++);
 
       svc.start(base);
-      links.add(Uri.parse('https://lazytax.club/t/$tagId'));
+      links.add(Uri.parse('https://t.lazytax.club/t/$tagId'));
       await Future<void>.delayed(Duration.zero);
 
       expect(svc.pendingTagId, tagId);
@@ -38,9 +38,12 @@ void main() {
       svc.addListener(() => notified++);
 
       svc.start(base);
-      links.add(Uri.parse('https://lazytax.club/billing'));
+      links.add(Uri.parse('https://t.lazytax.club/billing'));
       links.add(Uri.parse('https://evil.example/t/$tagId'));
-      links.add(Uri.parse('https://lazytax.club/t/x')); // too short
+      links.add(
+        Uri.parse('https://lazytax.club/t/$tagId'),
+      ); // pre-release domain
+      links.add(Uri.parse('https://t.lazytax.club/t/x')); // too short
       await Future<void>.delayed(Duration.zero);
 
       expect(svc.pendingTagId, isNull);
@@ -54,8 +57,8 @@ void main() {
       final svc = NfcDeepLinkService(links: () => links.stream);
 
       svc.start(base);
-      links.add(Uri.parse('https://lazytax.club/t/$tagId'));
-      links.add(Uri.parse('https://lazytax.club/t/aaaabbbb-cccc-dddd'));
+      links.add(Uri.parse('https://t.lazytax.club/t/$tagId'));
+      links.add(Uri.parse('https://t.lazytax.club/t/aaaabbbb-cccc-dddd'));
       await Future<void>.delayed(Duration.zero);
 
       expect(svc.pendingTagId, 'aaaabbbb-cccc-dddd');

@@ -34,8 +34,9 @@ class AppConfig {
   final Environment airwallexEnv;
 
   /// Base URL written onto physical NFC habit tags (`<base><tagId>`), and the
-  /// URL shape the deep-link handler recognizes. Always the prod web domain —
-  /// its AASA/assetlinks list every flavor, so any landscape's app opens tags.
+  /// URL shape the deep-link handler recognizes. Always the frozen tag domain
+  /// (alcohol.helium) — its AASA/assetlinks list every flavor, so any
+  /// landscape's app opens tags.
   final Uri nfcTagBaseUrl;
 
   final String redirectUri;
@@ -130,7 +131,7 @@ class AppConfig {
     final airwallex = dAirwallex.isEmpty ? '${m['airwallexEnv']}' : dAirwallex;
     const dNfcBase = String.fromEnvironment('NEON_NFC_TAG_BASE_URL');
     final nfcBase = dNfcBase.isEmpty
-        ? '${m['nfcTagBaseUrl'] ?? 'https://lazytax.club/t/'}'
+        ? '${m['nfcTagBaseUrl'] ?? 'https://t.lazytax.club/t/'}'
         : dNfcBase;
     final scopes =
         (m['scopes'] as List?)?.map((e) => '$e').toList() ?? const <String>[];

@@ -58,7 +58,7 @@ String? decodeNdefUriPayload(Uint8List payload) {
 }
 
 /// Extracts the tag id from a URI written on one of our tags: the single path
-/// segment after `<base>` (e.g. `https://lazytax.club/t/<id>`). Returns null
+/// segment after `<base>` (e.g. `https://t.lazytax.club/t/<id>`). Returns null
 /// when the URI isn't ours. Tolerates a trailing slash and http/https +
 /// with/without `www.` variations of the same host.
 String? tagIdFromUrl(String url, Uri base) {

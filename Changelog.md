@@ -1,3 +1,10 @@
+## [1.13.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.12.6...v1.13.0) (2026-07-28)
+
+
+### ✨ Features ✨
+
+* single nfc tag domain t.lazytax.club served by alcohol.helium ([eb10c5e](https://github.com/AtomiCloud/alcohol.neon/commit/eb10c5e6f72eda180448e9ffd2075c312379b25b))
+
 ## [1.12.6](https://github.com/AtomiCloud/alcohol.neon/compare/v1.12.5...v1.12.6) (2026-07-19)
 
 

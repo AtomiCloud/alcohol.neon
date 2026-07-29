@@ -47,9 +47,22 @@ class AuthService extends ChangeNotifier {
   }
 
   Future<void> _bootstrap() async {
-    _status = (await _client.isAuthenticated)
-        ? AuthStatus.authenticated
-        : AuthStatus.unauthenticated;
+    try {
+      _status = (await _client.isAuthenticated)
+          ? AuthStatus.authenticated
+          : AuthStatus.unauthenticated;
+    } catch (_) {
+      // A dead stored session must never strand the app on the splash. The iOS
+      // Keychain outlives an uninstall, so a revoked/expired refresh token can
+      // greet a fresh install here (Logto answers the refresh with 400 and the
+      // SDK throws). Drop the stale session and start signed out.
+      try {
+        await _client.signOut(config.redirectUri);
+      } catch (_) {
+        // Best-effort: revoking an already-dead session may itself fail.
+      }
+      _status = AuthStatus.unauthenticated;
+    }
     notifyListeners();
   }
 

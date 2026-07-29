@@ -1,3 +1,11 @@
+## [1.13.1](https://github.com/AtomiCloud/alcohol.neon/compare/v1.13.0...v1.13.1) (2026-07-29)
+
+
+### 🐛 Bug Fixes 🐛
+
+* publish signed-out before cleanup and only wipe dead sessions ([2682b02](https://github.com/AtomiCloud/alcohol.neon/commit/2682b02ce05678d132b68152c0f541f09d13eadb))
+* recover from a dead stored session instead of hanging on splash ([4e1a17d](https://github.com/AtomiCloud/alcohol.neon/commit/4e1a17db761786eac11fd02d58c8ae840edf8739))
+
 ## [1.13.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.12.6...v1.13.0) (2026-07-28)
 
 

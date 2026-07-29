@@ -27,12 +27,24 @@ class _FakeLogtoClient extends LogtoClient {
   _FakeLogtoClient({required super.config, this.signInError});
 
   Object? signInError;
+  Object? isAuthenticatedError;
   Completer<void>? signInGate;
+  bool signOutCalled = false;
   bool _authed = false;
   bool _signingIn = false;
 
   @override
-  Future<bool> get isAuthenticated async => _authed;
+  Future<bool> get isAuthenticated async {
+    final error = isAuthenticatedError;
+    if (error != null) throw error;
+    return _authed;
+  }
+
+  @override
+  Future<void> signOut([String? redirectUri]) async {
+    signOutCalled = true;
+    _authed = false;
+  }
 
   @override
   Future<void> signIn(
@@ -81,6 +93,49 @@ void main() {
       appId: config.logtoAppId,
     ),
     signInError: signInError,
+  );
+
+  test(
+    'a dead stored session at startup lands signed out, not stuck loading',
+    () async {
+      // The iOS Keychain outlives an uninstall: a fresh install can boot with
+      // a revoked refresh token, which the SDK surfaces as a LogtoAuthException
+      // from isAuthenticated (Logto answers the refresh with 400).
+      final client = makeClient();
+      client.isAuthenticatedError = LogtoAuthException(
+        LogtoAuthExceptions.authenticationError,
+        'invalid_grant',
+      );
+      final auth = AuthService(config, client: client);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(auth.status, AuthStatus.unauthenticated);
+      expect(
+        client.signOutCalled,
+        isTrue,
+        reason: 'stale tokens must be cleared so the next launch is clean',
+      );
+    },
+  );
+
+  test(
+    'an unexpected restore failure keeps the session and is retryable',
+    () async {
+      // E.g. launching offline: the stored session may be perfectly valid, so
+      // it must NOT be wiped — surface a failure the user can retry instead.
+      final client = makeClient();
+      client.isAuthenticatedError = Exception('network unreachable');
+      final auth = AuthService(config, client: client);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(auth.status, AuthStatus.failed);
+      expect(auth.lastError, isNotNull);
+      expect(
+        client.signOutCalled,
+        isFalse,
+        reason: 'a possibly-valid session must survive transient failures',
+      );
+    },
   );
 
   test(

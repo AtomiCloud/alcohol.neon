@@ -47,9 +47,35 @@ class AuthService extends ChangeNotifier {
   }
 
   Future<void> _bootstrap() async {
-    _status = (await _client.isAuthenticated)
-        ? AuthStatus.authenticated
-        : AuthStatus.unauthenticated;
+    try {
+      _status = (await _client.isAuthenticated)
+          ? AuthStatus.authenticated
+          : AuthStatus.unauthenticated;
+    } on LogtoAuthException {
+      // A dead stored session must never strand the app on the splash. The iOS
+      // Keychain outlives an uninstall, so a revoked/expired refresh token can
+      // greet a fresh install here (Logto answers the refresh with 400 and the
+      // SDK throws). Publish signed-out FIRST — the token cleanup below hits
+      // the network and must never hold up the UI (same ordering as signOut).
+      _status = AuthStatus.unauthenticated;
+      notifyListeners();
+      try {
+        await _client.signOut(config.redirectUri);
+      } catch (_) {
+        // Best-effort: revoking an already-dead session may itself fail.
+      }
+      return;
+    } catch (e) {
+      // Unexpected failure (offline launch, decoding, …): the stored session
+      // may be perfectly valid, so keep it and surface a retryable failure
+      // instead of wiping the Keychain.
+      _lastError = Problem.local(
+        'Could not restore your session',
+        detail: e.toString(),
+        type: 'neon:auth',
+      );
+      _status = AuthStatus.failed;
+    }
     notifyListeners();
   }
 

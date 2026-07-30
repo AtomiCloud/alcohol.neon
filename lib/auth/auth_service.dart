@@ -166,28 +166,51 @@ class AuthService extends ChangeNotifier {
   Future<String?> zincAccessToken() async {
     if (_status != AuthStatus.authenticated) return null;
     if (config.zincResource.isEmpty) return null;
-    if (!await _client.isAuthenticated) return null;
     try {
+      if (!await _client.isAuthenticated) return null;
       final token = await _client.getAccessToken(resource: config.zincResource);
       return token?.token;
-    } on LogtoAuthException {
-      // Refresh rejected ⇒ the session is dead (revoked/expired grant). Flip to
-      // signed-out FIRST (UI must never wait on network cleanup), then clear
-      // the stale keychain tokens best-effort. RootView swaps to SignInView on
-      // the notify, so the user lands on sign-in instead of a frozen loader.
-      _status = AuthStatus.unauthenticated;
-      notifyListeners();
-      try {
-        await _client.signOut(config.redirectUri);
-      } catch (_) {
-        // Best-effort: revoking an already-dead session may itself fail.
+    } catch (e) {
+      if (_isDeadSessionError(e)) {
+        // The session is dead (revoked/expired grant). Flip to signed-out
+        // FIRST (UI must never wait on network cleanup), then clear the stale
+        // keychain tokens best-effort. RootView swaps to SignInView on the
+        // notify, so the user lands on sign-in instead of a frozen loader.
+        _status = AuthStatus.unauthenticated;
+        notifyListeners();
+        try {
+          await _client.signOut(config.redirectUri);
+        } catch (_) {
+          // Best-effort: revoking an already-dead session may itself fail.
+        }
+        return null;
       }
-      return null;
-    } catch (_) {
-      // Transient failure (offline, …): keep the session, let the caller
+      // Transient failure (offline, 5xx, …): keep the session, let the caller
       // surface a retryable error.
       return null;
     }
+  }
+
+  /// Whether [e] proves the stored session is dead (vs a transient failure).
+  ///
+  /// Two shapes, both from the SDK's refresh path: `LogtoAuthException` with
+  /// `authenticationError` (refresh token missing), and the SDK's
+  /// `HttpRequestException` carrying the token endpoint's 400/401
+  /// (invalid_grant — revoked or expired). The latter type isn't exported by
+  /// logto_dart_sdk, so it's matched structurally instead of by import.
+  static bool _isDeadSessionError(Object e) {
+    if (e is LogtoAuthException) {
+      return e.code == LogtoAuthExceptions.authenticationError;
+    }
+    if (e.runtimeType.toString() == 'HttpRequestException') {
+      try {
+        final status = (e as dynamic).statusCode as int;
+        return status == 400 || status == 401;
+      } catch (_) {
+        return false;
+      }
+    }
+    return false;
   }
 
   /// An ApiClient pre-wired with this user's token provider.

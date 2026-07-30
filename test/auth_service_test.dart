@@ -28,10 +28,25 @@ class _FakeLogtoClient extends LogtoClient {
 
   Object? signInError;
   Object? isAuthenticatedError;
+  Object? getAccessTokenError;
   Completer<void>? signInGate;
   bool signOutCalled = false;
   bool _authed = false;
   bool _signingIn = false;
+
+  /// Seeds a stored session, as if a previous run had signed in (the keychain
+  /// survives reinstalls, so bootstrap can find one on a fresh install).
+  void seedStoredSession() => _authed = true;
+
+  @override
+  Future<AccessToken?> getAccessToken({
+    String? resource,
+    String? organizationId,
+  }) async {
+    final error = getAccessTokenError;
+    if (error != null) throw error;
+    return null;
+  }
 
   @override
   Future<bool> get isAuthenticated async {
@@ -76,6 +91,14 @@ class _FakeLogtoClient extends LogtoClient {
   }
 }
 
+/// Mirrors the SDK's unexported `HttpRequestException` (matched structurally
+/// by AuthService._isDeadSessionError): same type name, same statusCode field.
+class HttpRequestException implements Exception {
+  final int statusCode;
+  final dynamic body;
+  HttpRequestException({required this.statusCode, this.body});
+}
+
 void main() {
   final config = AppConfig(
     landscape: Landscape.lapras,
@@ -115,6 +138,141 @@ void main() {
         isTrue,
         reason: 'stale tokens must be cleared so the next launch is clean',
       );
+    },
+  );
+
+  test(
+    'a dead session at token fetch flips to signed-out and clears tokens',
+    () async {
+      // isAuthenticated is storage-only, so a stale id_token sails through
+      // bootstrap as "authenticated" — the dead session only surfaces when
+      // getAccessToken must refresh and Logto answers 400 (SDK throws). That
+      // throw froze the session bootstrap on the loader before this fix.
+      final resourceConfig = AppConfig(
+        landscape: Landscape.lapras,
+        zincBaseUrl: Uri.parse('https://zinc.example.com'),
+        logtoEndpoint: 'https://logto.example.com',
+        logtoAppId: 'test-app-id',
+        zincResource: 'https://api.zinc.example',
+        airwallexEnv: Environment.demo,
+        nfcTagBaseUrl: Uri.parse('https://t.lazytax.club/t/'),
+      );
+      final client = makeClient()..seedStoredSession();
+      client.getAccessTokenError = LogtoAuthException(
+        LogtoAuthExceptions.authenticationError,
+        'invalid_grant',
+      );
+      final auth = AuthService(resourceConfig, client: client);
+      await Future<void>.delayed(Duration.zero);
+      expect(auth.status, AuthStatus.authenticated, reason: 'stale id_token');
+
+      final token = await auth.zincAccessToken();
+
+      expect(token, isNull);
+      expect(auth.status, AuthStatus.unauthenticated);
+      expect(client.signOutCalled, isTrue);
+    },
+  );
+
+  test(
+    'a 400 from the token endpoint (invalid_grant) also wipes the session',
+    () async {
+      // The SDK surfaces the actual Logto 400 as its (unexported)
+      // HttpRequestException, NOT LogtoAuthException — the case seen on-device.
+      final resourceConfig = AppConfig(
+        landscape: Landscape.lapras,
+        zincBaseUrl: Uri.parse('https://zinc.example.com'),
+        logtoEndpoint: 'https://logto.example.com',
+        logtoAppId: 'test-app-id',
+        zincResource: 'https://api.zinc.example',
+        airwallexEnv: Environment.demo,
+        nfcTagBaseUrl: Uri.parse('https://t.lazytax.club/t/'),
+      );
+      final client = makeClient()..seedStoredSession();
+      client.getAccessTokenError = HttpRequestException(
+        statusCode: 400,
+        body: 'invalid_grant',
+      );
+      final auth = AuthService(resourceConfig, client: client);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(await auth.zincAccessToken(), isNull);
+      expect(auth.status, AuthStatus.unauthenticated);
+      expect(client.signOutCalled, isTrue);
+    },
+  );
+
+  test(
+    'a 5xx from the token endpoint keeps the session (server hiccup)',
+    () async {
+      final resourceConfig = AppConfig(
+        landscape: Landscape.lapras,
+        zincBaseUrl: Uri.parse('https://zinc.example.com'),
+        logtoEndpoint: 'https://logto.example.com',
+        logtoAppId: 'test-app-id',
+        zincResource: 'https://api.zinc.example',
+        airwallexEnv: Environment.demo,
+        nfcTagBaseUrl: Uri.parse('https://t.lazytax.club/t/'),
+      );
+      final client = makeClient()..seedStoredSession();
+      client.getAccessTokenError = HttpRequestException(
+        statusCode: 503,
+        body: 'try later',
+      );
+      final auth = AuthService(resourceConfig, client: client);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(await auth.zincAccessToken(), isNull);
+      expect(auth.status, AuthStatus.authenticated);
+      expect(client.signOutCalled, isFalse);
+    },
+  );
+
+  test('a non-terminal LogtoAuthException keeps the session', () async {
+    final resourceConfig = AppConfig(
+      landscape: Landscape.lapras,
+      zincBaseUrl: Uri.parse('https://zinc.example.com'),
+      logtoEndpoint: 'https://logto.example.com',
+      logtoAppId: 'test-app-id',
+      zincResource: 'https://api.zinc.example',
+      airwallexEnv: Environment.demo,
+      nfcTagBaseUrl: Uri.parse('https://t.lazytax.club/t/'),
+    );
+    final client = makeClient()..seedStoredSession();
+    client.getAccessTokenError = LogtoAuthException(
+      LogtoAuthExceptions.missingScopeError,
+      'organizations scope is not specified',
+    );
+    final auth = AuthService(resourceConfig, client: client);
+    await Future<void>.delayed(Duration.zero);
+
+    expect(await auth.zincAccessToken(), isNull);
+    expect(auth.status, AuthStatus.authenticated);
+    expect(client.signOutCalled, isFalse);
+  });
+
+  test(
+    'a transient token-fetch failure keeps the session (retryable)',
+    () async {
+      final resourceConfig = AppConfig(
+        landscape: Landscape.lapras,
+        zincBaseUrl: Uri.parse('https://zinc.example.com'),
+        logtoEndpoint: 'https://logto.example.com',
+        logtoAppId: 'test-app-id',
+        zincResource: 'https://api.zinc.example',
+        airwallexEnv: Environment.demo,
+        nfcTagBaseUrl: Uri.parse('https://t.lazytax.club/t/'),
+      );
+      final client = makeClient()..seedStoredSession();
+      client.getAccessTokenError = Exception('network unreachable');
+      final auth = AuthService(resourceConfig, client: client);
+      await Future<void>.delayed(Duration.zero);
+
+      final token = await auth.zincAccessToken();
+
+      expect(token, isNull);
+      expect(auth.status, AuthStatus.authenticated);
+      expect(client.signOutCalled, isFalse);
     },
   );
 

@@ -1,3 +1,11 @@
+## [1.13.2](https://github.com/AtomiCloud/alcohol.neon/compare/v1.13.1...v1.13.2) (2026-07-30)
+
+
+### 🐛 Bug Fixes 🐛
+
+* classify http 400/401 refresh rejections as dead sessions too ([6725460](https://github.com/AtomiCloud/alcohol.neon/commit/6725460067b1bd990aab82acbfe52c9ca175f3c7))
+* dead session at token refresh lands on sign-in, not frozen loader ([ef30ce2](https://github.com/AtomiCloud/alcohol.neon/commit/ef30ce283634942b1c05db1227e192f802c59846))
+
 ## [1.13.1](https://github.com/AtomiCloud/alcohol.neon/compare/v1.13.0...v1.13.1) (2026-07-29)
 
 

@@ -157,12 +157,37 @@ class AuthService extends ChangeNotifier {
 
   /// A zinc-scoped access token for the Bearer header. Null if unauthenticated or no
   /// resource is configured. Gated on local [_status] like [idToken].
+  ///
+  /// This is where a dead stored session actually surfaces: `isAuthenticated`
+  /// is a pure storage check (a stale id_token still counts), so the first
+  /// hard proof is the SDK's refresh attempt here — Logto answers 400 and
+  /// `getAccessToken` throws. Unhandled, that throw killed the session
+  /// bootstrap mid-flight and froze the app on the loader.
   Future<String?> zincAccessToken() async {
     if (_status != AuthStatus.authenticated) return null;
     if (config.zincResource.isEmpty) return null;
     if (!await _client.isAuthenticated) return null;
-    final token = await _client.getAccessToken(resource: config.zincResource);
-    return token?.token;
+    try {
+      final token = await _client.getAccessToken(resource: config.zincResource);
+      return token?.token;
+    } on LogtoAuthException {
+      // Refresh rejected ⇒ the session is dead (revoked/expired grant). Flip to
+      // signed-out FIRST (UI must never wait on network cleanup), then clear
+      // the stale keychain tokens best-effort. RootView swaps to SignInView on
+      // the notify, so the user lands on sign-in instead of a frozen loader.
+      _status = AuthStatus.unauthenticated;
+      notifyListeners();
+      try {
+        await _client.signOut(config.redirectUri);
+      } catch (_) {
+        // Best-effort: revoking an already-dead session may itself fail.
+      }
+      return null;
+    } catch (_) {
+      // Transient failure (offline, …): keep the session, let the caller
+      // surface a retryable error.
+      return null;
+    }
   }
 
   /// An ApiClient pre-wired with this user's token provider.

@@ -39,7 +39,7 @@ jobs:
           echo "Selected $XCODE"
           echo "DEVELOPER_DIR_OVERRIDE=$XCODE/Contents/Developer" >> "$GITHUB_ENV"
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: ipa
           path: donor

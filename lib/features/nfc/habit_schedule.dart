@@ -1,12 +1,15 @@
 /// Pure schedule check for tap-to-complete, extracted for unit tests.
 library;
 
-/// Whether the habit runs on [isoDate] (`yyyy-MM-dd`, the server-resolved
-/// "today" **in the habit's timezone** — never the device clock, which can sit
-/// on a different calendar day around midnight or while travelling).
+import '../../core/date_format.dart';
+
+/// Whether the habit runs on [zincDate] — zinc's `dd-MM-yyyy`
+/// (`Utils.StandardDateFormat`, NOT ISO), the server-resolved "today" **in the
+/// habit's timezone** — never the device clock, which can sit on a different
+/// calendar day around midnight or while travelling.
 /// [daysOfWeek] uses zinc's PascalCase day names (e.g. "Monday").
-bool scheduledOnDate(List<String> daysOfWeek, String isoDate) {
-  final date = DateTime.tryParse(isoDate);
+bool scheduledOnDate(List<String> daysOfWeek, String zincDate) {
+  final date = tryParseStandardDate(zincDate);
   if (date == null) return false;
   const names = [
     'monday',

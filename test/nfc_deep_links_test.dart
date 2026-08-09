@@ -68,10 +68,10 @@ void main() {
   });
 
   group('scheduledOnDate', () {
-    test('matches zinc PascalCase day names against the ISO date', () {
-      // 2026-07-11 is a Saturday.
-      expect(scheduledOnDate(['Saturday'], '2026-07-11'), isTrue);
-      expect(scheduledOnDate(['Monday', 'Friday'], '2026-07-11'), isFalse);
+    test('matches zinc PascalCase day names against the dd-MM-yyyy date', () {
+      // 11-07-2026 is a Saturday (zinc StandardDateFormat, NOT ISO).
+      expect(scheduledOnDate(['Saturday'], '11-07-2026'), isTrue);
+      expect(scheduledOnDate(['Monday', 'Friday'], '11-07-2026'), isFalse);
       expect(
         scheduledOnDate([
           'Monday',
@@ -81,14 +81,23 @@ void main() {
           'Friday',
           'Saturday',
           'Sunday',
-        ], '2026-07-11'),
+        ], '11-07-2026'),
         isTrue,
       );
+      // The exact shape from the field bug: Sunday 09-08-2026, weekend habit.
+      expect(scheduledOnDate(['Saturday', 'Sunday'], '09-08-2026'), isTrue);
     });
 
     test('empty schedule or malformed date → not scheduled', () {
-      expect(scheduledOnDate(const [], '2026-07-11'), isFalse);
+      expect(scheduledOnDate(const [], '11-07-2026'), isFalse);
       expect(scheduledOnDate(['Saturday'], 'not-a-date'), isFalse);
+      expect(
+        scheduledOnDate(['Saturday'], '2026-07-11'),
+        isFalse,
+        reason:
+            'ISO order is NOT the zinc contract — regression guard for '
+            'the dd-MM-yyyy mixup that broke tap-to-complete',
+      );
     });
   });
 }

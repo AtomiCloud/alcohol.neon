@@ -44,6 +44,8 @@ class _Session extends ChangeNotifier implements SessionController {
   @override
   ProtectionRepository get protections => ProtectionRepository(api);
   @override
+  String? takeTimezoneNotice() => null;
+  @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 

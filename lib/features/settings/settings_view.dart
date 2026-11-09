@@ -40,8 +40,13 @@ class _SettingsViewState extends State<SettingsView> {
   String? _charityId;
   String? _charityName;
 
+  // "Follow phone timezone" (local preference, default ON). Picking a timezone
+  // by hand turns it off; turning it back on syncs to the phone immediately.
+  bool _followPhone = true;
+
   bool _loading = true;
   bool _saving = false;
+  bool _followBusy = false;
   bool _consentBusy = false;
   bool _timezoneDiscoveryFailed = false;
   Problem? _loadError;
@@ -61,6 +66,7 @@ class _SettingsViewState extends State<SettingsView> {
     });
 
     final session = context.read<SessionController>();
+    _followPhone = session.followPhoneTimezone;
 
     // Timezones first (device default + IANA list), then the config + consent.
     await _loadTimezones();
@@ -126,7 +132,45 @@ class _SettingsViewState extends State<SettingsView> {
         ),
       ),
     );
-    if (picked != null && mounted) setState(() => _timezone = picked);
+    if (picked != null && picked != _timezone && mounted) {
+      setState(() {
+        _timezone = picked;
+        // A hand-picked timezone overrides the phone (persisted on save).
+        _followPhone = false;
+      });
+    }
+  }
+
+  /// Toggles "Follow phone timezone". ON persists the preference and syncs
+  /// Configuration.Timezone to the phone right away (discarding an unsaved
+  /// hand-picked timezone); OFF keeps the current timezone.
+  Future<void> _setFollowPhone(bool follow) async {
+    final session = context.read<SessionController>();
+    setState(() {
+      _followBusy = true;
+      _saveError = null;
+    });
+    final res = await session.setFollowPhoneTimezone(follow);
+    if (!mounted) return;
+    setState(() {
+      _followBusy = false;
+      switch (res) {
+        case Ok():
+          _followPhone = follow;
+          final principal = session.config;
+          final cfg = _config;
+          if (follow && principal != null && cfg != null) {
+            // The sync PUT may have moved the timezone: rebase on it.
+            _config = ConfigurationRes(
+              principal: principal,
+              charity: cfg.charity,
+            );
+            _timezone = principal.timezone ?? _timezone;
+          }
+        case Err(:final problem):
+          _saveError = problem;
+      }
+    });
   }
 
   Future<void> _pickCharity() async {
@@ -266,6 +310,11 @@ class _SettingsViewState extends State<SettingsView> {
 
     switch (res) {
       case Ok():
+        // A hand-picked timezone overrides the phone from now on.
+        if (tz != _config?.principal.timezone) {
+          await session.setFollowPhoneTimezone(false);
+          if (!mounted) return;
+        }
         // Refresh the cached config so the dashboard / habit defaults pick up
         // the new timezone + charity. Best-effort: a refresh failure doesn't
         // undo the successful save.
@@ -309,9 +358,11 @@ class _SettingsViewState extends State<SettingsView> {
           icon: Icons.public,
           label: 'Timezone',
           value: _timezone?.replaceAll('_', ' ') ?? 'Not set',
-          subtitle:
-              'Default timezone for new habits and account history. Existing '
-              'habits keep their own timezone and reminders.',
+          subtitle: _followPhone
+              ? 'Sets when each habit day ends and when reminders fire. '
+                    "Follows your phone's timezone; pick one to override it."
+              : 'Sets when each habit day ends and when reminders fire. Pick '
+                    'the region closest to you.',
           onTap: _pickTimezone,
         ),
         if (_timezoneDiscoveryFailed) ...[
@@ -321,6 +372,17 @@ class _SettingsViewState extends State<SettingsView> {
             child: const Text('Retry timezone discovery'),
           ),
         ],
+        Card(
+          child: SwitchListTile(
+            secondary: const Icon(Icons.phone_iphone),
+            title: const Text('Follow phone timezone'),
+            subtitle: const Text(
+              "Keep your timezone in step with your phone's when you travel.",
+            ),
+            value: _followPhone,
+            onChanged: _followBusy ? null : _setFollowPhone,
+          ),
+        ),
         _FieldCard(
           icon: Icons.volunteer_activism,
           label: 'Default charity',

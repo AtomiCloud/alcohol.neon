@@ -122,9 +122,19 @@ class _DashboardScaffoldState extends State<_DashboardScaffold>
     // Returning to the foreground: refetch so completions made on the home-screen
     // widget (which the app isn't notified of) get tallied here too.
     if (state == AppLifecycleState.resumed && mounted) {
-      context.read<DashboardController>().load();
-      context.read<BuffersController>().load();
+      _onResumed();
     }
+  }
+
+  /// Follow the phone first (the user may have travelled while away), so the
+  /// reload — which also re-plans reminders, dropping today's for habits
+  /// completed meanwhile (e.g. on the home-screen widget) — sees the new
+  /// timezone.
+  Future<void> _onResumed() async {
+    final dashboard = context.read<DashboardController>();
+    context.read<BuffersController>().load();
+    await context.read<SessionController>().syncDeviceTimezone();
+    if (mounted) dashboard.load();
   }
 
   @override

@@ -193,7 +193,7 @@ void main() {
       expect(find.text('Asia/Singapore'), findsOneWidget);
       expect(find.text(timezoneDiscoveryNotice), findsOneWidget);
       expect(
-        find.textContaining('Existing habits keep their own timezone'),
+        find.textContaining('Sets when each habit day ends'),
         findsOneWidget,
       );
       await tester.scrollUntilVisible(find.text('Save changes'), 250);

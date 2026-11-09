@@ -146,14 +146,17 @@ class DashboardController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Reschedule local habit reminders from the freshly loaded overview. Prompts
-  /// for permission once (iOS). Best-effort — failures don't affect the dashboard.
+  /// Reschedule local habit reminders from the freshly loaded overview — only
+  /// for checks still open today (acknowledged complete/skips included via
+  /// [todayStatus]). Prompts for permission once (iOS). Best-effort — failures
+  /// don't affect the dashboard.
   Future<void> _syncReminders() async {
     await _session.syncDevice(_generation, () async {
       if (!_current) return;
       await NotificationService.instance.syncHabits(
         habits,
         isCurrent: () => _current,
+        todayStatus: todayStatus,
       );
     });
   }
@@ -187,6 +190,9 @@ class DashboardController extends ChangeNotifier {
         _busy.remove(habitId);
         notifyListeners();
         await load(quiet: true); // reconcile streaks / debt / skip budget
+        // A successful reload re-plans reminders itself; if it failed, re-plan
+        // from the acknowledged action so today's reminder still goes away.
+        if (_current && _refreshError != null) unawaited(_syncReminders());
       case Err(:final problem):
         _actionError = problem;
     }

@@ -1,3 +1,10 @@
+## [1.15.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.14.0...v1.15.0) (2026-11-09)
+
+
+### ✨ Features ✨
+
+* tell the user when a timezone change settled a day ([89d30ca](https://github.com/AtomiCloud/alcohol.neon/commit/89d30cae7a7f08291e14daec37209c8ba67fadd1))
+
 ## [1.14.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.13.4...v1.14.0) (2026-11-09)
 
 

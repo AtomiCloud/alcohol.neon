@@ -1,3 +1,10 @@
+## [1.13.4](https://github.com/AtomiCloud/alcohol.neon/compare/v1.13.3...v1.13.4) (2026-11-09)
+
+
+### 🐛 Bug Fixes 🐛
+
+* align habit days and preserve confirmed actions ([51f649e](https://github.com/AtomiCloud/alcohol.neon/commit/51f649e7d829dbfbb69ed8df455f814e771d81c0))
+
 ## [1.13.3](https://github.com/AtomiCloud/alcohol.neon/compare/v1.13.2...v1.13.3) (2026-08-09)
 
 

@@ -89,10 +89,27 @@ class _DashboardScaffold extends StatefulWidget {
 
 class _DashboardScaffoldState extends State<_DashboardScaffold>
     with WidgetsBindingObserver, RouteAware {
+  late final SessionController _session;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // A timezone sync can settle days that already ended in the new timezone;
+    // tell the user once. Bootstrap syncs before this screen exists, so also
+    // check after the first frame.
+    _session = context.read<SessionController>()
+      ..addListener(_showTimezoneNotice);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _showTimezoneNotice());
+  }
+
+  void _showTimezoneNotice() {
+    if (!mounted) return;
+    final notice = _session.takeTimezoneNotice();
+    if (notice == null) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(notice), duration: const Duration(seconds: 8)),
+    );
   }
 
   @override
@@ -112,6 +129,7 @@ class _DashboardScaffoldState extends State<_DashboardScaffold>
 
   @override
   void dispose() {
+    _session.removeListener(_showTimezoneNotice);
     routeObserver.unsubscribe(this);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();

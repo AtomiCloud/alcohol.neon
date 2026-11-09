@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:alcohol_neon/core/problem.dart';
+import 'package:alcohol_neon/data/config_repository.dart';
 import 'package:alcohol_neon/session/session_controller.dart';
 import 'package:alcohol_neon/session/timezone_preference.dart';
 import 'package:flutter/services.dart';
@@ -69,6 +70,40 @@ void main() {
         isFalse,
       );
     }
+  });
+
+  group('timezoneSettledMessage', () {
+    TimezoneSettledCheck day(String habitId, DateTime date, String status) =>
+        TimezoneSettledCheck(habitId: habitId, date: date, status: status);
+    final tuesday = DateTime(2026, 1, 6);
+    final wednesday = DateTime(2026, 1, 7);
+
+    test('nothing settled → no message', () {
+      expect(timezoneSettledMessage('Asia/Singapore', []), isNull);
+    });
+
+    test('one sentence per day, in date order, worst status per day', () {
+      expect(
+        timezoneSettledMessage('America/Los_Angeles', [
+          day('h1', wednesday, 'vacation'),
+          day('h1', tuesday, 'frozen'),
+          day('h2', tuesday, 'missed'),
+        ]),
+        'Your timezone changed to Los Angeles. '
+        'Tuesday had already ended there and no freeze was left, so it was missed. '
+        'Wednesday had already ended there, so your vacation covered it.',
+      );
+    });
+
+    test('a freeze', () {
+      expect(
+        timezoneSettledMessage('Asia/Singapore', [
+          day('h1', tuesday, 'frozen'),
+        ]),
+        'Your timezone changed to Singapore. '
+        'Tuesday had already ended there, so a freeze covered it.',
+      );
+    });
   });
 
   group('session', () {
@@ -143,6 +178,40 @@ void main() {
       await h.session.setFollowPhoneTimezone(false);
       expect(h.timezonePreference.followPhone, isFalse);
       expect(h.session.config?.timezone, 'Asia/Tokyo');
+      h.dispose();
+    });
+
+    test('days the sync settled are told once', () async {
+      final h = SessionHarness(
+        respond: (r) async {
+          if (r.method != 'PUT') return null;
+          final body = jsonDecode(r.body) as Map<String, Object?>;
+          return jsonResponse({
+            'id': 'cfg1',
+            'userId': 'user-1',
+            ...body,
+            'settledChecks': [
+              {'habitId': 'h1', 'date': '06-01-2026', 'status': 'frozen'},
+            ],
+          });
+        },
+      );
+      await h.start();
+      expect(h.session.config?.timezone, 'Asia/Tokyo');
+      expect(
+        h.session.takeTimezoneNotice(),
+        'Your timezone changed to Tokyo. '
+        'Tuesday had already ended there, so a freeze covered it.',
+      );
+      expect(h.session.takeTimezoneNotice(), isNull);
+      h.dispose();
+    });
+
+    test('a sync that settled nothing has no notice', () async {
+      final h = harness();
+      await h.start();
+      expect(h.session.config?.timezone, 'Asia/Tokyo');
+      expect(h.session.takeTimezoneNotice(), isNull);
       h.dispose();
     });
 

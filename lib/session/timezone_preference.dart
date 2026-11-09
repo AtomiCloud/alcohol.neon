@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../data/config_repository.dart';
+
 /// Whether the user's Configuration.Timezone should be moved to the phone's
 /// timezone: only while "Follow phone timezone" is on, the phone reports a
 /// timezone, and it differs from the configured one.
@@ -54,4 +56,47 @@ class TimezonePreference {
     final f = await _file();
     await f.writeAsString(jsonEncode({'followPhone': followPhone}));
   }
+}
+
+/// What to tell the user after a timezone change settled days that had already
+/// ended in the new timezone, one sentence per day, e.g. "Your timezone changed
+/// to Singapore. Tuesday had already ended there, so a freeze covered it."
+/// Null when the change settled nothing.
+String? timezoneSettledMessage(
+  String timezone,
+  List<TimezoneSettledCheck> settled,
+) {
+  if (settled.isEmpty) return null;
+  // Protections are per user and date, so every habit on a date shares a status;
+  // if they ever differ, report the worst.
+  const rank = {'vacation': 0, 'frozen': 1, 'missed': 2};
+  final byDate = <DateTime, String>{};
+  for (final c in settled) {
+    final current = byDate[c.date];
+    if (current == null || (rank[c.status] ?? 2) > (rank[current] ?? 2)) {
+      byDate[c.date] = c.status;
+    }
+  }
+  const days = [
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+    'Sunday',
+  ];
+  final place = timezone.split('/').last.replaceAll('_', ' ');
+  final dates = byDate.keys.toList()..sort();
+  final sentences = dates.map((date) {
+    final day = days[date.weekday - 1];
+    return switch (byDate[date]) {
+      'vacation' =>
+        '$day had already ended there, so your vacation covered it.',
+      'frozen' => '$day had already ended there, so a freeze covered it.',
+      _ =>
+        '$day had already ended there and no freeze was left, so it was missed.',
+    };
+  });
+  return 'Your timezone changed to $place. ${sentences.join(' ')}';
 }

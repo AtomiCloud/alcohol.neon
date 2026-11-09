@@ -88,6 +88,7 @@ class SessionController extends ChangeNotifier {
     _generation++;
     _userId = null;
     _config = null;
+    _timezoneNotice = null;
     _consent = null;
     _timezoneSync = null;
     _error = null;
@@ -122,6 +123,7 @@ class SessionController extends ChangeNotifier {
   PaymentConsentRes? _consent;
   bool _followPhoneTimezone = true;
   Future<bool>? _timezoneSync;
+  String? _timezoneNotice;
 
   SessionPhase get phase => _phase;
   Problem? get error => _error;
@@ -130,6 +132,14 @@ class SessionController extends ChangeNotifier {
   /// milestones (habits, payments).
   String? get userId => _userId;
   ConfigurationPrincipalRes? get config => _config;
+
+  /// Returns and clears the message for days the last timezone sync settled
+  /// (see [timezoneSettledMessage]); the dashboard shows it once.
+  String? takeTimezoneNotice() {
+    final notice = _timezoneNotice;
+    _timezoneNotice = null;
+    return notice;
+  }
 
   /// The user's cached payment consent (`GET /Payment/{userId}/consent`), loaded
   /// during bootstrap and refreshed via [refreshConsent]. `null` until first loaded
@@ -329,7 +339,10 @@ class SessionController extends ChangeNotifier {
     );
     if (generation != _generation) return false;
     if (res case Ok(:final value)) {
-      _config = value;
+      _config = value.principal;
+      _timezoneNotice =
+          timezoneSettledMessage(device!, value.settledChecks) ??
+          _timezoneNotice;
       notifyListeners();
       return true;
     }

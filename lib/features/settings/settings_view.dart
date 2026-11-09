@@ -9,6 +9,7 @@ import '../../generated/zinc/models/configuration_res.dart';
 import '../../generated/zinc/models/payment_consent_res.dart';
 import '../../generated/zinc/models/update_configuration_req.dart';
 import '../../session/session_controller.dart';
+import '../../session/timezone_preference.dart';
 import '../charity/charity_picker.dart';
 import '../onboarding/timezone_picker.dart';
 import '../payment/consent_service.dart';
@@ -309,7 +310,7 @@ class _SettingsViewState extends State<SettingsView> {
     if (!mounted) return;
 
     switch (res) {
-      case Ok():
+      case Ok(:final value):
         // A hand-picked timezone overrides the phone from now on.
         if (tz != _config?.principal.timezone) {
           await session.setFollowPhoneTimezone(false);
@@ -320,9 +321,13 @@ class _SettingsViewState extends State<SettingsView> {
         // undo the successful save.
         await session.refreshConfig();
         if (!mounted) return;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Settings saved')));
+        final settled = timezoneSettledMessage(tz, value.settledChecks);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(settled ?? 'Settings saved'),
+            duration: Duration(seconds: settled == null ? 4 : 8),
+          ),
+        );
         Navigator.of(context).pop();
       case Err(:final problem):
         setState(() {

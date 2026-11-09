@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import '../../widgets/app_loader.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/date_format.dart';
+import '../../core/navigation.dart';
 import '../../theme/app_theme.dart';
 import '../../generated/zinc/models/habit_overview_habit_res.dart';
-import '../../generated/zinc/models/week_status_res.dart';
 import '../../session/session_controller.dart';
 import '../charity/charity_picker.dart';
 import '../habit/habit_editor_view.dart';
@@ -87,7 +88,7 @@ class _DashboardScaffold extends StatefulWidget {
 }
 
 class _DashboardScaffoldState extends State<_DashboardScaffold>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, RouteAware {
   @override
   void initState() {
     super.initState();
@@ -95,7 +96,23 @@ class _DashboardScaffoldState extends State<_DashboardScaffold>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route != null) routeObserver.subscribe(this, route);
+  }
+
+  @override
+  void didPopNext() {
+    // Includes a warm NFC link: no app-resume event is required on return.
+    if (!mounted) return;
+    context.read<DashboardController>().load();
+    context.read<BuffersController>().load();
+  }
+
+  @override
   void dispose() {
+    routeObserver.unsubscribe(this);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -167,6 +184,21 @@ class _Content extends StatelessWidget {
       child: ListView(
         padding: const EdgeInsets.all(12),
         children: [
+          if (c.refreshError != null)
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.sync_problem),
+                title: const Text('Could not refresh the dashboard'),
+                subtitle: const Text(
+                  'Saved actions are kept. Totals may be out of date. '
+                  'Retry refresh — do not submit the action again.',
+                ),
+                trailing: TextButton(
+                  onPressed: c.load,
+                  child: const Text('Retry'),
+                ),
+              ),
+            ),
           if (c.actionError != null)
             _ActionErrorBanner(
               message: c.actionError!.displayMessage,
@@ -477,16 +509,18 @@ class _HabitCard extends StatelessWidget {
     final stakeLabel =
         '${stake.currency ?? ''} ${stake.amount.toStringAsFixed(2)}'.trim();
 
-    // days[] is bool[7] indexed Sunday=0 (zinc HabitOverviewMapper.ToDays). Map
-    // Dart's weekday (Mon=1..Sun=7) into it: Sun→0, Mon→1, … Sat→6.
-    final todayIndex = DateTime.now().weekday % 7;
+    // Use the server's habit-local date, not the phone's weekday or the
+    // account-local weekly history. They can be on different days while travelling.
+    final today = tryParseStandardDate(status.today);
+    final todayIndex = today == null ? null : today.weekday % 7;
     final days = habit.days ?? const <bool>[];
-    final scheduledToday = todayIndex < days.length && days[todayIndex];
+    final scheduledToday =
+        todayIndex != null && todayIndex < days.length && days[todayIndex];
     final restDay = !scheduledToday;
     final paused = !habit.enabled;
-    final done = status.isCompleteToday;
-    final skipped = _todayStatus(status.week, todayIndex) == 'skip';
-    final dim = paused || restDay || done || skipped;
+    final todayStatus = controller.todayStatus(habit);
+    final settled = todayStatus != null && todayStatus != 'not_applicable';
+    final dim = paused || restDay || settled;
 
     return Opacity(
       opacity: dim ? 0.6 : 1,
@@ -573,14 +607,21 @@ class _HabitCard extends StatelessWidget {
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Day ends at midnight · ${habit.timezone ?? 'UTC'}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
                     const SizedBox(height: 10),
                     _todayRow(
                       context,
                       busy: busy,
                       paused: paused,
                       restDay: restDay,
-                      done: done,
-                      skipped: skipped,
+                      statusAvailable: today != null && todayStatus != null,
+                      todayStatus: todayStatus,
                     ),
                   ],
                 ),
@@ -600,8 +641,8 @@ class _HabitCard extends StatelessWidget {
     required bool busy,
     required bool paused,
     required bool restDay,
-    required bool done,
-    required bool skipped,
+    required bool statusAvailable,
+    required String? todayStatus,
   }) {
     final theme = Theme.of(context);
     if (busy) {
@@ -615,7 +656,14 @@ class _HabitCard extends StatelessWidget {
       );
     }
     if (paused) return _statusLine(theme, Icons.pause_circle_outline, 'Paused');
-    if (done) {
+    if (!statusAvailable) {
+      return _statusLine(
+        theme,
+        Icons.info_outline,
+        "Today's status unavailable",
+      );
+    }
+    if (todayStatus == 'succeeded') {
       return _statusLine(
         theme,
         Icons.check_circle,
@@ -623,7 +671,18 @@ class _HabitCard extends StatelessWidget {
         color: Colors.green.shade700,
       );
     }
-    if (skipped) return _statusLine(theme, Icons.fast_forward, 'Skipped today');
+    if (todayStatus == 'skip') {
+      return _statusLine(theme, Icons.fast_forward, 'Skipped today');
+    }
+    if (todayStatus == 'vacation') {
+      return _statusLine(theme, Icons.beach_access, 'On vacation');
+    }
+    if (todayStatus == 'frozen') {
+      return _statusLine(theme, Icons.ac_unit, 'Covered by a freeze today');
+    }
+    if (todayStatus == 'failed') {
+      return _statusLine(theme, Icons.info_outline, 'Today is already settled');
+    }
     if (restDay) return _statusLine(theme, Icons.bedtime_outlined, 'Rest day');
 
     final canSkip = controller.skipsLeft > 0;
@@ -661,20 +720,15 @@ class _HabitCard extends StatelessWidget {
       children: [
         Icon(icon, size: 20, color: c),
         const SizedBox(width: 6),
-        Text(label, style: theme.textTheme.labelLarge?.copyWith(color: c)),
+        Flexible(
+          child: Text(
+            label,
+            style: theme.textTheme.labelLarge?.copyWith(color: c),
+          ),
+        ),
       ],
     );
   }
-
-  static String? _todayStatus(WeekStatusRes w, int idx) => [
-    w.sunday,
-    w.monday,
-    w.tuesday,
-    w.wednesday,
-    w.thursday,
-    w.friday,
-    w.saturday,
-  ][idx];
 }
 
 /// Human-readable schedule from days[] (Sunday=0), mirroring argon's

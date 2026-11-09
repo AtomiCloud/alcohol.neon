@@ -26,6 +26,7 @@ class _OnboardingViewState extends State<OnboardingView> {
 
   bool _loading = true;
   bool _submitting = false;
+  bool _timezoneDiscoveryFailed = false;
   Problem? _error;
 
   @override
@@ -37,19 +38,23 @@ class _OnboardingViewState extends State<OnboardingView> {
   Future<void> _loadTimezones() async {
     try {
       final local = await FlutterTimezone.getLocalTimezone();
+      if (!mounted) return;
+      _timezone ??= local.identifier;
       final all = await FlutterTimezone.getAvailableTimezones();
+      if (all.isEmpty) throw StateError('No platform timezones');
       if (!mounted) return;
       setState(() {
-        _timezone = local.identifier;
-        _timezones = all.map((t) => t.identifier).toList()..sort();
+        _timezones = {...all.map((t) => t.identifier), _timezone!}.toList()
+          ..sort();
+        _timezoneDiscoveryFailed = false;
         _loading = false;
       });
     } catch (_) {
-      // Fall back to UTC if the platform can't report timezones.
       if (!mounted) return;
       setState(() {
-        _timezone = 'UTC';
-        _timezones = const ['UTC'];
+        _timezone ??= 'UTC';
+        _timezones = {...bundledTimezones(), _timezone!}.toList()..sort();
+        _timezoneDiscoveryFailed = true;
         _loading = false;
       });
     }
@@ -140,6 +145,13 @@ class _OnboardingViewState extends State<OnboardingView> {
               onTap: _pickTimezone,
             ),
           ),
+          if (_timezoneDiscoveryFailed) ...[
+            const Text(timezoneDiscoveryNotice),
+            TextButton(
+              onPressed: _loadTimezones,
+              child: const Text('Retry timezone discovery'),
+            ),
+          ],
           Card(
             child: ListTile(
               leading: const Icon(Icons.volunteer_activism),

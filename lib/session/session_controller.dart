@@ -16,6 +16,8 @@ import '../data/vacation_repository.dart';
 import '../generated/zinc/models/configuration_principal_res.dart';
 import '../generated/zinc/models/payment_consent_res.dart';
 import '../networking/api_client.dart';
+import '../services/notification_service.dart';
+import '../services/widget_service.dart';
 
 /// Where the signed-in user is in the bootstrap → configured journey.
 enum SessionPhase { idle, bootstrapping, needsOnboarding, ready, error }
@@ -50,7 +52,59 @@ class SessionController extends ChangeNotifier {
       protections = ProtectionRepository(api),
       vacations = VacationRepository(api),
       subscriptions = SubscriptionRepository(api),
-      nfcTags = NfcTagRepository(api);
+      nfcTags = NfcTagRepository(api) {
+    auth.addListener(_onAuthChanged);
+  }
+
+  int _generation = 0;
+  int get generation => _generation;
+  Future<void> _deviceWork = Future.value();
+
+  /// Serialize native writes and cleanup: a logout that races a platform call
+  /// must clear *after* that call finishes, before the next account can sync.
+  Future<void> syncDevice(int generation, Future<void> Function() action) {
+    return _deviceWork = _deviceWork
+        .then((_) async {
+          if (generation != _generation ||
+              auth.status != AuthStatus.authenticated) {
+            return;
+          }
+          await action();
+        })
+        .catchError((Object _) {
+          debugPrint('Could not sync optional device integrations.');
+        });
+  }
+
+  void _clearSession() {
+    _generation++;
+    _userId = null;
+    _config = null;
+    _consent = null;
+    _error = null;
+    _phase = SessionPhase.idle;
+    _deviceWork = _deviceWork.then((_) async {
+      await WidgetService.instance.clear();
+      try {
+        await NotificationService.instance.cancelAll();
+      } catch (_) {
+        debugPrint('Could not cancel optional device notifications.');
+      }
+    });
+  }
+
+  void _onAuthChanged() {
+    if (auth.status == AuthStatus.authenticated) return;
+    _clearSession();
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    auth.removeListener(_onAuthChanged);
+    _generation++;
+    super.dispose();
+  }
 
   SessionPhase _phase = SessionPhase.idle;
   Problem? _error;
@@ -79,10 +133,13 @@ class SessionController extends ChangeNotifier {
   /// Provision the user (idempotent) then resolve configuration. Safe to re-run
   /// (e.g. on retry, or re-entering the authed shell after a previous sign-in).
   Future<void> bootstrap() async {
+    _clearSession();
+    final generation = _generation;
     _error = null;
     _setPhase(SessionPhase.bootstrapping);
 
     final claims = await auth.claims();
+    if (generation != _generation) return;
     _userId = claims?.sub;
 
     // Fetch the access token first: if it's expired the SDK refreshes via the
@@ -91,6 +148,7 @@ class SessionController extends ChangeNotifier {
     // to POST /User (zinc validates the id_token's lifetime).
     final accessToken = await auth.zincAccessToken();
     final idToken = await auth.idToken();
+    if (generation != _generation) return;
     if (idToken == null || accessToken == null) {
       return _fail(
         Problem.local(
@@ -107,12 +165,14 @@ class SessionController extends ChangeNotifier {
     // server-side UniqueConstraintException + error log on every returning sign-in.
     // So: 200 ⇒ already provisioned; 404 ⇒ first sign-in, create now.
     final me = await users.me();
+    if (generation != _generation) return;
     if (me case Err(:final problem)) {
       if (problem.status == 404) {
         final created = await users.create(
           idToken: idToken,
           accessToken: accessToken,
         );
+        if (generation != _generation) return;
         // Tolerate a 409 in case of a concurrent first-sign-in race.
         if (created case Err(
           problem: final p,
@@ -125,6 +185,7 @@ class SessionController extends ChangeNotifier {
     }
 
     final cfg = await configs.mine();
+    if (generation != _generation) return;
     switch (cfg) {
       case Ok(:final value):
         _config = value.principal;
@@ -133,6 +194,7 @@ class SessionController extends ChangeNotifier {
         // here leaves consent unknown but must not block reaching the app — the
         // editor falls back to running the consent flow on demand.
         await _loadConsent();
+        if (generation != _generation) return;
         _setPhase(SessionPhase.ready);
       case Err(:final problem):
         // 404 ⇒ no configuration yet ⇒ onboard. Anything else is a real error.
@@ -148,8 +210,10 @@ class SessionController extends ChangeNotifier {
   /// flips the phase). Tolerates failure — leaves the previous cache intact.
   Future<void> _loadConsent() async {
     final uid = _userId;
+    final generation = _generation;
     if (uid == null) return;
     final res = await payments.consent(uid);
+    if (generation != _generation) return;
     if (res case Ok(:final value)) _consent = value;
   }
 
@@ -160,8 +224,10 @@ class SessionController extends ChangeNotifier {
   /// refresh fails. Truth is always this GET, never the Logto claim.
   Future<Result<PaymentConsentRes>> refreshConsent() async {
     final uid = _userId;
+    final generation = _generation;
     if (uid == null) return const Err(Problem.unauthenticated);
     final res = await payments.consent(uid);
+    if (generation != _generation) return const Err(Problem.unauthenticated);
     switch (res) {
       case Ok(:final value):
         _consent = value;
@@ -184,7 +250,9 @@ class SessionController extends ChangeNotifier {
   /// surface a failure; on success it notifies listeners. Leaves the cache intact
   /// (and does not flip the phase) when the refresh fails.
   Future<Result<ConfigurationPrincipalRes>> refreshConfig() async {
+    final generation = _generation;
     final res = await configs.mine();
+    if (generation != _generation) return const Err(Problem.unauthenticated);
     switch (res) {
       case Ok(:final value):
         _config = value.principal;

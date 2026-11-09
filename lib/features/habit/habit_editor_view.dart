@@ -59,6 +59,7 @@ class _HabitEditorViewState extends State<HabitEditorView> {
   TimeOfDay _time = const TimeOfDay(hour: 22, minute: 0);
   String? _charityId;
   String? _charityName;
+  String? _existingTimezone;
 
   bool _enabled = true;
   bool _loading = false; // loading an existing habit (edit)
@@ -98,6 +99,7 @@ class _HabitEditorViewState extends State<HabitEditorView> {
         _task.text = h.task ?? '';
         _stake.text = h.stake ?? '0';
         _time = _parseTime(h.notificationTime) ?? _time;
+        _existingTimezone = h.timezone;
         _days
           ..clear()
           ..addAll(h.daysOfWeek ?? const []);
@@ -202,7 +204,14 @@ class _HabitEditorViewState extends State<HabitEditorView> {
     }
     final uid = _session.userId;
     if (uid == null) return;
-    final tz = _session.config?.timezone ?? 'UTC';
+    // Account settings are defaults for new habits, not a timezone migration.
+    final tz = widget.isEdit
+        ? _existingTimezone
+        : _session.config?.timezone ?? 'UTC';
+    if (tz == null || tz.isEmpty) {
+      setState(() => _error = Problem.local('Reload the habit before saving.'));
+      return;
+    }
     // zinc validates DaysOfWeek case-sensitively on update — keep canonical order.
     final days = [
       for (final (key, _) in _weekDays)

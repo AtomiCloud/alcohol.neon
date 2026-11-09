@@ -10,10 +10,12 @@ on:
 jobs:
   build:
     name: Build IPA
-    runs-on:
-      - nscloud-macos-sequoia-arm64-6x14-with-cache
-      - nscloud-cache-size-50gb
-      - nscloud-cache-tag-atomi-nix-darwin-cache
+    runs-on: macos-15
+    # Namespace runners (disabled):
+    # runs-on:
+    #   - nscloud-macos-sequoia-arm64-6x14-with-cache
+    #   - nscloud-cache-size-50gb
+    #   - nscloud-cache-tag-atomi-nix-darwin-cache
     timeout-minutes: 60
     env:
       # codemagic-cli-tools reads these by convention.
@@ -22,16 +24,17 @@ jobs:
       APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
       CERTIFICATE_PRIVATE_KEY: ${{ secrets.CERTIFICATE_PRIVATE_KEY }}
     steps:
-      # On macOS, setup-nix serves nix from a file:// cache on the Namespace cache
-      # volume — requires the -with-cache runner labels above.
+      # GitHub-hosted Intel macOS uses the normal Determinate Nix installer.
       - uses: AtomiCloud/actions.setup-nix@v3
-
-      # Must run after checkout (done by setup-nix).
-      - uses: namespacelabs/nscloud-cache-action@v1
         with:
-          path: |
-            ~/.pub-cache
-            ~/.cocoapods
+          namespacelabs: 'false'
+
+      # Namespace cache volume (disabled on GitHub-hosted runners).
+      # - uses: namespacelabs/nscloud-cache-action@v1
+      #   with:
+      #     path: |
+      #       ~/.pub-cache
+      #       ~/.cocoapods
 
       # App Store Connect requires the newest SDK; the runner's default Xcode is older.
       - name: Select newest Xcode

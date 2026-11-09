@@ -12,6 +12,8 @@ HabitStatusRes _$HabitStatusResFromJson(Map<String, dynamic> json) =>
       maxStreak: (json['maxStreak'] as num).toInt(),
       isCompleteToday: json['isCompleteToday'] as bool,
       week: WeekStatusRes.fromJson(json['week'] as Map<String, dynamic>),
+      today: json['today'] as String?,
+      todayStatus: json['todayStatus'] as String?,
     );
 
 Map<String, dynamic> _$HabitStatusResToJson(HabitStatusRes instance) =>
@@ -20,4 +22,6 @@ Map<String, dynamic> _$HabitStatusResToJson(HabitStatusRes instance) =>
       'maxStreak': instance.maxStreak,
       'isCompleteToday': instance.isCompleteToday,
       'week': instance.week,
+      'today': instance.today,
+      'todayStatus': instance.todayStatus,
     };

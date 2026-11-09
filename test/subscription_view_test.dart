@@ -75,6 +75,8 @@ void main() {
 
     expect(find.text('Manage subscription'), findsOneWidget);
     expect(find.byType(FilledButton), findsOneWidget);
+    expect(find.text('Your current paid plan.'), findsOneWidget);
+    expect(find.textContaining('renews automatically'), findsNothing);
     c.dispose();
   });
 

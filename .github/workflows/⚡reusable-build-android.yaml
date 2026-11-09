@@ -11,16 +11,21 @@ on:
 jobs:
   build:
     name: Build AAB
-    # 8 GB runner — cd-android.sh sizes the Gradle JVM for it.
-    runs-on:
-      - nscloud-ubuntu-22.04-amd64-4x8-with-cache
-      - nscloud-cache-size-50gb
-      - nscloud-cache-tag-atomi-nix-store-cache
+    # Keep cd-android.sh's conservative Gradle JVM sizing on GitHub-hosted Ubuntu.
+    runs-on: ubuntu-22.04
+    # Namespace runners (disabled):
+    # runs-on:
+    #   - nscloud-ubuntu-22.04-amd64-4x8-with-cache
+    #   - nscloud-cache-size-50gb
+    #   - nscloud-cache-tag-atomi-nix-store-cache
     timeout-minutes: 60
     steps:
       - uses: AtomiCloud/actions.setup-nix@v3
+        with:
+          namespacelabs: 'false'
 
-      - uses: AtomiCloud/actions.cache-gradle@v1
+      # Namespace caching disabled; build without the optional Gradle cache.
+      # - uses: AtomiCloud/actions.cache-gradle@v1
 
       - name: Build donor AAB
         run: nix develop .#cd-android -c ./scripts/ci/cd-android.sh

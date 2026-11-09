@@ -1,3 +1,10 @@
+## [1.14.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.13.4...v1.14.0) (2026-11-09)
+
+
+### ✨ Features ✨
+
+* follow the phone timezone and remind only for open checks ([240d3e2](https://github.com/AtomiCloud/alcohol.neon/commit/240d3e24910d89edf66849f809fc8ee3ab1a4e2e))
+
 ## [1.13.4](https://github.com/AtomiCloud/alcohol.neon/compare/v1.13.3...v1.13.4) (2026-11-09)
 
 

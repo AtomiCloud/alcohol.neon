@@ -24,7 +24,7 @@ version name from the tag), and uploads. Store uploads run in parallel, and a
 failed upload re-runs in minutes **without rebuilding** — the donor stays in
 the run's artifacts (90 days).
 
-- **iOS** (`nscloud-macos-sequoia-arm64-6x14` runners; the publish jobs are macOS too —
+- **iOS** (GitHub-hosted `macos-15` Intel runners; the publish jobs are macOS too —
   codesign). The donor archive compiles every `AppIcon-*` set into `Assets.car`
   (`ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS`, raichuRelease.xcconfig), and
   `scripts/ci/stamp-ios.sh` re-badges per landscape: PlistBuddy patches to app + widget
@@ -36,7 +36,7 @@ the run's artifacts (90 days).
   a doctor asserts every field plus the signed App Group before upload. Only raichu's
   profiles exist at build time, so `use-profiles`/export see exactly the single-flavor
   setup; each publish job fetches its own landscape's profiles.
-- **Android** (Linux runners; the donor build needs no secrets — it debug-signs and every
+- **Android** (GitHub-hosted `ubuntu-22.04` runners; the donor build needs no secrets — it debug-signs and every
   publish job re-signs with the upload key). `scripts/ci/stamp-android.sh` re-badges per
   landscape: it patches the protobuf `AndroidManifest.xml` (applicationId — which is also
   the Logto scheme and the provider-authority prefix — plus label, versionCode and
@@ -83,7 +83,7 @@ To regenerate the secret bundle, see the validated source material in Infisical 
 local `signingkey` (cert key) and `atomi-upload.jks` (keystore). All three are gitignored; **never
 commit them**.
 
-## How signing works (nix-cached toolchain)
+## How signing works (Nix toolchain on GitHub-hosted runners)
 
 Following the ci-cd-workflows convention, `cd.yaml` only resolves the flavor matrix and fans out
 to the per-platform reusable workflows (`⚡reusable-build-{ios,android}.yaml` for the donors,
@@ -91,18 +91,22 @@ to the per-platform reusable workflows (`⚡reusable-build-{ios,android}.yaml` f
 imperative build/sign logic lives in `scripts/ci/` (`cd-{matrix,ios,android}.sh`,
 `publish-{ios,android}.sh`, `stamp-{ios,android}.sh`, `lib-ios.sh`), run inside a per-platform
 nix dev shell so flutter, Android SDK, JDK, CocoaPods, GNU rsync, and codemagic-cli-tools are
-all cached (no per-run `brew`/`apt`/flutter-action downloads). Caching differs per platform:
+provided by Nix (no per-run `brew`/`apt`/flutter-action downloads).
 
-- **Android (Linux):** `AtomiCloud/actions.setup-nix` restores the **shared nix store cache**
-  (`nscloud-cache-tag-atomi-nix-store-cache`) — warm runs start with `/nix` already populated.
-- **iOS (macOS):** the Namespace `/nix` cache path can't work on macOS (the cache action mounts via
-  symlink and the sealed APFS root forbids creating `/nix`), so `setup-nix@v3` mounts a Namespace
-  cache volume at `/tmp/nix-cache` (tag `atomi-nix-darwin-cache`) and uses it as a **local
-  `file://` binary cache**: nix is installed fresh each run (DeterminateSystems installer), but
-  the dev-shell closure substitutes from NVMe, and a post hook pushes the realized devShell
-  closures back at end of job (on success). `~/.pub-cache` / `~/.cocoapods` ride a cache volume
-  too. The volume only commits when the job succeeds, and idle volumes expire after ~14 days, so
-  the first run after a quiet spell is cold again.
+- **Runners:** Linux jobs use GitHub-hosted `ubuntu-22.04`; iOS build and publish jobs use
+  GitHub-hosted `macos-15` (Intel, supported by the flake's `eachDefaultSystem`). Both iOS
+  workflows still select the newest installed Xcode. The former Namespace runner labels
+  remain commented out in the reusable workflows.
+- **Nix:** every reusable workflow explicitly passes `namespacelabs: 'false'` to
+  `AtomiCloud/actions.setup-nix@v3`. The normal Determinate Nix installer runs on both Linux
+  and macOS, using the configured remote binary substituters (including the public Attic
+  cache), not Namespace cache volumes or a local `file://` cache. Each job starts with a
+  fresh Nix store; cache misses must download or build the required dependencies.
+- **Optional dependency caches:** Namespace Pub/CocoaPods, npm, and Gradle cache steps are
+  commented out. The npm wrapper's native fallback still uses retired `actions/cache@v3`;
+  the Gradle wrapper has a supported native fallback, but optional caching is disabled for
+  this migration. Pub, pods, npm, and Gradle dependencies are therefore fetched per job as
+  needed. Cold jobs may be slower; existing build/publish timeouts are unchanged.
 
 The shells are defined in `nix/shells.nix`:
 
@@ -133,7 +137,7 @@ pipx install step.
   `~/.gradle/gradle.properties` with `kotlin.compiler.execution.strategy=in-process` and a
   right-sized `org.gradle.jvmargs` (-Xmx4g) — GRADLE_USER_HOME is the only properties scope that
   reaches the flutter_tools **included build** (where a KGP 2.0.x daemon-startup race, KT-69929,
-  was intermittently killing `:<engine-rev>:compileKotlin` on the 8 GB runner), and it overrides
+  was intermittently killing `:<engine-rev>:compileKotlin` on the former 8 GB Namespace runner), and it overrides
   the project's dev-machine `-Xmx8G` in CI only.
 
 ## Versioning

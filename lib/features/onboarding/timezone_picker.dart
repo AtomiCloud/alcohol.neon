@@ -1,4 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:timezone/data/latest_all.dart' as tzdata;
+import 'package:timezone/timezone.dart' as tz;
+
+/// Offline IANA choices when platform discovery is unavailable.
+List<String> bundledTimezones() {
+  tzdata.initializeTimeZones();
+  return tz.timeZoneDatabase.locations.keys.toList()..sort();
+}
+
+const timezoneDiscoveryNotice =
+    'Device timezone discovery is unavailable. Choose your region from the '
+    'bundled timezone list, or retry discovery. Your selection is kept.';
 
 /// Searchable IANA timezone list. Returns the chosen identifier (e.g.
 /// `Asia/Singapore`) via `Navigator.pop`.

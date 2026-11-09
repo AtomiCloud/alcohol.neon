@@ -153,6 +153,9 @@ ID is in `AppConfig` (or via `--dart-define`), the app builds/runs but sign-in w
 
 ## Status / next
 
-Foundation + auth + branding done and verified on the iOS Simulator. Next: habit features against
-zinc — today's habits (list + complete/skip), create/edit habit, onboarding, charities, and the
-Airwallex payment-consent flow. See [docs/app-dev-plan.md](./docs/app-dev-plan.md).
+The Flutter app implements the daily habit loop, habit editing, onboarding, charities,
+settings, payment consent, subscription information, vacations, NFC, reminders, and
+an iOS widget. Verify affected behavior before release; implementation does not imply
+device or production sign-off. [docs/app-dev-plan.md](./docs/app-dev-plan.md) is the
+historical SwiftUI proposal, not the current backlog. Use
+[docs/github-actions-release.md](./docs/github-actions-release.md) for releases.

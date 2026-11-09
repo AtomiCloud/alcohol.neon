@@ -21,6 +21,26 @@ class WidgetService {
   static Future<String> _appGroup() async => _appGroupCache ??=
       'group.${(await PackageInfo.fromPlatform()).packageName}';
 
+  /// Remove all account-owned widget state, including optimistic native actions.
+  Future<void> clear() async {
+    try {
+      await HomeWidget.setAppGroupId(await _appGroup());
+      for (final key in [
+        _dataKey,
+        'zinc_base',
+        'zinc_token',
+        'zinc_uid',
+        'pending_id',
+        'pending_at',
+      ]) {
+        await HomeWidget.saveWidgetData<Object>(key, null);
+      }
+      await HomeWidget.updateWidget(iOSName: _kind);
+    } catch (_) {
+      // Widget not installed / not supported — non-critical.
+    }
+  }
+
   Future<void> sync(HabitOverviewResponse overview) async {
     try {
       await HomeWidget.setAppGroupId(await _appGroup());
@@ -76,12 +96,8 @@ class WidgetService {
     try {
       await HomeWidget.setAppGroupId(await _appGroup());
       await HomeWidget.saveWidgetData<String>('zinc_base', baseUrl);
-      if (token != null) {
-        await HomeWidget.saveWidgetData<String>('zinc_token', token);
-      }
-      if (userId != null) {
-        await HomeWidget.saveWidgetData<String>('zinc_uid', userId);
-      }
+      await HomeWidget.saveWidgetData<String>('zinc_token', token);
+      await HomeWidget.saveWidgetData<String>('zinc_uid', userId);
     } catch (_) {
       // Non-critical.
     }

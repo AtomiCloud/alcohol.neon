@@ -10,9 +10,10 @@ import '../generated/zinc/models/habit_overview_habit_res.dart';
 /// rebuilt from the overview whenever it loads (cancel-all then reschedule), so
 /// they always reflect the current habits.
 class NotificationService {
-  NotificationService._();
-  static final NotificationService instance = NotificationService._();
+  NotificationService({DateTime Function()? now}) : _now = now ?? DateTime.now;
+  static final NotificationService instance = NotificationService();
 
+  final DateTime Function() _now;
   final _plugin = FlutterLocalNotificationsPlugin();
   bool _ready = false;
 
@@ -60,11 +61,16 @@ class NotificationService {
   }
 
   /// Cancel and reschedule weekly reminders for the user's enabled habits.
-  Future<void> syncHabits(List<HabitOverviewHabitRes> habits) async {
+  Future<void> syncHabits(
+    List<HabitOverviewHabitRes> habits, {
+    bool Function()? isCurrent,
+  }) async {
     await init();
+    if (isCurrent != null && !isCurrent()) return;
     // Ensure we have permission before scheduling — otherwise iOS silently drops
     // the reminders. Idempotent: iOS only shows the prompt the first time.
     await requestPermission();
+    if (isCurrent != null && !isCurrent()) return;
     await _plugin.cancelAll();
 
     const details = NotificationDetails(
@@ -83,14 +89,22 @@ class NotificationService {
       if (!h.enabled) continue;
       final time = _parseTime(h.notificationTime);
       final days = h.days;
-      if (time == null || days == null) continue;
+      if (time == null || days == null || h.timezone == null) continue;
+      final tz.Location location;
+      try {
+        location = tz.getLocation(h.timezone!);
+      } on tz.LocationNotFoundException {
+        // Do not silently schedule in the device's zone for invalid habit data.
+        continue;
+      }
       for (var d = 0; d < days.length && d < 7; d++) {
         if (!days[d]) continue;
+        if (isCurrent != null && !isCurrent()) return;
         await _plugin.zonedSchedule(
           id++,
           h.name ?? 'Habit',
           'Time for your habit — keep the streak alive.',
-          _nextInstanceOf(d, time.$1, time.$2),
+          _nextInstanceOf(d, time.$1, time.$2, location),
           details,
           androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
           matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
@@ -141,21 +155,35 @@ class NotificationService {
   }
 
   /// Next occurrence of day [d] (0=Sunday..6=Saturday, zinc/argon convention) at
-  /// [hour]:[minute] in the local timezone.
-  tz.TZDateTime _nextInstanceOf(int d, int hour, int minute) {
+  /// [hour]:[minute] in the habit's timezone.
+  tz.TZDateTime _nextInstanceOf(
+    int d,
+    int hour,
+    int minute,
+    tz.Location location,
+  ) {
     // DateTime weekday: Mon=1..Sun=7. zinc's Sunday=0 → 7.
     final targetWeekday = d == 0 ? 7 : d;
-    final now = tz.TZDateTime.now(tz.local);
+    final now = tz.TZDateTime.from(_now(), location);
+    var day = now.day;
     var scheduled = tz.TZDateTime(
-      tz.local,
+      location,
       now.year,
       now.month,
-      now.day,
+      day,
       hour,
       minute,
     );
     while (scheduled.weekday != targetWeekday || !scheduled.isAfter(now)) {
-      scheduled = scheduled.add(const Duration(days: 1));
+      // Calendar days, not 24-hour durations: retain wall time across DST.
+      scheduled = tz.TZDateTime(
+        location,
+        now.year,
+        now.month,
+        ++day,
+        hour,
+        minute,
+      );
     }
     return scheduled;
   }

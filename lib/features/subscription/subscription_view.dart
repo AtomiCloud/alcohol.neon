@@ -168,9 +168,7 @@ class _PlanCard extends StatelessWidget {
         ),
         title: Text('$name plan'),
         subtitle: Text(
-          isFree
-              ? 'You are on the free plan.'
-              : 'Your plan renews automatically.',
+          isFree ? 'You are on the free plan.' : 'Your current paid plan.',
         ),
       ),
     );

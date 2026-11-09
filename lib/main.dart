@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'auth/auth_service.dart';
 import 'config/app_config.dart';
+import 'core/navigation.dart';
 import 'features/nfc/nfc_deep_links.dart';
 import 'features/root/root_view.dart';
 import 'session/session_controller.dart';
@@ -79,6 +80,7 @@ class _AlcoholNeonAppState extends State<AlcoholNeonApp> {
       title: 'LazyTax',
       debugShowCheckedModeBanner: false,
       navigatorKey: _navigatorKey,
+      navigatorObservers: [routeObserver],
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: ThemeMode.system,

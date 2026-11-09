@@ -43,6 +43,7 @@ class _SettingsViewState extends State<SettingsView> {
   bool _loading = true;
   bool _saving = false;
   bool _consentBusy = false;
+  bool _timezoneDiscoveryFailed = false;
   Problem? _loadError;
   Problem? _saveError;
   Problem? _consentError;
@@ -94,22 +95,35 @@ class _SettingsViewState extends State<SettingsView> {
   Future<void> _loadTimezones() async {
     try {
       final local = await FlutterTimezone.getLocalTimezone();
-      final all = await FlutterTimezone.getAvailableTimezones();
       if (!mounted) return;
-      _timezone = local.identifier;
-      _timezones = all.map((t) => t.identifier).toList()..sort();
+      _timezone ??=
+          context.read<SessionController>().config?.timezone ??
+          local.identifier;
+      final all = await FlutterTimezone.getAvailableTimezones();
+      if (all.isEmpty) throw StateError('No platform timezones');
+      if (!mounted) return;
+      setState(() {
+        _timezones = all.map((t) => t.identifier).toList()..sort();
+        _timezoneDiscoveryFailed = false;
+      });
     } catch (_) {
       if (!mounted) return;
-      _timezone = 'UTC';
-      _timezones = const ['UTC'];
+      setState(() {
+        _timezone ??=
+            context.read<SessionController>().config?.timezone ?? 'UTC';
+        _timezones = bundledTimezones();
+        _timezoneDiscoveryFailed = true;
+      });
     }
   }
 
   Future<void> _pickTimezone() async {
     final picked = await Navigator.of(context).push<String>(
       MaterialPageRoute(
-        builder: (_) =>
-            TimezonePicker(timezones: _timezones, selected: _timezone),
+        builder: (_) => TimezonePicker(
+          timezones: {..._timezones, ?_timezone}.toList()..sort(),
+          selected: _timezone,
+        ),
       ),
     );
     if (picked != null && mounted) setState(() => _timezone = picked);
@@ -296,10 +310,17 @@ class _SettingsViewState extends State<SettingsView> {
           label: 'Timezone',
           value: _timezone?.replaceAll('_', ' ') ?? 'Not set',
           subtitle:
-              'Sets when each day ends and when habit reminders fire. Pick the '
-              'region closest to you.',
+              'Default timezone for new habits and account history. Existing '
+              'habits keep their own timezone and reminders.',
           onTap: _pickTimezone,
         ),
+        if (_timezoneDiscoveryFailed) ...[
+          const Text(timezoneDiscoveryNotice),
+          TextButton(
+            onPressed: _loadTimezones,
+            child: const Text('Retry timezone discovery'),
+          ),
+        ],
         _FieldCard(
           icon: Icons.volunteer_activism,
           label: 'Default charity',

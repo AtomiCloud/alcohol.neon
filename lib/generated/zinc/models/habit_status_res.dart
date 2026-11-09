@@ -15,6 +15,8 @@ class HabitStatusRes {
     required this.maxStreak,
     required this.isCompleteToday,
     required this.week,
+    this.today,
+    this.todayStatus,
   });
 
   factory HabitStatusRes.fromJson(Map<String, Object?> json) =>
@@ -24,6 +26,8 @@ class HabitStatusRes {
   final int maxStreak;
   final bool isCompleteToday;
   final WeekStatusRes week;
+  final String? today;
+  final String? todayStatus;
 
   Map<String, Object?> toJson() => _$HabitStatusResToJson(this);
 }

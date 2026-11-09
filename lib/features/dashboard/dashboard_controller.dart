@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
-import '../../auth/auth_service.dart';
 import '../../config/app_config.dart';
 import '../../core/problem.dart';
 import '../../data/execution_repository.dart';
@@ -22,38 +21,69 @@ class DashboardController extends ChangeNotifier {
   final String? userId;
   final HabitRepository _habits;
   final ExecutionRepository _executions;
-  final AuthService _auth;
+  final SessionController _session;
+  final int _generation;
+  bool _disposed = false;
+
+  bool get _current =>
+      !_disposed &&
+      _session.generation == _generation &&
+      _session.userId == userId;
 
   DashboardController(SessionController session)
     : userId = session.userId,
       _habits = session.habits,
       _executions = session.executions,
-      _auth = session.auth;
+      _session = session,
+      _generation = session.generation;
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
 
   /// Push the freshly-loaded schedule to the iOS widget, and cache the auth context
   /// (zinc base URL + a current access token + user id) into the shared App Group so
   /// the widget's "Complete" button can POST the completion directly. Best-effort.
   Future<void> _pushToWidget(HabitOverviewResponse overview) async {
-    await WidgetService.instance.sync(overview);
-    final token = await _auth.zincAccessToken();
-    await WidgetService.instance.cacheAuth(
-      baseUrl: AppConfig.current.zincBaseUrl.toString(),
-      token: token,
-      userId: userId,
-    );
+    final token = await _session.auth.zincAccessToken();
+    if (!_current) return;
+    await _session.syncDevice(_generation, () async {
+      if (!_current) return;
+      await WidgetService.instance.sync(overview);
+      if (!_current) return;
+      await WidgetService.instance.cacheAuth(
+        baseUrl: AppConfig.current.zincBaseUrl.toString(),
+        token: token,
+        userId: userId,
+      );
+    });
   }
 
   DashboardPhase _phase = DashboardPhase.loading;
   Problem? _error;
   Problem? _actionError;
+  Problem? _refreshError;
   HabitOverviewResponse? _overview;
+  int _loadRequest = 0;
   final Set<String> _busy = {}; // habit ids with an in-flight action
+  final Map<String, (String?, String)> _settled = {};
 
   DashboardPhase get phase => _phase;
   Problem? get error => _error;
 
   /// Surfaces a transient failure from complete/skip (shown as a banner, then cleared).
   Problem? get actionError => _actionError;
+  Problem? get refreshError => _refreshError;
+
+  /// Acknowledged POSTs remain settled until an overview reconciles them.
+  String? todayStatus(HabitOverviewHabitRes habit) {
+    final saved = _settled[habit.id];
+    return saved != null && saved.$1 == habit.status.today
+        ? saved.$2
+        : habit.status.todayStatus;
+  }
 
   HabitOverviewResponse? get overview => _overview;
   List<HabitOverviewHabitRes> get habits => _overview?.habits ?? const [];
@@ -79,7 +109,8 @@ class DashboardController extends ChangeNotifier {
   }
 
   /// Full load — flips to the loading state (initial open / pull-to-refresh / retry).
-  Future<void> load() async {
+  Future<void> load({bool quiet = false}) async {
+    if (!_current) return;
     final uid = userId;
     if (uid == null) {
       _error = Problem.local('Not signed in', status: 401, type: 'neon:auth');
@@ -87,21 +118,30 @@ class DashboardController extends ChangeNotifier {
       notifyListeners();
       return;
     }
-    _phase = DashboardPhase.loading;
+    if (!quiet) _phase = DashboardPhase.loading;
     _error = null;
     notifyListeners();
 
+    final request = ++_loadRequest;
     final res = await _habits.overview(uid);
+    if (!_current || request != _loadRequest) return;
     switch (res) {
       case Ok(:final value):
         _overview = value;
+        _settled.clear();
+        _refreshError = null;
         _phase = DashboardPhase.ready;
         unawaited(_syncReminders());
         // Push today's schedule + auth context to the iOS home-screen widget.
         unawaited(_pushToWidget(value));
       case Err(:final problem):
-        _error = problem;
-        _phase = DashboardPhase.error;
+        if (_overview != null) {
+          _refreshError = problem;
+          _phase = DashboardPhase.ready;
+        } else {
+          _error = problem;
+          _phase = DashboardPhase.error;
+        }
     }
     notifyListeners();
   }
@@ -109,12 +149,13 @@ class DashboardController extends ChangeNotifier {
   /// Reschedule local habit reminders from the freshly loaded overview. Prompts
   /// for permission once (iOS). Best-effort — failures don't affect the dashboard.
   Future<void> _syncReminders() async {
-    try {
-      await NotificationService.instance.requestPermission();
-      await NotificationService.instance.syncHabits(habits);
-    } catch (_) {
-      // ignore — reminders are non-critical
-    }
+    await _session.syncDevice(_generation, () async {
+      if (!_current) return;
+      await NotificationService.instance.syncHabits(
+        habits,
+        isCurrent: () => _current,
+      );
+    });
   }
 
   Future<void> complete(HabitOverviewHabitRes habit) =>
@@ -125,8 +166,11 @@ class DashboardController extends ChangeNotifier {
     final uid = userId;
     final versionId = habit.version.id;
     final habitId = habit.id;
-    if (uid == null || versionId == null || habitId == null) return;
+    if (!_current || uid == null || versionId == null || habitId == null) {
+      return;
+    }
     if (_busy.contains(habitId)) return;
+    if (_settled.containsKey(habitId)) return;
     if (skip && skipsLeft <= 0) return;
 
     _busy.add(habitId);
@@ -136,26 +180,18 @@ class DashboardController extends ChangeNotifier {
     final res = skip
         ? await _executions.skip(uid, versionId)
         : await _executions.complete(uid, versionId);
+    if (!_current) return;
     switch (res) {
       case Ok():
-        await _refresh(); // reconcile streaks / debt / skip budget
+        _settled[habitId] = (habit.status.today, skip ? 'skip' : 'succeeded');
+        _busy.remove(habitId);
+        notifyListeners();
+        await load(quiet: true); // reconcile streaks / debt / skip budget
       case Err(:final problem):
         _actionError = problem;
     }
+    if (!_current) return;
     _busy.remove(habitId);
     notifyListeners();
-  }
-
-  /// Quiet refetch that updates data without flipping back to the loading state.
-  Future<void> _refresh() async {
-    final uid = userId;
-    if (uid == null) return;
-    final res = await _habits.overview(uid);
-    if (res case Ok(:final value)) {
-      _overview = value;
-      // Keep the home-screen widget + cached auth in sync after a complete/skip.
-      unawaited(_pushToWidget(value));
-    }
-    // A refresh failure leaves the prior data on screen; the action itself succeeded.
   }
 }

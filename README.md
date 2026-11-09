@@ -95,10 +95,14 @@ with `flutter pub run flutter_launcher_icons`).
 ## Release
 
 3 channels map to AtomiCloud landscapes — pichu (dev), pikachu (stage), raichu (prod). See
-[docs/release-strategy.md](./docs/release-strategy.md) and [docs/codemagic-setup.md](./docs/codemagic-setup.md).
+[the current GitHub Actions release runbook](./docs/github-actions-release.md).
+The [release strategy](./docs/release-strategy.md) and
+[Codemagic setup](./docs/codemagic-setup.md) retain historical planning context.
 
 ## Status
 
-**Foundation + auth**: config/landscapes, `Result`/`Problem` errors, `ApiClient`,
-Logto sign-in/out, the auth-gated shell, branding (logo + icon). Builds & runs on the iOS
-Simulator. Habit features come next — see [docs/app-dev-plan.md](./docs/app-dev-plan.md).
+The Flutter app includes onboarding, today's habit dashboard and completion/skip,
+habit editing, charity browsing, account settings, payment consent, subscription
+information, vacations, NFC completion, local reminders, and an iOS widget.
+These are implemented features, not a claim of production/device verification.
+[The original SwiftUI app plan](./docs/app-dev-plan.md) is historical, not the current backlog.

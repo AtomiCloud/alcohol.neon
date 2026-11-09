@@ -3731,6 +3731,14 @@
           },
           "week": {
             "$ref": "#/components/schemas/WeekStatusRes"
+          },
+          "today": {
+            "type": "string",
+            "nullable": true
+          },
+          "todayStatus": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false

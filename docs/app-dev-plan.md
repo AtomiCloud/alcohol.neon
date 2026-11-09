@@ -1,5 +1,10 @@
 # alcohol.neon — App Development Plan
 
+> **Historical SwiftUI proposal.** The shipped source is Flutter/Dart under `lib/`,
+> and many milestones below are implemented. This document is retained as design
+> history, not the current architecture or backlog. See [../README.md](../README.md)
+> for app status and [github-actions-release.md](github-actions-release.md) for releases.
+
 Native SwiftUI iOS app for **LazyTax**, built on the foundation in `speedykrab/foundation`.
 This plan maps the existing **argon** (web) experience and the **zinc** REST API onto native
 screens, with phased milestones. Derived from a full read of zinc's controllers and argon's pages.

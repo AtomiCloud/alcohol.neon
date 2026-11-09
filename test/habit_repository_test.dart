@@ -29,6 +29,8 @@ void main() {
               "currentStreak": 4,
               "maxStreak": 9,
               "isCompleteToday": false,
+              "today": "02-06-2026",
+              "todayStatus": "skip",
               "week": {
                 "monday": "complete",
                 "start": "2026-06-01",
@@ -56,6 +58,8 @@ void main() {
     expect(habit.charity.name, 'Red Cross');
     expect(habit.status.currentStreak, 4);
     expect(habit.status.isCompleteToday, isFalse);
+    expect(habit.status.today, '02-06-2026');
+    expect(habit.status.todayStatus, 'skip');
     expect(habit.status.week.monday, 'complete');
     expect(habit.timeLeftToEodMinutes, 120);
     expect(habit.version.version, 2);

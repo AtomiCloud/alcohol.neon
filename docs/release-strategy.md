@@ -1,5 +1,10 @@
 # alcohol.neon — Mobile Release Strategy (App Store + Play Store, 3 Landscapes)
 
+> **Historical planning document.** The foundation-era status, Codemagic costs,
+> trigger model, and proposed identifiers below are not current release instructions.
+> Use [github-actions-release.md](github-actions-release.md) and the
+> [bundle-id standard](developer/standard/bundle-id.md) for current operations.
+
 > ⚠️ **CI tool superseded (2026-06):** the pipeline has migrated from Codemagic to **GitHub Actions**
 > (`.github/workflows/cd.yaml`); `codemagic.yaml` has been removed. The store-identity, signing, and
 > channel-strategy content below is still accurate — but wherever this doc says "Codemagic CI",

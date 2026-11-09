@@ -4,11 +4,13 @@ import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
 import '../generated/zinc/models/habit_overview_habit_res.dart';
+import 'reminder_plan.dart';
 
 /// Schedules local habit reminders at each habit's `notificationTime`, on its
-/// scheduled days. A core mobile feature the web app can't offer. Reminders are
-/// rebuilt from the overview whenever it loads (cancel-all then reschedule), so
-/// they always reflect the current habits.
+/// scheduled days, for pending checks only. A core mobile feature the web app
+/// can't offer. Reminders are rebuilt from the overview whenever it loads or a
+/// habit is completed/skipped (cancel-all then reschedule), so they always
+/// reflect the current habits and today's status.
 class NotificationService {
   NotificationService({DateTime Function()? now}) : _now = now ?? DateTime.now;
   static final NotificationService instance = NotificationService();
@@ -60,10 +62,19 @@ class NotificationService {
     return await android?.requestNotificationsPermission() ?? true;
   }
 
-  /// Cancel and reschedule weekly reminders for the user's enabled habits.
+  /// Cancel and reschedule reminders for the user's enabled habits as one-shot
+  /// notifications over the next [reminderHorizon] (see [planReminders]), each
+  /// in the habit's own timezone. One-shots rather than weekly repeats because
+  /// a repeating trigger can't skip a single day: on iOS a `dayOfWeekAndTime`
+  /// trigger fires at the next matching weekday regardless of the start date,
+  /// so a habit already settled today would still be nagged. Every sync
+  /// re-plans the window, so today's reminder disappears once the habit is
+  /// done/skipped. [todayStatus] overrides a habit's overview status (see
+  /// [planReminders]).
   Future<void> syncHabits(
     List<HabitOverviewHabitRes> habits, {
     bool Function()? isCurrent,
+    String? Function(HabitOverviewHabitRes habit)? todayStatus,
   }) async {
     await init();
     if (isCurrent != null && !isCurrent()) return;
@@ -85,31 +96,22 @@ class NotificationService {
     );
 
     var id = 0;
-    for (final h in habits) {
-      if (!h.enabled) continue;
-      final time = _parseTime(h.notificationTime);
-      final days = h.days;
-      if (time == null || days == null || h.timezone == null) continue;
-      final tz.Location location;
-      try {
-        location = tz.getLocation(h.timezone!);
-      } on tz.LocationNotFoundException {
-        // Do not silently schedule in the device's zone for invalid habit data.
-        continue;
-      }
-      for (var d = 0; d < days.length && d < 7; d++) {
-        if (!days[d]) continue;
-        if (isCurrent != null && !isCurrent()) return;
-        await _plugin.zonedSchedule(
-          id++,
-          h.name ?? 'Habit',
-          'Time for your habit — keep the streak alive.',
-          _nextInstanceOf(d, time.$1, time.$2, location),
-          details,
-          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-          matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
-        );
-      }
+    for (final r in planReminders(
+      habits,
+      now: _now(),
+      todayStatus: todayStatus,
+    )) {
+      if (isCurrent != null && !isCurrent()) return;
+      // The plugin rejects one-shots in the past; one may lapse mid-sync.
+      if (!r.at.isAfter(_now())) continue;
+      await _plugin.zonedSchedule(
+        id++,
+        r.habit.name ?? 'Habit',
+        'Time for your habit — keep the streak alive.',
+        r.at,
+        details,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      );
     }
   }
 
@@ -141,50 +143,5 @@ class NotificationService {
   Future<void> cancelAll() async {
     await init();
     await _plugin.cancelAll();
-  }
-
-  /// Parses zinc's "HH:mm:ss" into (hour, minute).
-  (int, int)? _parseTime(String? hhmmss) {
-    if (hhmmss == null) return null;
-    final parts = hhmmss.split(':');
-    if (parts.length < 2) return null;
-    final h = int.tryParse(parts[0]);
-    final m = int.tryParse(parts[1]);
-    if (h == null || m == null) return null;
-    return (h, m);
-  }
-
-  /// Next occurrence of day [d] (0=Sunday..6=Saturday, zinc/argon convention) at
-  /// [hour]:[minute] in the habit's timezone.
-  tz.TZDateTime _nextInstanceOf(
-    int d,
-    int hour,
-    int minute,
-    tz.Location location,
-  ) {
-    // DateTime weekday: Mon=1..Sun=7. zinc's Sunday=0 → 7.
-    final targetWeekday = d == 0 ? 7 : d;
-    final now = tz.TZDateTime.from(_now(), location);
-    var day = now.day;
-    var scheduled = tz.TZDateTime(
-      location,
-      now.year,
-      now.month,
-      day,
-      hour,
-      minute,
-    );
-    while (scheduled.weekday != targetWeekday || !scheduled.isAfter(now)) {
-      // Calendar days, not 24-hour durations: retain wall time across DST.
-      scheduled = tz.TZDateTime(
-        location,
-        now.year,
-        now.month,
-        ++day,
-        hour,
-        minute,
-      );
-    }
-    return scheduled;
   }
 }

@@ -21,6 +21,8 @@ class OnboardingView extends StatefulWidget {
 
 class _OnboardingViewState extends State<OnboardingView> {
   String? _timezone;
+  String? _deviceTimezone;
+  bool _timezoneHandPicked = false;
   List<String> _timezones = const [];
   CharityPrincipalRes? _charity;
 
@@ -39,6 +41,7 @@ class _OnboardingViewState extends State<OnboardingView> {
     try {
       final local = await FlutterTimezone.getLocalTimezone();
       if (!mounted) return;
+      _deviceTimezone = local.identifier;
       _timezone ??= local.identifier;
       final all = await FlutterTimezone.getAvailableTimezones();
       if (all.isEmpty) throw StateError('No platform timezones');
@@ -67,7 +70,12 @@ class _OnboardingViewState extends State<OnboardingView> {
             TimezonePicker(timezones: _timezones, selected: _timezone),
       ),
     );
-    if (picked != null && mounted) setState(() => _timezone = picked);
+    if (picked != null && mounted) {
+      setState(() {
+        _timezone = picked;
+        _timezoneHandPicked = true;
+      });
+    }
   }
 
   Future<void> _pickCharity() async {
@@ -100,6 +108,12 @@ class _OnboardingViewState extends State<OnboardingView> {
     if (!mounted) return;
     switch (res) {
       case Ok(:final value):
+        // A hand-picked timezone overrides the phone: stop following it, or the
+        // next launch/resume would move the user back to the phone's timezone.
+        if (_timezoneHandPicked && tz != _deviceTimezone) {
+          await session.setFollowPhoneTimezone(false);
+          if (!mounted) return;
+        }
         // Flips the session to `ready`; the authed shell swaps in Home and unmounts us.
         session.onConfigured(value);
       case Err(:final problem):

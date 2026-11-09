@@ -15,9 +15,11 @@ import '../data/user_repository.dart';
 import '../data/vacation_repository.dart';
 import '../generated/zinc/models/configuration_principal_res.dart';
 import '../generated/zinc/models/payment_consent_res.dart';
+import '../generated/zinc/models/update_configuration_req.dart';
 import '../networking/api_client.dart';
 import '../services/notification_service.dart';
 import '../services/widget_service.dart';
+import 'timezone_preference.dart';
 
 /// Where the signed-in user is in the bootstrap → configured journey.
 enum SessionPhase { idle, bootstrapping, needsOnboarding, ready, error }
@@ -39,9 +41,15 @@ class SessionController extends ChangeNotifier {
   final SubscriptionRepository subscriptions;
   final NfcTagRepository nfcTags;
 
-  SessionController(AuthService auth) : this._(auth, auth.makeApiClient());
+  /// Stores the "Follow phone timezone" preference (file-backed by default).
+  final TimezonePreference timezonePreference;
 
-  SessionController._(this.auth, ApiClient api)
+  SessionController(
+    AuthService auth, {
+    TimezonePreference timezonePreference = const TimezonePreference(),
+  }) : this._(auth, auth.makeApiClient(), timezonePreference);
+
+  SessionController._(this.auth, ApiClient api, this.timezonePreference)
     : users = UserRepository(api),
       configs = ConfigRepository(api),
       charities = CharityRepository(api),
@@ -81,6 +89,7 @@ class SessionController extends ChangeNotifier {
     _userId = null;
     _config = null;
     _consent = null;
+    _timezoneSync = null;
     _error = null;
     _phase = SessionPhase.idle;
     _deviceWork = _deviceWork.then((_) async {
@@ -111,6 +120,8 @@ class SessionController extends ChangeNotifier {
   String? _userId;
   ConfigurationPrincipalRes? _config;
   PaymentConsentRes? _consent;
+  bool _followPhoneTimezone = true;
+  Future<bool>? _timezoneSync;
 
   SessionPhase get phase => _phase;
   Problem? get error => _error;
@@ -129,6 +140,11 @@ class SessionController extends ChangeNotifier {
   /// single source of truth for gating staked habits — derived from the zinc
   /// `/consent` GET, **never** the Logto JWT claim (which can be stale).
   bool get hasPaymentConsent => _consent?.hasPaymentConsent ?? false;
+
+  /// The local "Follow phone timezone" preference (default ON), loaded during
+  /// bootstrap. While ON, [syncDeviceTimezone] keeps Configuration.Timezone —
+  /// zinc's timezone for every daily habit check — equal to the phone's.
+  bool get followPhoneTimezone => _followPhoneTimezone;
 
   /// Provision the user (idempotent) then resolve configuration. Safe to re-run
   /// (e.g. on retry, or re-entering the authed shell after a previous sign-in).
@@ -184,11 +200,21 @@ class SessionController extends ChangeNotifier {
       }
     }
 
+    // Device-local preference; loaded before onboarding too so a hand-picked
+    // onboarding timezone can turn it off.
+    final followPhone = await timezonePreference.loadFollowPhone();
+    if (generation != _generation) return;
+    _followPhoneTimezone = followPhone;
+
     final cfg = await configs.mine();
     if (generation != _generation) return;
     switch (cfg) {
       case Ok(:final value):
         _config = value.principal;
+        // Follow the phone before the app shows anything, so the dashboard's
+        // first load (and the reminders it plans) already uses the new timezone.
+        await syncDeviceTimezone();
+        if (generation != _generation) return;
         // Load payment consent up front so the habit editor can gate staked
         // habits synchronously (off `hasPaymentConsent`). Best-effort: a failure
         // here leaves consent unknown but must not block reaching the app — the
@@ -261,6 +287,74 @@ class SessionController extends ChangeNotifier {
       case Err(:final problem):
         return Err(problem);
     }
+  }
+
+  /// Follow-the-phone: when [followPhoneTimezone] is ON and the device's IANA
+  /// timezone differs from Configuration.Timezone, `PUT /Configuration/{id}`
+  /// with the phone's timezone (default charity unchanged) and notify. zinc
+  /// then re-times pending checks. Returns whether the timezone changed.
+  /// Best-effort: a failed PUT leaves the config as is and is retried on the
+  /// next launch / resume. Concurrent calls share one in-flight sync.
+  Future<bool> syncDeviceTimezone() {
+    final running = _timezoneSync;
+    if (running != null) return running;
+    late final Future<bool> sync;
+    sync = _syncDeviceTimezone().whenComplete(() {
+      if (identical(_timezoneSync, sync)) _timezoneSync = null;
+    });
+    return _timezoneSync = sync;
+  }
+
+  Future<bool> _syncDeviceTimezone() async {
+    final generation = _generation;
+    final cfg = _config;
+    final id = cfg?.id;
+    final charityId = cfg?.defaultCharityId;
+    if (cfg == null || id == null || charityId == null || charityId.isEmpty) {
+      return false;
+    }
+    if (!_followPhoneTimezone) return false;
+    final device = await deviceTimezone();
+    if (generation != _generation) return false;
+    if (!shouldSyncTimezone(
+      followPhone: _followPhoneTimezone,
+      deviceTimezone: device,
+      configuredTimezone: cfg.timezone,
+    )) {
+      return false;
+    }
+    final res = await configs.update(
+      id,
+      UpdateConfigurationReq(timezone: device, defaultCharityId: charityId),
+    );
+    if (generation != _generation) return false;
+    if (res case Ok(:final value)) {
+      _config = value;
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+
+  /// Persists the "Follow phone timezone" preference. Turning it ON
+  /// immediately syncs Configuration.Timezone to the phone (see
+  /// [syncDeviceTimezone]); turning it OFF keeps the current timezone.
+  Future<Result<void>> setFollowPhoneTimezone(bool follow) async {
+    try {
+      await timezonePreference.saveFollowPhone(follow);
+    } catch (e) {
+      return Err(
+        Problem.local(
+          'Could not save the timezone preference',
+          type: 'neon:storage',
+          detail: '$e',
+        ),
+      );
+    }
+    _followPhoneTimezone = follow;
+    notifyListeners();
+    if (follow) await syncDeviceTimezone();
+    return const Ok(null);
   }
 
   void _fail(Problem problem) {

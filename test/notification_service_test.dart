@@ -5,6 +5,7 @@ import 'package:alcohol_neon/generated/zinc/models/habit_version_meta_res.dart';
 import 'package:alcohol_neon/generated/zinc/models/stake_res.dart';
 import 'package:alcohol_neon/generated/zinc/models/week_status_res.dart';
 import 'package:alcohol_neon/services/notification_service.dart';
+import 'package:clock/clock.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -33,6 +34,14 @@ HabitOverviewHabitRes habit({
   timeLeftToEodMinutes: 0,
   version: const HabitVersionMetaRes(version: 1, isActive: true),
 );
+
+/// The plugin rejects one-shot reminders before `clock.now()`, so pin its
+/// clock to the same instant the service is given.
+Future<void> syncAt(DateTime now, List<HabitOverviewHabitRes> habits) =>
+    withClock(
+      Clock.fixed(now),
+      () => NotificationService(now: () => now).syncHabits(habits),
+    );
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -74,10 +83,7 @@ void main() {
     'each habit uses its own zone and calendar date, not the device',
     () async {
       // Sunday in Tokyo, still Saturday in New York.
-      final service = NotificationService(
-        now: () => DateTime.utc(2026, 1, 4, 1),
-      );
-      await service.syncHabits([
+      await syncAt(DateTime.utc(2026, 1, 4, 1), [
         habit(day: 6),
         habit(timezone: 'Asia/Singapore'),
       ]);
@@ -89,11 +95,9 @@ void main() {
       expect(emitted[0]['scheduledDateTime'], '2026-01-10T09:00:00');
       expect(emitted[1]['timeZoneName'], 'Asia/Singapore');
       expect(emitted[1]['scheduledDateTime'], '2026-01-11T09:00:00');
+      // One-shots (re-planned every sync), so a settled day can be skipped.
       for (final schedule in emitted) {
-        expect(
-          schedule['matchDateTimeComponents'],
-          DateTimeComponents.dayOfWeekAndTime.index,
-        );
+        expect(schedule['matchDateTimeComponents'], isNull);
       }
     },
   );
@@ -113,8 +117,7 @@ void main() {
     ),
   ]) {
     test('keeps habit wall time across ${boundary.name}', () async {
-      final service = NotificationService(now: () => boundary.now);
-      await service.syncHabits([habit()]);
+      await syncAt(boundary.now, [habit()]);
 
       final emitted = schedules().single;
       expect(emitted['timeZoneName'], 'America/New_York');
@@ -129,10 +132,7 @@ void main() {
   test(
     'an occurrence exactly now rolls to next week in the habit zone',
     () async {
-      final service = NotificationService(
-        now: () => DateTime.utc(2026, 3, 1, 14),
-      );
-      await service.syncHabits([habit()]);
+      await syncAt(DateTime.utc(2026, 3, 1, 14), [habit()]);
 
       expect(schedules().single['scheduledDateTime'], '2026-03-08T09:00:00');
       expect(
@@ -147,10 +147,7 @@ void main() {
   test(
     'skips unusable or disabled reminders without blocking valid ones',
     () async {
-      final service = NotificationService(
-        now: () => DateTime.utc(2026, 3, 7, 15),
-      );
-      await service.syncHabits([
+      await syncAt(DateTime.utc(2026, 3, 7, 15), [
         habit(enabled: false),
         habit(time: null),
         habit(time: 'invalid'),

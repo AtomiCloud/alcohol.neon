@@ -4,6 +4,7 @@ import 'package:alcohol_neon/auth/auth_service.dart';
 import 'package:alcohol_neon/config/app_config.dart';
 import 'package:alcohol_neon/networking/api_client.dart';
 import 'package:alcohol_neon/session/session_controller.dart';
+import 'package:alcohol_neon/session/timezone_preference.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -89,9 +90,21 @@ class HarnessAuth extends ChangeNotifier implements AuthService {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
+/// In-memory "Follow phone timezone" preference: the file-backed default does
+/// real I/O, which never completes inside testWidgets' fake async zone.
+class MemoryTimezonePreference extends TimezonePreference {
+  MemoryTimezonePreference([this.followPhone = true]);
+  bool followPhone;
+  @override
+  Future<bool> loadFollowPhone() async => followPhone;
+  @override
+  Future<void> saveFollowPhone(bool value) async => followPhone = value;
+}
+
 /// Real session/repositories with HTTP replaced at their public boundary.
 class SessionHarness {
-  SessionHarness({this.respond}) {
+  SessionHarness({this.respond, bool followPhone = true})
+    : timezonePreference = MemoryTimezonePreference(followPhone) {
     client = MockClient((request) async {
       requests.add(request);
       final custom = await respond?.call(request);
@@ -137,10 +150,11 @@ class SessionHarness {
       return jsonResponse({'title': 'Not found', 'status': 404}, 404);
     });
     auth = HarnessAuth(client);
-    session = SessionController(auth);
+    session = SessionController(auth, timezonePreference: timezonePreference);
   }
 
   final Future<http.Response?> Function(http.Request)? respond;
+  final MemoryTimezonePreference timezonePreference;
   final requests = <http.Request>[];
   late final http.Client client;
   late final HarnessAuth auth;

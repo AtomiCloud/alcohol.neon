@@ -178,6 +178,8 @@ void main() {
       200,
       scrollable: find.byType(Scrollable),
     );
+    await tester.ensureVisible(deleteButton);
+    await tester.pumpAndSettle();
     await tester.tap(deleteButton);
     await tester.pumpAndSettle();
 

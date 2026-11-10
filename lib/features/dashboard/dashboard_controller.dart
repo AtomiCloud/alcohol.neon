@@ -11,6 +11,7 @@ import '../../generated/zinc/models/habit_overview_response.dart';
 import '../../services/notification_service.dart';
 import '../../services/widget_service.dart';
 import '../../session/session_controller.dart';
+import 'today_plan.dart';
 
 enum DashboardPhase { loading, ready, error }
 
@@ -66,6 +67,7 @@ class DashboardController extends ChangeNotifier {
   Problem? _actionError;
   Problem? _refreshError;
   HabitOverviewResponse? _overview;
+  DateTime _loadedAt = DateTime.now();
   int _loadRequest = 0;
   final Set<String> _busy = {}; // habit ids with an in-flight action
   final Map<String, (String?, String)> _settled = {};
@@ -87,6 +89,11 @@ class DashboardController extends ChangeNotifier {
 
   HabitOverviewResponse? get overview => _overview;
   List<HabitOverviewHabitRes> get habits => _overview?.habits ?? const [];
+
+  /// Today's habits grouped for the Today layouts, with each open habit's
+  /// deadline taken from when the overview was loaded.
+  TodayPlan get plan =>
+      buildTodayPlan(habits, todayStatus: todayStatus, loadedAt: _loadedAt);
   String? get totalDebt => _overview?.totalDebt;
 
   int get skipsLeft {
@@ -128,6 +135,7 @@ class DashboardController extends ChangeNotifier {
     switch (res) {
       case Ok(:final value):
         _overview = value;
+        _loadedAt = DateTime.now();
         _settled.clear();
         _refreshError = null;
         _phase = DashboardPhase.ready;

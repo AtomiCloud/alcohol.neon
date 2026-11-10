@@ -122,6 +122,28 @@ class AppTheme {
     return _base(scheme, scaffold: const Color(0xFF0A0A0A));
   }
 
+  static TextTheme _tightType(TextTheme t) {
+    TextStyle? track(TextStyle? s, double spacing) =>
+        s?.copyWith(letterSpacing: spacing);
+    return t.copyWith(
+      displayLarge: track(t.displayLarge, -0.8),
+      displayMedium: track(t.displayMedium, -0.6),
+      displaySmall: track(t.displaySmall, -0.5),
+      headlineLarge: track(t.headlineLarge, -0.5),
+      headlineMedium: track(t.headlineMedium, -0.4),
+      headlineSmall: track(t.headlineSmall, -0.3),
+      titleLarge: track(t.titleLarge, -0.3),
+      titleMedium: track(t.titleMedium, -0.2),
+      titleSmall: track(t.titleSmall, -0.1),
+      bodyLarge: track(t.bodyLarge, -0.2),
+      bodyMedium: track(t.bodyMedium, -0.1),
+      bodySmall: track(t.bodySmall, 0),
+      labelLarge: track(t.labelLarge, -0.1),
+      labelMedium: track(t.labelMedium, 0),
+      labelSmall: track(t.labelSmall, 0),
+    );
+  }
+
   static ThemeData _base(ColorScheme scheme, {required Color scaffold}) {
     final isLight = scheme.brightness == Brightness.light;
     return ThemeData(
@@ -129,6 +151,11 @@ class AppTheme {
       colorScheme: scheme,
       scaffoldBackgroundColor: scaffold,
       // No bundled font → platform system font (SF on iOS).
+      // Material's default tracking (+0.1 to +0.5) reads as Android on an
+      // iPhone; tighten it the way the system font is tracked natively.
+      textTheme: _tightType(
+        ThemeData(brightness: scheme.brightness, useMaterial3: true).textTheme,
+      ),
       splashFactory: NoSplash.splashFactory,
       appBarTheme: AppBarTheme(
         backgroundColor: scaffold,

@@ -10,7 +10,12 @@ import '../../core/problem.dart';
 import '../../generated/zinc/models/user_principal_res.dart';
 import '../../services/notification_service.dart';
 import '../../session/session_controller.dart';
+import '../../theme/app_theme.dart';
+import '../charity/charity_picker.dart';
+import '../dashboard/today_layout.dart';
+import '../nfc/tag_inspector_view.dart';
 import '../settings/settings_view.dart';
+import '../vacation/vacation_list_view.dart';
 
 /// M5 — the profile screen (mirrors argon's `profile.tsx` field-card layout, minus
 /// the web-only TokensSection / developer / append-details blocks). Header shows
@@ -88,6 +93,9 @@ class _ProfileViewState extends State<ProfileView> {
         });
     }
   }
+
+  void _push(Widget page) =>
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
 
   void _openSettings() {
     Navigator.of(
@@ -260,6 +268,87 @@ class _ProfileViewState extends State<ProfileView> {
             subtitle: const Text('Timezone, default charity, payment consent'),
             trailing: const Icon(Icons.chevron_right),
             onTap: _openSettings,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Today layout', style: theme.textTheme.titleMedium),
+                const SizedBox(height: 4),
+                Text(
+                  'Lead with the next habit to do, or with the whole day.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ValueListenableBuilder<TodayLayout>(
+                  valueListenable: TodayLayoutSetting.instance,
+                  builder: (_, layout, _) => SizedBox(
+                    width: double.infinity,
+                    child: SegmentedButton<TodayLayout>(
+                      showSelectedIcon: false,
+                      segments: const [
+                        ButtonSegment(
+                          value: TodayLayout.nextUp,
+                          label: Text('Next up'),
+                        ),
+                        ButtonSegment(
+                          value: TodayLayout.progressList,
+                          label: Text('Progress list'),
+                        ),
+                      ],
+                      selected: {layout},
+                      onSelectionChanged: (s) =>
+                          TodayLayoutSetting.instance.set(s.first),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Card(
+          child: Column(
+            children: [
+              ListTile(
+                leading: const Icon(
+                  Icons.beach_access,
+                  color: AppColors.vacation,
+                ),
+                title: const Text('Vacations'),
+                subtitle: const Text('Pause habits for a date range'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _push(const VacationListView()),
+              ),
+              ListTile(
+                leading: const Icon(Icons.nfc),
+                title: const Text('NFC tags'),
+                subtitle: const Text('See what a tag is linked to'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _push(const TagInspectorView()),
+              ),
+              ListTile(
+                leading: const Icon(Icons.volunteer_activism),
+                title: const Text('Browse charities'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  final session = context.read<SessionController>();
+                  _push(
+                    CharityBrowse(
+                      repository: session.charities,
+                      causeRepository: session.causes,
+                      selectionMode: false,
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 8),

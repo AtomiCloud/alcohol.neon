@@ -3,6 +3,7 @@
   pkgs,
   pkgs-2605,
   pkgs-unstable,
+  pkgs-flutter,
   pkgs-android,
 }:
 let
@@ -88,8 +89,8 @@ let
     nix-unstable = (
       with pkgs-unstable;
       {
+        flutter = pkgs-flutter.flutter347;
         inherit
-          flutter
           cocoapods
           # fastlane: only for `pls register` (scripts/register-apple.sh) — App Group
           # creation/association has no App Store Connect API, so it rides Spaceship's

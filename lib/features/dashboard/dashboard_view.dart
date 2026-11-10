@@ -60,14 +60,6 @@ String _timeLeft(DateTime? deadline, DateTime now) {
   return m == 0 ? '$h h left' : '$h h $m m left';
 }
 
-/// What's at stake on a miss, as one quiet line; null when nothing is.
-String? _stakeLine(HabitOverviewHabitRes h) {
-  if (h.stake.amount <= 0) return null;
-  final amount =
-      '${h.stake.currency ?? ''} ${h.stake.amount.toStringAsFixed(2)}'.trim();
-  return '$amount to ${h.charity.name ?? 'charity'} if you miss';
-}
-
 String _statusLabel(TodayState s) => switch (s) {
   TodayState.done => 'Completed today',
   TodayState.skipped => 'Skipped today',
@@ -561,7 +553,7 @@ class _NextUpCard extends StatelessWidget {
     final t = GlassTokens.of(context);
     final h = item.habit;
     final busy = c.isBusy(h);
-    final stake = _stakeLine(h);
+    final stake = stakeLine(h);
     final skipsLeft = c.skipsLeft;
     return Padding(
       padding: const EdgeInsets.only(top: 8),

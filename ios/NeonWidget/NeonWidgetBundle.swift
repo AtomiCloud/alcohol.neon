@@ -12,5 +12,6 @@ import SwiftUI
 struct NeonWidgetBundle: WidgetBundle {
     var body: some Widget {
         NeonWidget()
+        HabitLiveActivity()
     }
 }

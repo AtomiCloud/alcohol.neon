@@ -99,3 +99,11 @@ TodayPlan buildTodayPlan(
   });
   return TodayPlan(todo, done, later);
 }
+
+/// What's at stake on a miss, as one quiet line; null when nothing is.
+String? stakeLine(HabitOverviewHabitRes h) {
+  if (h.stake.amount <= 0) return null;
+  final amount =
+      '${h.stake.currency ?? ''} ${h.stake.amount.toStringAsFixed(2)}'.trim();
+  return '$amount to ${h.charity.name ?? 'charity'} if you miss';
+}

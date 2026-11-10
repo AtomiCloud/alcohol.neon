@@ -8,6 +8,7 @@ import '../../data/execution_repository.dart';
 import '../../data/habit_repository.dart';
 import '../../generated/zinc/models/habit_overview_habit_res.dart';
 import '../../generated/zinc/models/habit_overview_response.dart';
+import '../../services/live_activity_service.dart';
 import '../../services/notification_service.dart';
 import '../../services/widget_service.dart';
 import '../../session/session_controller.dart';
@@ -142,6 +143,7 @@ class DashboardController extends ChangeNotifier {
         unawaited(_syncReminders());
         // Push today's schedule + auth context to the iOS home-screen widget.
         unawaited(_pushToWidget(value));
+        unawaited(_syncLiveActivity());
       case Err(:final problem):
         if (_overview != null) {
           _refreshError = problem;
@@ -166,6 +168,16 @@ class DashboardController extends ChangeNotifier {
         isCurrent: () => _current,
         todayStatus: todayStatus,
       );
+    });
+  }
+
+  /// Show the next open habit as a Live Activity (iOS), or end it when none is
+  /// left. Best-effort, like the widget push.
+  Future<void> _syncLiveActivity() async {
+    final plan = this.plan;
+    await _session.syncDevice(_generation, () async {
+      if (!_current) return;
+      await LiveActivityService.instance.show(plan);
     });
   }
 

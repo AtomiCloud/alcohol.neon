@@ -1,3 +1,10 @@
+## [1.15.1](https://github.com/AtomiCloud/alcohol.neon/compare/v1.15.0...v1.15.1) (2026-11-10)
+
+
+### 🐛 Bug Fixes 🐛
+
+* upgrade in_app_purchase_android to 0.5.0 for Play Billing 8 ([93fa7a1](https://github.com/AtomiCloud/alcohol.neon/commit/93fa7a1233b94a70a5f064907e753258a2913b9c))
+
 ## [1.15.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.14.0...v1.15.0) (2026-11-09)
 
 

@@ -8,13 +8,13 @@ part 'web_handoff_res.g.dart';
 
 @JsonSerializable()
 class WebHandoffRes {
-  const WebHandoffRes({this.url, this.expiresInSeconds});
+  const WebHandoffRes({required this.expiresInSeconds, this.url});
 
   factory WebHandoffRes.fromJson(Map<String, Object?> json) =>
       _$WebHandoffResFromJson(json);
 
   final String? url;
-  final int? expiresInSeconds;
+  final int expiresInSeconds;
 
   Map<String, Object?> toJson() => _$WebHandoffResToJson(this);
 }

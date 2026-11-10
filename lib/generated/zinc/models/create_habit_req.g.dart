@@ -16,6 +16,8 @@ CreateHabitReq _$CreateHabitReqFromJson(Map<String, dynamic> json) =>
       notificationTime: json['notificationTime'] as String?,
       stake: json['stake'] as String?,
       timezone: json['timezone'] as String?,
+      deadlineTime: json['deadlineTime'] as String?,
+      routineId: json['routineId'] as String?,
     );
 
 Map<String, dynamic> _$CreateHabitReqToJson(CreateHabitReq instance) =>
@@ -26,4 +28,6 @@ Map<String, dynamic> _$CreateHabitReqToJson(CreateHabitReq instance) =>
       'stake': instance.stake,
       'charityId': instance.charityId,
       'timezone': instance.timezone,
+      'deadlineTime': instance.deadlineTime,
+      'routineId': instance.routineId,
     };

@@ -17,6 +17,7 @@ UpdateHabitReq _$UpdateHabitReqFromJson(Map<String, dynamic> json) =>
       notificationTime: json['notificationTime'] as String?,
       stake: json['stake'] as String?,
       timezone: json['timezone'] as String?,
+      deadlineTime: json['deadlineTime'] as String?,
     );
 
 Map<String, dynamic> _$UpdateHabitReqToJson(UpdateHabitReq instance) =>
@@ -28,4 +29,5 @@ Map<String, dynamic> _$UpdateHabitReqToJson(UpdateHabitReq instance) =>
       'charityId': instance.charityId,
       'enabled': instance.enabled,
       'timezone': instance.timezone,
+      'deadlineTime': instance.deadlineTime,
     };

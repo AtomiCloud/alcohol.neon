@@ -15,6 +15,8 @@ class CreateHabitReq {
     this.notificationTime,
     this.stake,
     this.timezone,
+    this.deadlineTime,
+    this.routineId,
   });
 
   factory CreateHabitReq.fromJson(Map<String, Object?> json) =>
@@ -26,6 +28,8 @@ class CreateHabitReq {
   final String? stake;
   final String charityId;
   final String? timezone;
+  final String? deadlineTime;
+  final String? routineId;
 
   Map<String, Object?> toJson() => _$CreateHabitReqToJson(this);
 }

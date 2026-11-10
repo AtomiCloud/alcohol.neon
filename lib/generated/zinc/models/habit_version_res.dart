@@ -19,6 +19,7 @@ class HabitVersionRes {
     this.stake,
     this.ratio,
     this.timezone,
+    this.deadlineTime,
   });
 
   factory HabitVersionRes.fromJson(Map<String, Object?> json) =>
@@ -34,6 +35,7 @@ class HabitVersionRes {
   final String? ratio;
   final String charityId;
   final String? timezone;
+  final String? deadlineTime;
 
   Map<String, Object?> toJson() => _$HabitVersionResToJson(this);
 }

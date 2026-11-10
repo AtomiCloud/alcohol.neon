@@ -23,6 +23,12 @@ HabitOverviewHabitRes _$HabitOverviewHabitResFromJson(
   timezone: json['timezone'] as String?,
   days: (json['days'] as List<dynamic>?)?.map((e) => e as bool).toList(),
   totalDebt: json['totalDebt'] as String?,
+  deadlineTime: json['deadlineTime'] as String?,
+  todayDeadlineUtc: json['todayDeadlineUtc'] == null
+      ? null
+      : DateTime.parse(json['todayDeadlineUtc'] as String),
+  proof: json['proof'] as String?,
+  routineId: json['routineId'] as String?,
 );
 
 Map<String, dynamic> _$HabitOverviewHabitResToJson(
@@ -40,4 +46,8 @@ Map<String, dynamic> _$HabitOverviewHabitResToJson(
   'timeLeftToEodMinutes': instance.timeLeftToEodMinutes,
   'version': instance.version,
   'totalDebt': instance.totalDebt,
+  'deadlineTime': instance.deadlineTime,
+  'todayDeadlineUtc': instance.todayDeadlineUtc?.toIso8601String(),
+  'proof': instance.proof,
+  'routineId': instance.routineId,
 };

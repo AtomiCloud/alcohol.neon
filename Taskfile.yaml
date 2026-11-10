@@ -48,6 +48,15 @@ tasks:
     cmds:
       - ./scripts/register-apple.sh {{ .CLI_ARGS }}
 
+  emulator:
+    desc: Boot a local Android 16 emulator (arm64, Google APIs) for `flutter run`
+    summary: |
+      Builds the emulator and system image from nix on first use, then boots the
+      neon_pixel device (stored in ~/.android/neon). Leave it running and use
+      `flutter run --flavor pichu` in another terminal.
+    cmds:
+      - nix run .#android-emulator
+
   test:
     desc: Run unit tests
     cmds:

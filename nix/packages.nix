@@ -102,6 +102,30 @@ let
 
     nix-android = {
       androidsdk = androidComposition.androidsdk;
+      # Local Android 16 emulator for development (`pls emulator`). Kept out of
+      # every shell so the dev and CI closures don't pull in system images.
+      # The device lives in ~/.android/neon, so installed apps survive restarts.
+      android-emulator = pkgs-android.writeShellScriptBin "android-emulator" ''
+        # Pixel-sized screen (1080x2400, 420dpi); without a device profile the
+        # AVD gets 320x640@160dpi and looks blurry. Only read when the AVD is
+        # first created: delete ~/.android/neon/avd/neon_pixel.avd to apply.
+        export NIX_ANDROID_AVD_FLAGS="--device pixel_6"
+        exec ${
+          pkgs-android.androidenv.emulateApp {
+            name = "neon-android-emulator";
+            platformVersion = "36";
+            abiVersion = "arm64-v8a";
+            systemImageType = "google_apis";
+            deviceName = "neon_pixel";
+            androidUserHome = "$HOME/.android/neon";
+            configOptions = {
+              "hw.gpu.enabled" = "yes";
+              "hw.gpu.mode" = "host";
+              "hw.keyboard" = "yes";
+            };
+          }
+        }/bin/run-test-emulator "$@"
+      '';
     };
   };
 in

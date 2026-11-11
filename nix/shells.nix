@@ -84,8 +84,11 @@ with env;
     JAVA_HOME = "${packages.jdk17.home}";
   };
 
-  releaser = pkgs.mkShell {
-    buildInputs = lint ++ main ++ releaser ++ system;
-    inherit shellHook;
+  # Semantic release (⚡reusable-release.yaml → scripts/ci/release.sh) only runs `sg release`;
+  # npm and git come from the runner. atomiutils (1.8 GiB, attic-only) and the pre-commit
+  # shellHook (which pulls Flutter for its hooks) stalled the v1.16.0 release for an hour,
+  # past the lifetime of the GitHub App token semantic-release pushes with.
+  releaser = pkgs.mkShellNoCC {
+    buildInputs = releaser;
   };
 }

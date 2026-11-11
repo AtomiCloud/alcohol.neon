@@ -1,3 +1,10 @@
+## [1.15.2](https://github.com/AtomiCloud/alcohol.neon/compare/v1.15.1...v1.15.2) (2026-11-11)
+
+
+### 🐛 Bug Fixes 🐛
+
+* slim nix shells for store upload jobs ([05d30ec](https://github.com/AtomiCloud/alcohol.neon/commit/05d30ec9aa79864b9f1efbbe09e77d13afdd1a31))
+
 ## [1.15.1](https://github.com/AtomiCloud/alcohol.neon/compare/v1.15.0...v1.15.1) (2026-11-10)
 
 

@@ -5,7 +5,7 @@ set -euo pipefail
 # landscape-agnostic (bundle-id-as-marker); the per-landscape publish jobs
 # re-badge it via scripts/ci/publish-android.sh. Debug-signed on purpose: this
 # job holds no secrets, and stamping re-signs with the upload key. Runs inside
-# `nix develop .#cd-android`. See docs/github-actions-release.md.
+# `nix develop .#build-android`. See docs/github-actions-release.md.
 #
 # Env:
 #   GITHUB_REF_TYPE / GITHUB_REF_NAME version name = tag (v1.2.3 -> 1.2.3) on a tag build

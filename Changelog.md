@@ -1,3 +1,20 @@
+## [1.16.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.15.2...v1.16.0) (2026-11-11)
+
+
+### ✨ Features ✨
+
+* glass Today screen with Next up and Progress list layouts ([85fc4a3](https://github.com/AtomiCloud/alcohol.neon/commit/85fc4a3f2018d8c061df70a83168423a5cc86f19))
+* show the next habit as an Android Live Update ([6d86653](https://github.com/AtomiCloud/alcohol.neon/commit/6d866532815cf0a6603193b0ab575a4899ecc1a8))
+* show the next habit as an iOS Live Activity ([aca4c89](https://github.com/AtomiCloud/alcohol.neon/commit/aca4c89875aa7e3b3fc51b8b97e12f4989d210de))
+
+
+### 🐛 Bug Fixes 🐛
+
+* fit the Live Activity countdown and dim pending progress segments ([69563d8](https://github.com/AtomiCloud/alcohol.neon/commit/69563d8e973eaddd11ada86a94358378b9688110))
+* **ci:** pin dart format to the pubspec language version ([ad804c1](https://github.com/AtomiCloud/alcohol.neon/commit/ad804c1b3fede54e5d125f0376175eaa025eba5f))
+* **ci:** slim the Android donor build so it finishes before its timeout ([726e27e](https://github.com/AtomiCloud/alcohol.neon/commit/726e27e52350e49f20b3b1391e7d991cff5ddf76))
+* **ci:** slim the releaser shell so release beats its token expiry ([a28e3e3](https://github.com/AtomiCloud/alcohol.neon/commit/a28e3e312d71f7ae8dca1e32599a6c043081b843))
+
 ## [1.15.2](https://github.com/AtomiCloud/alcohol.neon/compare/v1.15.1...v1.15.2) (2026-11-11)
 
 

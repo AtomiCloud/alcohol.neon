@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/launch_timeline.dart';
+
 import '../../core/navigation.dart';
 import '../../generated/zinc/models/habit_overview_habit_res.dart';
 import '../../session/session_controller.dart';
@@ -252,6 +254,9 @@ class _TodayState extends State<_Today> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => LaunchTimeline.todayShown('server'),
+    );
     _tick = Timer.periodic(const Duration(seconds: 30), (_) {
       if (mounted) setState(() {});
     });

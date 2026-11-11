@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../auth/auth_service.dart';
+import '../core/launch_timeline.dart';
 import '../core/problem.dart';
 import '../data/cause_repository.dart';
 import '../data/charity_repository.dart';
@@ -174,8 +175,10 @@ class SessionController extends ChangeNotifier {
     // refresh token, which also re-stores a fresh id_token. Reading idToken after
     // that means a mid-session expiry self-heals instead of sending a stale token
     // to POST /User (zinc validates the id_token's lifetime).
+    LaunchTimeline.mark('bootstrap-claims');
     final accessToken = await auth.zincAccessToken();
     final idToken = await auth.idToken();
+    LaunchTimeline.mark('bootstrap-tokens');
     if (generation != _generation) return;
     if (idToken == null || accessToken == null) {
       return _fail(
@@ -233,6 +236,7 @@ class SessionController extends ChangeNotifier {
         // editor falls back to running the consent flow on demand.
         await _loadConsent();
         if (generation != _generation) return;
+        LaunchTimeline.mark('bootstrap-ready');
         _setPhase(SessionPhase.ready);
       case Err(:final problem):
         // 404 ⇒ no configuration yet ⇒ onboard. Anything else is a real error.

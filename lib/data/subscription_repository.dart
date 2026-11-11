@@ -1,5 +1,6 @@
 import '../core/problem.dart';
 import '../generated/zinc/models/subscription_cta_res.dart';
+import '../generated/zinc/models/subscription_res.dart';
 import '../generated/zinc/models/web_handoff_req.dart';
 import '../generated/zinc/models/web_handoff_res.dart';
 import '../networking/api_client.dart';
@@ -26,6 +27,14 @@ class SubscriptionRepository {
       '$_subscription/$userId/cta',
       (j) => SubscriptionCtaRes.fromJson(j as Map<String, Object?>),
       query: {'platform': platform, 'storefront': storefront},
+    );
+  }
+
+  /// The user's subscription, including the tier (`GET /Subscription/{userId}`).
+  Future<Result<SubscriptionRes>> current(String userId) {
+    return _api.get(
+      '$_subscription/$userId',
+      (j) => SubscriptionRes.fromJson(j as Map<String, Object?>),
     );
   }
 

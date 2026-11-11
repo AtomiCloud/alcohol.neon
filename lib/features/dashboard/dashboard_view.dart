@@ -13,6 +13,7 @@ import '../../theme/app_theme.dart';
 import '../../theme/glass.dart';
 import '../../widgets/app_loader.dart';
 import '../habit/habit_editor_view.dart';
+import '../inbox/inbox_bell.dart';
 import '../profile/profile_view.dart';
 import 'buffers_controller.dart';
 import 'dashboard_controller.dart';
@@ -483,6 +484,8 @@ class _LargeTitle extends SliverPersistentHeaderDelegate {
           child: Row(
             children: [
               if (ring != null) ...[ring!, const SizedBox(width: 10)],
+              const InboxBell(),
+              const SizedBox(width: 10),
               Pressable(
                 onTap: onProfile,
                 child: Semantics(
@@ -615,6 +618,23 @@ class _NextUpCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         stake,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: t.muted,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              if (proofLabel(h) case final proof?) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(Icons.directions_run, size: 16, color: t.muted),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Checks off from $proof, or complete it here',
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: t.muted,
                         ),
@@ -879,9 +899,10 @@ class _HabitRow extends StatelessWidget {
         item.state == TodayState.rest ||
         item.state == TodayState.paused ||
         item.state == TodayState.unknown;
-    final subtitle = open
-        ? _timeLeft(item.deadline, now)
-        : _statusLabel(item.state);
+    final subtitle = [
+      open ? _timeLeft(item.deadline, now) : _statusLabel(item.state),
+      ?proofLabel(h),
+    ].join(' · ');
 
     final row = Pressable(
       onTap: () => _openHabit(context, c, item),

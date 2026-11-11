@@ -100,6 +100,12 @@ TodayPlan buildTodayPlan(
   return TodayPlan(todo, done, later);
 }
 
+/// The proof label Today shows next to a habit: `Strava` for Strava-bound
+/// habits, null otherwise (`manual`, `nfc` and unknown proofs show nothing).
+/// Check-in stays available whatever the proof.
+String? proofLabel(HabitOverviewHabitRes h) =>
+    h.proof == 'strava' ? 'Strava' : null;
+
 /// What's at stake on a miss, as one quiet line; null when nothing is.
 String? stakeLine(HabitOverviewHabitRes h) {
   if (h.stake.amount <= 0) return null;

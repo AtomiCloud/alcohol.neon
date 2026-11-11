@@ -19,6 +19,13 @@ class _Auth implements AuthService {
   @override
   Future<String?> zincAccessToken() async => null;
 
+  // For the inbox bell: no token, so its unread-count call never goes out.
+  @override
+  ApiClient makeApiClient() => ApiClient(
+    baseUrl: Uri.parse('https://zinc.test'),
+    tokenProvider: zincAccessToken,
+  );
+
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

@@ -60,9 +60,21 @@
                     android:host="t.lazytax.club"
                     android:pathPrefix="/t/" />
             </intent-filter>
+            <!-- zinc's Strava OAuth redirect back into the app
+                 (cloud.atomi.<landscape>.alcohol.neon.app://strava?result=…),
+                 read by app_links (StravaLinks). -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="${logtoRedirectScheme}"
+                    android:host="strava" />
+            </intent-filter>
         </activity>
         <!-- flutter_web_auth_2 callback for Logto sign-in redirect
-             (cloud.atomi.<landscape>.alcohol.neon.app://callback). Must match AppConfig.redirectUri. -->
+             (cloud.atomi.<landscape>.alcohol.neon.app://callback). Must match AppConfig.redirectUri.
+             Host-restricted so other links on the same scheme (…://strava) reach MainActivity. -->
         <activity
             android:name="com.linusu.flutter_web_auth_2.CallbackActivity"
             android:exported="true">
@@ -70,7 +82,9 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="${logtoRedirectScheme}" />
+                <data
+                    android:scheme="${logtoRedirectScheme}"
+                    android:host="callback" />
             </intent-filter>
         </activity>
 
@@ -94,6 +108,16 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- Lets canLaunchUrl see the Strava app for its strava:// OAuth link. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="strava" />
+        </intent>
+        <!-- Lets url_launcher find a browser for the Strava OAuth fallback. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
         </intent>
     </queries>
 </manifest>

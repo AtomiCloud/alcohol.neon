@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:home_widget/home_widget.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
-import '../generated/zinc/models/habit_overview_response.dart';
+import '../features/dashboard/today_plan.dart';
 
 /// Bridges today's habit schedule to the iOS home-screen widget (WidgetKit) via a
 /// shared App Group. The widget reads this and shows the next habit due, advancing
@@ -41,43 +41,17 @@ class WidgetService {
     }
   }
 
-  Future<void> sync(HabitOverviewResponse overview) async {
+  /// Write today's plan for the widget: the open habits in the order Today shows
+  /// them (soonest deadline first), then the ones settled today. Each open item
+  /// carries its deadline (UTC) and proof, so the widget can count down and drop
+  /// a habit once its check has closed.
+  Future<void> sync(TodayPlan plan) async {
     try {
       await HomeWidget.setAppGroupId(await _appGroup());
-      final todayIndex = DateTime.now().weekday % 7; // Sun=0
-      final items = <Map<String, dynamic>>[];
-      var done = 0;
-      var total = 0;
-      for (final h in overview.habits ?? const []) {
-        if (!h.enabled) continue;
-        final days = h.days;
-        if (days == null || todayIndex >= days.length || !days[todayIndex]) {
-          continue;
-        }
-        total++;
-        final isDone = h.status.isCompleteToday;
-        if (isDone) done++;
-        items.add({
-          'id': h
-              .version
-              .id, // habit version id — the widget's Complete button completes this
-          'time': _hm(h.notificationTime),
-          'name': h.name ?? 'Habit',
-          'done': isDone,
-        });
-      }
-      items.sort(
-        (a, b) => (a['time'] as String? ?? '99:99').compareTo(
-          b['time'] as String? ?? '99:99',
-        ),
+      await HomeWidget.saveWidgetData<String>(
+        _dataKey,
+        jsonEncode(widgetSchedule(plan, DateTime.now())),
       );
-      final payload = jsonEncode({
-        'date': _ymd(DateTime.now()),
-        'done': done,
-        'total': total,
-        'items': items,
-      });
-      await HomeWidget.saveWidgetData<String>(_dataKey, payload);
       await HomeWidget.updateWidget(iOSName: _kind);
     } catch (_) {
       // Widget not installed / not iOS — non-critical.
@@ -129,14 +103,27 @@ class WidgetService {
       // Non-critical.
     }
   }
-
-  String? _hm(String? hhmmss) {
-    if (hhmmss == null) return null;
-    final p = hhmmss.split(':');
-    if (p.length < 2) return null;
-    return '${p[0].padLeft(2, '0')}:${p[1].padLeft(2, '0')}';
-  }
-
-  String _ymd(DateTime d) =>
-      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 }
+
+/// The App Group payload the widget reads (`today_schedule`). `id` is the habit
+/// version the Complete button posts to; `done` and the top-level `done` count
+/// are what [CompleteHabitIntent] and [WidgetService.revertDone] flip.
+Map<String, Object?> widgetSchedule(TodayPlan plan, DateTime now) => {
+  'date':
+      '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}',
+  'done': plan.done.length,
+  'total': plan.scheduled,
+  'items': [
+    for (final i in plan.todo)
+      {
+        'id': i.habit.version.id,
+        'name': i.habit.name ?? 'Habit',
+        'done': false,
+        'deadline': i.deadline!.toUtc().toIso8601String(),
+        // Unknown proofs (e.g. a newer plugin) show as a plain check-in.
+        'proof': i.habit.proof == 'nfc' ? 'nfc' : 'manual',
+      },
+    for (final i in plan.done)
+      {'id': i.habit.version.id, 'name': i.habit.name ?? 'Habit', 'done': true},
+  ],
+};

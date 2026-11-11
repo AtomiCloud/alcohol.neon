@@ -48,12 +48,12 @@ class DashboardController extends ChangeNotifier {
   /// Push the freshly-loaded schedule to the iOS widget, and cache the auth context
   /// (zinc base URL + a current access token + user id) into the shared App Group so
   /// the widget's "Complete" button can POST the completion directly. Best-effort.
-  Future<void> _pushToWidget(HabitOverviewResponse overview) async {
+  Future<void> _pushToWidget(TodayPlan plan) async {
     final token = await _session.auth.zincAccessToken();
     if (!_current) return;
     await _session.syncDevice(_generation, () async {
       if (!_current) return;
-      await WidgetService.instance.sync(overview);
+      await WidgetService.instance.sync(plan);
       if (!_current) return;
       await WidgetService.instance.cacheAuth(
         baseUrl: AppConfig.current.zincBaseUrl.toString(),
@@ -142,7 +142,7 @@ class DashboardController extends ChangeNotifier {
         _phase = DashboardPhase.ready;
         unawaited(_syncReminders());
         // Push today's schedule + auth context to the iOS home-screen widget.
-        unawaited(_pushToWidget(value));
+        unawaited(_pushToWidget(plan));
         unawaited(_syncLiveActivity());
       case Err(:final problem):
         if (_overview != null) {

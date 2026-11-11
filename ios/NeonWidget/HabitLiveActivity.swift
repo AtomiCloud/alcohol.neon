@@ -146,7 +146,10 @@ struct HabitLiveActivity: Widget {
                 Countdown(deadline: s.deadline)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(emerald)
-                    .frame(maxWidth: 52)
+                    // Fits "10:01:53" (over an hour left), not just "59:59".
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .frame(maxWidth: 64)
             } minimal: {
                 Ring(done: s.done, total: s.total)
             }

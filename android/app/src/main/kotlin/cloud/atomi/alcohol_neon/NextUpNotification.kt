@@ -151,9 +151,9 @@ object NextUpNotification {
 
         if (Build.VERSION.SDK_INT >= 36 && total > 0) {
             // Android 16: one segment per habit scheduled today, filled as they're done.
+            // Styled by progress (the default), so segments past `done` are dimmed.
             builder.setStyle(
                 Notification.ProgressStyle()
-                    .setStyledByProgress(false)
                     .setProgressSegments(
                         List(total) { Notification.ProgressStyle.Segment(1).setColor(emerald) },
                     )

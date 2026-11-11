@@ -71,9 +71,17 @@ with env;
     JAVA_HOME = "${pkgs.jdk17_headless.home}";
   };
 
-  ci = pkgs.mkShell {
-    buildInputs = lint ++ main ++ mobile ++ system;
+  # Pre-Commit (⚡reusable-precommit.yaml): the lint tools and Flutter (dart format, flutter
+  # analyze); coreutils, grep and sed come from the runner. No atomiutils (1.8 GiB, attic-only)
+  # and no codemagic/rsync/resvg, whose cold download made lint and tests take 40-60 minutes.
+  ci = pkgs.mkShellNoCC {
+    buildInputs = lint ++ [ packages.flutter ];
     inherit shellHook;
+  };
+
+  # Test (⚡reusable-test.yaml → scripts/ci/test.sh): `flutter pub get` + `flutter test` only.
+  test = pkgs.mkShellNoCC {
+    buildInputs = [ packages.flutter ];
   };
 
   default = pkgs.mkShell {

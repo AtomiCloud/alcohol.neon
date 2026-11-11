@@ -15,4 +15,4 @@ jobs:
         with:
           namespacelabs: 'false'
       - name: Run tests
-        run: nix develop .#ci -c ./scripts/ci/test.sh
+        run: nix develop .#test -c ./scripts/ci/test.sh

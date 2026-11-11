@@ -9,7 +9,7 @@ pre-commit-lib.run {
   hooks = {
     a-enforce-exec = {
       enable = true;
-      entry = "${packages.atomiutils}/bin/chmod +x";
+      entry = "chmod +x"; # the runner's chmod: atomiutils (1.8 GiB, attic-only) for chmod alone stalled CI
       files = ".*sh$";
       name = "Enforce Shell Script executable";
       pass_filenames = true;

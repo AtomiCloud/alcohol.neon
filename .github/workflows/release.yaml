@@ -1,11 +1,10 @@
 name: Release
 
+# On every push to main, without re-running CI there (see ci.yaml): the PR's CI
+# already passed on the same tree.
 on:
-  workflow_run:
-    workflows: ['CI']
+  push:
     branches: [main]
-    types:
-      - completed
 
 concurrency:
   group: release
@@ -13,6 +12,7 @@ concurrency:
 jobs:
   release:
     name: Semantic Release
-    if: github.event.workflow_run.conclusion == 'success'
+    # Skip the release commit semantic-release itself pushes.
+    if: ${{ !startsWith(github.event.head_commit.message, 'release:') }}
     uses: ./.github/workflows/⚡reusable-release.yaml
     secrets: inherit

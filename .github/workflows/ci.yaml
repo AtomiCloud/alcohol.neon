@@ -2,8 +2,10 @@ name: CI
 on:
   push:
     # Branches only — a tag push already triggers CD; a duplicate CI run on
-    # the same commit would just re-lint it.
-    branches: ['**']
+    # the same commit would just re-lint it. Not main either: main only takes
+    # PRs that must be up to date with it, so a merge commit has the exact tree
+    # its PR's CI already passed. Release runs on the push to main directly.
+    branches: ['**', '!main']
 jobs:
   precommit:
     name: Pre-Commit

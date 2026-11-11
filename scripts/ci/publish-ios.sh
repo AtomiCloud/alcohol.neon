@@ -4,7 +4,7 @@ set -euo pipefail
 # Stamps the donor IPA into ONE landscape's release IPA (scripts/ci/
 # stamp-ios.sh): fetch + doctor the landscape's signing files, re-badge, and
 # leave the artifact at build/ios/stamped/<landscape>.ipa — the workflow
-# uploads it to TestFlight. Runs inside `nix develop .#cd-ios` on macOS
+# uploads it to TestFlight. Runs inside `nix develop .#publish-ios` on macOS
 # (codesign). See docs/github-actions-release.md.
 #
 # Usage: publish-ios.sh <landscape> <donor.ipa>

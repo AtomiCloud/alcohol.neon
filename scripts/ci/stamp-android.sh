@@ -16,7 +16,7 @@ set -euo pipefail
 #   ANDROID_KEYSTORE_PATH      upload keystore (.jks) — re-sign after patching
 #   ANDROID_KEYSTORE_PASSWORD / ANDROID_KEY_ALIAS / ANDROID_KEY_PASSWORD
 #
-# Needs: protoc + bundletool + jarsigner (nix cd-android shell), yq.
+# Needs: protoc + bundletool + jarsigner (nix cd-android and publish-android shells), yq.
 #
 # Invariants this relies on (verified 2026-07-07, see docs/github-actions-release.md):
 #   - resource namespace is constant across flavors, so resources.pb only carries

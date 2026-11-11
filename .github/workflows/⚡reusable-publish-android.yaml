@@ -27,7 +27,7 @@ jobs:
     #   - nscloud-ubuntu-22.04-amd64-4x8-with-cache
     #   - nscloud-cache-size-50gb
     #   - nscloud-cache-tag-atomi-nix-store-cache
-    timeout-minutes: 30
+    timeout-minutes: 45
     env:
       FLAVOR: ${{ inputs.flavor }}
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -49,7 +49,7 @@ jobs:
       - name: Stamp ${{ inputs.flavor }}
         run: |
           set -euo pipefail
-          nix develop .#cd-android -c ./scripts/ci/publish-android.sh "$FLAVOR" "$(find donor -name '*.aab' | head -1)"
+          nix develop .#publish-android -c ./scripts/ci/publish-android.sh "$FLAVOR" "$(find donor -name '*.aab' | head -1)"
 
       - name: Publish to Play internal track
         uses: r0adkll/upload-google-play@v1

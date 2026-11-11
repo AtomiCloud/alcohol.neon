@@ -208,6 +208,10 @@ class CompleteHabitReceiver : BroadcastReceiver() {
         io.execute {
             try {
                 val ok = NextUpNotification.completeOnServer(app, versionId)
+                if (ok) {
+                    TodayWidgets.markDone(app, versionId)
+                    TodayWidgets.refreshAll(app)
+                }
                 NextUpNotification.setPhase(
                     app, versionId,
                     if (ok) NextUpNotification.Phase.DONE else NextUpNotification.Phase.FAILED,

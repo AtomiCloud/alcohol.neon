@@ -1,18 +1,26 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:home_widget/home_widget.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../features/dashboard/today_plan.dart';
 
-/// Bridges today's habit schedule to the iOS home-screen widget (WidgetKit) via a
-/// shared App Group. The widget reads this and shows the next habit due, advancing
+/// Bridges today's habit schedule to the home-screen widgets: iOS (WidgetKit) via a
+/// shared App Group, Android (TodayWidget.kt) via home_widget's preferences. The widget reads this and shows the next habit due, advancing
 /// by time, then a done-summary. Rewritten whenever the dashboard overview loads.
 class WidgetService {
   WidgetService._();
   static final WidgetService instance = WidgetService._();
 
   static const _kind = 'NeonWidget';
+
+  /// The Android widget providers (android/.../TodayWidget.kt), by class name:
+  /// the app id differs per flavor, so home_widget can't derive them.
+  static const _androidWidgets = [
+    'cloud.atomi.alcohol_neon.NextUpWidget',
+    'cloud.atomi.alcohol_neon.TodayWidget',
+  ];
   static const _dataKey = 'today_schedule';
 
   /// Per-landscape App Group — `group.<app bundle id>` (LPSM). Matches the
@@ -20,6 +28,17 @@ class WidgetService {
   static String? _appGroupCache;
   static Future<String> _appGroup() async => _appGroupCache ??=
       'group.${(await PackageInfo.fromPlatform()).packageName}';
+
+  /// Redraw the iOS widget and both Android widgets.
+  static Future<void> _refresh() async {
+    if (!Platform.isAndroid) {
+      await HomeWidget.updateWidget(iOSName: _kind);
+      return;
+    }
+    for (final name in _androidWidgets) {
+      await HomeWidget.updateWidget(qualifiedAndroidName: name);
+    }
+  }
 
   /// Remove all account-owned widget state, including optimistic native actions.
   Future<void> clear() async {
@@ -35,7 +54,7 @@ class WidgetService {
       ]) {
         await HomeWidget.saveWidgetData<Object>(key, null);
       }
-      await HomeWidget.updateWidget(iOSName: _kind);
+      await _refresh();
     } catch (_) {
       // Widget not installed / not supported — non-critical.
     }
@@ -52,7 +71,7 @@ class WidgetService {
         _dataKey,
         jsonEncode(widgetSchedule(plan, DateTime.now())),
       );
-      await HomeWidget.updateWidget(iOSName: _kind);
+      await _refresh();
     } catch (_) {
       // Widget not installed / not iOS — non-critical.
     }
@@ -98,7 +117,7 @@ class WidgetService {
       }
       if (!changed) return;
       await HomeWidget.saveWidgetData<String>(_dataKey, jsonEncode(map));
-      await HomeWidget.updateWidget(iOSName: _kind);
+      await _refresh();
     } catch (_) {
       // Non-critical.
     }

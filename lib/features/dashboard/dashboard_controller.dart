@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../../config/app_config.dart';
+import '../../core/launch_timeline.dart';
 import '../../core/problem.dart';
 import '../../data/execution_repository.dart';
 import '../../data/habit_repository.dart';
@@ -37,7 +38,18 @@ class DashboardController extends ChangeNotifier {
       _habits = session.habits,
       _executions = session.executions,
       _session = session,
-      _generation = session.generation;
+      _generation = session.generation {
+    // Last launch's Today (same day): shown until the fresh overview lands.
+    final cached = session.takeCachedOverview();
+    if (cached != null) {
+      _overview = cached;
+      _phase = DashboardPhase.ready;
+      fromCache = true;
+    }
+  }
+
+  /// Whether [overview] is still the saved one from the last launch.
+  bool fromCache = false;
 
   @override
   void dispose() {
@@ -131,12 +143,16 @@ class DashboardController extends ChangeNotifier {
     notifyListeners();
 
     final request = ++_loadRequest;
-    final res = await _habits.overview(uid);
+    final res =
+        await (_session.takeOverviewPrefetch() ?? _habits.overview(uid));
     if (!_current || request != _loadRequest) return;
     switch (res) {
       case Ok(:final value):
         _overview = value;
+        fromCache = false;
         _loadedAt = DateTime.now();
+        unawaited(_session.cache.saveOverview(uid, value));
+        LaunchTimeline.mark('today-refreshed');
         _settled.clear();
         _refreshError = null;
         _phase = DashboardPhase.ready;

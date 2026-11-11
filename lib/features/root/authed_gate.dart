@@ -33,7 +33,7 @@ class _AuthedGateState extends State<AuthedGate> {
     switch (session.phase) {
       case SessionPhase.idle:
       case SessionPhase.bootstrapping:
-        return const Scaffold(body: AppLoader());
+        return const GlassLoadingScreen();
       case SessionPhase.needsOnboarding:
         return const OnboardingView();
       case SessionPhase.ready:

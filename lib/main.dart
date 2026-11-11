@@ -14,8 +14,8 @@ import 'theme/app_theme.dart';
 void main() async {
   LaunchTimeline.start();
   WidgetsFlutterBinding.ensureInitialized();
-  await AppConfig.load();
-  await TodayLayoutSetting.instance.load();
+  // Independent local reads; run them together.
+  await Future.wait([AppConfig.load(), TodayLayoutSetting.instance.load()]);
   LaunchTimeline.mark('config-loaded');
   runApp(
     MultiProvider(

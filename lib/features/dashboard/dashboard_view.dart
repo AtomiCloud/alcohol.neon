@@ -123,7 +123,9 @@ class DashboardView extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(
           create: (ctx) =>
-              DashboardController(ctx.read<SessionController>())..load(),
+              // Quiet: a saved Today stays on screen while the fresh one loads.
+              DashboardController(ctx.read<SessionController>())
+                ..load(quiet: true),
         ),
         // Live freeze balance for the safety nets — a light, separate fetch so
         // the daily-loop controller stays clean.
@@ -156,8 +158,24 @@ class _DashboardScaffoldState extends State<_DashboardScaffold>
     // tell the user once. Bootstrap syncs before this screen exists, so also
     // check after the first frame.
     _session = context.read<SessionController>()
-      ..addListener(_showTimezoneNotice);
+      ..addListener(_showTimezoneNotice)
+      ..addListener(_reloadOnTimezoneChange);
+    _timezone = _session.config?.timezone;
     WidgetsBinding.instance.addPostFrameCallback((_) => _showTimezoneNotice());
+  }
+
+  String? _timezone;
+
+  /// Today may come from the saved overview before bootstrap has the fresh
+  /// configuration; if that moved the timezone, Today's checks moved too.
+  void _reloadOnTimezoneChange() {
+    final tz = _session.config?.timezone;
+    if (tz == _timezone) return;
+    final had = _timezone != null;
+    _timezone = tz;
+    if (had && tz != null && mounted) {
+      context.read<DashboardController>().load(quiet: true);
+    }
   }
 
   void _showTimezoneNotice() {
@@ -186,7 +204,9 @@ class _DashboardScaffoldState extends State<_DashboardScaffold>
 
   @override
   void dispose() {
-    _session.removeListener(_showTimezoneNotice);
+    _session
+      ..removeListener(_showTimezoneNotice)
+      ..removeListener(_reloadOnTimezoneChange);
     routeObserver.unsubscribe(this);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
@@ -255,7 +275,7 @@ class _TodayState extends State<_Today> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback(
-      (_) => LaunchTimeline.todayShown('server'),
+      (_) => LaunchTimeline.todayShown(widget.c.fromCache ? 'cache' : 'server'),
     );
     _tick = Timer.periodic(const Duration(seconds: 30), (_) {
       if (mounted) setState(() {});

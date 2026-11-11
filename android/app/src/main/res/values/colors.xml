@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_launcher_background">#FFFFFF</color>
+    <!-- AmbientBackdrop's base colour (lib/theme/glass.dart), so the launch
+         screen hands over to the Flutter loader without a flash. -->
+    <color name="launch_background">#F2F2F7</color>
 </resources>

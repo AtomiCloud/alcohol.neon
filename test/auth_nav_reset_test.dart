@@ -15,6 +15,8 @@ import 'package:alcohol_neon/networking/api_client.dart';
 import 'package:alcohol_neon/session/session_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'support/session_harness.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:logto_dart_sdk/logto_dart_sdk.dart';
@@ -89,8 +91,18 @@ Future<void> _pumpApp(WidgetTester tester, _FakeAuthService auth) async {
       providers: [
         ChangeNotifierProvider<AuthService>.value(value: auth),
         ChangeNotifierProxyProvider<AuthService, SessionController>(
-          create: (ctx) => SessionController(ctx.read<AuthService>()),
-          update: (ctx, a, previous) => previous ?? SessionController(a),
+          create: (ctx) => SessionController(
+            ctx.read<AuthService>(),
+            timezonePreference: MemoryTimezonePreference(),
+            cache: MemorySessionCache(),
+          ),
+          update: (ctx, a, previous) =>
+              previous ??
+              SessionController(
+                a,
+                timezonePreference: MemoryTimezonePreference(),
+                cache: MemorySessionCache(),
+              ),
         ),
       ],
       child: const AlcoholNeonApp(),

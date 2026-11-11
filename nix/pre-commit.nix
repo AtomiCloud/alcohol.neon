@@ -78,7 +78,9 @@ pre-commit-lib.run {
     a-dart-format = {
       enable = true;
       description = "Format Dart code (writes in place)";
-      entry = "${packages.flutter}/bin/dart format";
+      # Pinned to pubspec's `sdk: ^3.11`: CI runs hooks before `pub get`, and
+      # without a package config dart format uses the newest language style.
+      entry = "${packages.flutter}/bin/dart format --language-version=3.11";
       files = "\\.dart$";
       excludes = [
         ".*\\.g\\.dart$"

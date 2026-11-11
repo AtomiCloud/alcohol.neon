@@ -7,6 +7,9 @@ name: ⚡ Reusable Build Android
 
 on:
   workflow_call: {}
+  # Smoke-test the donor build on any branch without cutting a release or
+  # touching a store (it holds no secrets and only uploads a run artifact).
+  workflow_dispatch: {}
 
 jobs:
   build:
@@ -18,17 +21,31 @@ jobs:
     #   - nscloud-ubuntu-22.04-amd64-4x8-with-cache
     #   - nscloud-cache-size-50gb
     #   - nscloud-cache-tag-atomi-nix-store-cache
-    timeout-minutes: 60
+    # A cold toolchain download plus a cold Gradle build; 60 minutes cancelled
+    # v1.15.2 five minutes into Gradle.
+    timeout-minutes: 120
     steps:
       - uses: AtomiCloud/actions.setup-nix@v3
         with:
           namespacelabs: 'false'
+          # Everything .#build-android needs is on cache.nixos.org (Flutter, JDK) or
+          # built from Google's SDK zips (androidsdk isn't in any binary cache), so
+          # attic only adds stalling downloads here.
+          attic: 'false'
 
-      # Namespace caching disabled; build without the optional Gradle cache.
-      # - uses: AtomiCloud/actions.cache-gradle@v1
+      # Gradle dependencies and its build cache (cd-android.sh turns caching on).
+      # Caches from a tag run are only visible to that tag, so this mainly speeds
+      # up re-runs of a failed release.
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle*', 'android/gradle/wrapper/gradle-wrapper.properties', 'pubspec.lock') }}
+          restore-keys: gradle-${{ runner.os }}-
 
       - name: Build donor AAB
-        run: nix develop .#cd-android -c ./scripts/ci/cd-android.sh
+        run: nix develop .#build-android -c ./scripts/ci/cd-android.sh
 
       - uses: actions/upload-artifact@v4
         with:

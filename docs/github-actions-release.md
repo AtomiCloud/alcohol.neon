@@ -113,6 +113,11 @@ The shells are defined in `nix/shells.nix`:
 - `.#cd-ios` — flutter + CocoaPods + GNU rsync + codemagic-cli-tools.
 - `.#cd-android` — flutter + Android SDK + JDK + codemagic-cli-tools + protoc + bundletool,
   with `ANDROID_SDK_ROOT`/`ANDROID_HOME`/`JAVA_HOME`.
+- `.#build-android` — the donor AAB build job's shell: only flutter + Android SDK + JDK17
+  (no atomiutils, codemagic, C toolchain or shellHook). That job also skips attic (everything
+  it needs is on cache.nixos.org or built from Google's SDK zips), caches `~/.gradle`, has a
+  120-minute timeout, and can be run by hand (Actions → ⚡ Reusable Build Android → Run
+  workflow) to smoke-test the build without a release.
 
 `codemagic-cli-tools` comes from the AtomiCloud nix registry (v3), so there is no per-run
 pipx install step.
@@ -129,7 +134,7 @@ pipx install step.
   (`scripts/ci/doctor-ios.sh`) that decodes each fetched profile and fails fast, naming the
   missing piece, if a profile lacks the App Group entitlement (i.e. `pls register` was skipped
   for a target).
-- **Android** (`nix develop .#cd-android -c ./scripts/ci/cd-android.sh`)**:** flutter + Android SDK +
+- **Android** (`nix develop .#build-android -c ./scripts/ci/cd-android.sh`)**:** flutter + Android SDK +
   JDK17 from nix; `codemagic-cli-tools` provides `google-play get-latest-build-number` for the
   versionCode query. The keystore is decoded to `android/app/upload-keystore.jks` and a
   `android/key.properties` is written — this hits the **existing** `key.properties` path in

@@ -30,6 +30,22 @@ with env;
     JAVA_HOME = "${packages.jdk17.home}";
   };
 
+  # Donor AAB build (⚡reusable-build-android.yaml → scripts/ci/cd-android.sh): only
+  # `flutter pub get` + `flutter build appbundle`. Skips everything cd-android adds for
+  # stamping/uploading (now the publish-android job's), atomiutils, rsync/resvg, the nix
+  # C toolchain (the NDK brings its own clang) and the pre-commit shellHook — the cold
+  # download of those from the cache was eating the job's timeout before Gradle started.
+  build-android = pkgs.mkShellNoCC {
+    buildInputs = [
+      packages.flutter
+      packages.androidsdk
+      packages.jdk17
+    ];
+    ANDROID_SDK_ROOT = "${packages.androidsdk}/libexec/android-sdk";
+    ANDROID_HOME = "${packages.androidsdk}/libexec/android-sdk";
+    JAVA_HOME = "${packages.jdk17.home}";
+  };
+
   # Store-upload shells (⚡reusable-publish-*.yaml). Those jobs only stamp and re-sign an
   # already-built donor, so they skip Flutter, the Android SDK/NDK, CocoaPods, atomiutils
   # (1.7 GiB, for yq alone), the C toolchain and the pre-commit shellHook. Downloading those

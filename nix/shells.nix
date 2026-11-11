@@ -30,6 +30,31 @@ with env;
     JAVA_HOME = "${packages.jdk17.home}";
   };
 
+  # Store-upload shells (⚡reusable-publish-*.yaml). Those jobs only stamp and re-sign an
+  # already-built donor, so they skip Flutter, the Android SDK/NDK, CocoaPods, atomiutils
+  # (1.7 GiB, for yq alone), the C toolchain and the pre-commit shellHook. Downloading those
+  # from the cache made every upload job hit its timeout before it reached the upload.
+  # zip/unzip come from the runner, like in the cd-* shells.
+  publish-ios = pkgs.mkShellNoCC {
+    # keychain + app-store-connect (codemagic). PlistBuddy, codesign and security are macOS's.
+    buildInputs = [
+      packages.codemagic-cli-tools
+      packages.yq-go
+    ];
+  };
+
+  publish-android = pkgs.mkShellNoCC {
+    # google-play (codemagic), protoc + bundletool (stamp-android.sh), jarsigner.
+    buildInputs = [
+      packages.codemagic-cli-tools
+      packages.yq-go
+      packages.protobuf
+      packages.bundletool
+      pkgs.jdk17_headless
+    ];
+    JAVA_HOME = "${pkgs.jdk17_headless.home}";
+  };
+
   ci = pkgs.mkShell {
     buildInputs = lint ++ main ++ mobile ++ system;
     inherit shellHook;

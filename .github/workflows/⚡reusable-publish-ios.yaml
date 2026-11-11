@@ -22,7 +22,7 @@ jobs:
     #   - nscloud-macos-sequoia-arm64-6x14-with-cache
     #   - nscloud-cache-size-50gb
     #   - nscloud-cache-tag-atomi-nix-darwin-cache
-    timeout-minutes: 30
+    timeout-minutes: 45
     env:
       FLAVOR: ${{ inputs.flavor }}
       # codemagic-cli-tools reads these by convention.
@@ -51,12 +51,12 @@ jobs:
       - name: Stamp ${{ inputs.flavor }}
         run: |
           set -euo pipefail
-          nix develop .#cd-ios -c ./scripts/ci/publish-ios.sh "$FLAVOR" "$(find donor -name '*.ipa' | head -1)"
+          nix develop .#publish-ios -c ./scripts/ci/publish-ios.sh "$FLAVOR" "$(find donor -name '*.ipa' | head -1)"
 
       # No --testflight: it waits on Apple processing to submit for EXTERNAL beta review
       # and flakily times out; internal testers get the build from a plain upload.
       - name: Publish to TestFlight
-        run: nix develop .#cd-ios -c app-store-connect publish --path "build/ios/stamped/$FLAVOR.ipa"
+        run: nix develop .#publish-ios -c app-store-connect publish --path "build/ios/stamped/$FLAVOR.ipa"
 
       - uses: actions/upload-artifact@v4
         with:

@@ -5,7 +5,7 @@ set -euo pipefail
 # stamp-android.sh): re-badge, set versionCode/versionName, re-sign with the
 # upload key, and leave the artifact at build/app/outputs/stamped/<landscape>.aab
 # — the workflow uploads it to the Play internal track. Runs inside
-# `nix develop .#cd-android`. See docs/github-actions-release.md.
+# `nix develop .#publish-android`. See docs/github-actions-release.md.
 #
 # Usage: publish-android.sh <landscape> <donor.aab>
 #

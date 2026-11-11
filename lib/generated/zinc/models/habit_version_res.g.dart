@@ -20,6 +20,7 @@ HabitVersionRes _$HabitVersionResFromJson(Map<String, dynamic> json) =>
       stake: json['stake'] as String?,
       ratio: json['ratio'] as String?,
       timezone: json['timezone'] as String?,
+      deadlineTime: json['deadlineTime'] as String?,
     );
 
 Map<String, dynamic> _$HabitVersionResToJson(HabitVersionRes instance) =>
@@ -34,4 +35,5 @@ Map<String, dynamic> _$HabitVersionResToJson(HabitVersionRes instance) =>
       'ratio': instance.ratio,
       'charityId': instance.charityId,
       'timezone': instance.timezone,
+      'deadlineTime': instance.deadlineTime,
     };

@@ -155,10 +155,6 @@ void main() {
 
       expect(find.text(state.label), findsOneWidget);
       expect(
-        find.text('Day ends at midnight · Asia/Singapore'),
-        findsOneWidget,
-      );
-      expect(
         find.text('Complete'),
         state.status == 'not_applicable' ? findsOneWidget : findsNothing,
       );

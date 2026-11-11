@@ -1,34 +1,23 @@
+import 'dart:async';
+import 'dart:ui';
+
+import 'package:flutter/cupertino.dart' show CupertinoSliverRefreshControl;
 import 'package:flutter/material.dart';
-import '../../widgets/app_loader.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/date_format.dart';
 import '../../core/navigation.dart';
-import '../../theme/app_theme.dart';
 import '../../generated/zinc/models/habit_overview_habit_res.dart';
 import '../../session/session_controller.dart';
-import '../charity/charity_picker.dart';
+import '../../theme/app_theme.dart';
+import '../../theme/glass.dart';
+import '../../widgets/app_loader.dart';
 import '../habit/habit_editor_view.dart';
-import '../nfc/tag_inspector_view.dart';
 import '../profile/profile_view.dart';
-import '../vacation/vacation_list_view.dart';
 import 'buffers_controller.dart';
 import 'dashboard_controller.dart';
-
-/// Opens the standalone charity browser (M4) in non-selection mode: tapping a
-/// charity opens its detail screen rather than returning a selection.
-void _openCharityBrowse(BuildContext context) {
-  final session = context.read<SessionController>();
-  Navigator.of(context).push(
-    MaterialPageRoute(
-      builder: (_) => CharityBrowse(
-        repository: session.charities,
-        causeRepository: session.causes,
-        selectionMode: false,
-      ),
-    ),
-  );
-}
+import 'today_layout.dart';
+import 'today_plan.dart';
 
 /// Opens the habit editor (create when [habitId] is null, else edit) and reloads
 /// the dashboard if it reports a change.
@@ -47,6 +36,12 @@ Future<void> _openEditor(
   if (changed == true) c.load();
 }
 
+void _openHabit(BuildContext context, DashboardController c, TodayItem item) {
+  final id = item.habit.id;
+  if (id == null) return;
+  _openEditor(context, c, habitId: id, enabled: item.habit.enabled);
+}
+
 /// True when a debt string represents a non-zero amount (zinc sends debt as a
 /// decimal string, e.g. "0.00" or "12.50").
 bool _hasDebt(String? debt) {
@@ -55,8 +50,68 @@ bool _hasDebt(String? debt) {
   return value == null ? debt != '0' : value > 0;
 }
 
-/// M2 — the daily loop. Today's habits with complete/skip, streaks, debt and the
-/// skip budget, from `GET /Habit/{userId}/overview`.
+/// "1 h 55 m left", counted down from the item's deadline.
+String _timeLeft(DateTime? deadline, DateTime now) {
+  if (deadline == null) return '';
+  final minutes = deadline.difference(now).inMinutes;
+  if (minutes <= 0) return 'Ending now';
+  final h = minutes ~/ 60, m = minutes % 60;
+  if (h == 0) return '$m m left';
+  return m == 0 ? '$h h left' : '$h h $m m left';
+}
+
+String _statusLabel(TodayState s) => switch (s) {
+  TodayState.done => 'Completed today',
+  TodayState.skipped => 'Skipped today',
+  TodayState.frozen => 'Covered by a freeze today',
+  TodayState.vacation => 'On vacation',
+  TodayState.settled => 'Today is already settled',
+  TodayState.rest => 'Rest day',
+  TodayState.paused => 'Paused',
+  TodayState.unknown => "Today's status unavailable",
+  TodayState.todo => '',
+};
+
+String _dateCaption(DateTime d) {
+  const days = [
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+    'Sunday',
+  ];
+  const months = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
+  return '${days[d.weekday - 1]}, ${d.day} ${months[d.month - 1]}';
+}
+
+Future<void> _complete(DashboardController c, HabitOverviewHabitRes h) {
+  HapticFeedback.mediumImpact();
+  return c.complete(h);
+}
+
+Future<void> _skip(DashboardController c, HabitOverviewHabitRes h) {
+  HapticFeedback.selectionClick();
+  return c.skip(h);
+}
+
+/// The daily loop: today's habits with complete/skip, from
+/// `GET /Habit/{userId}/overview`. Leads with the next habit to do ("Next up")
+/// or with the day's progress ("Progress list"), as chosen in Profile.
 class DashboardView extends StatelessWidget {
   const DashboardView({super.key});
 
@@ -68,7 +123,7 @@ class DashboardView extends StatelessWidget {
           create: (ctx) =>
               DashboardController(ctx.read<SessionController>())..load(),
         ),
-        // Live freeze balance for the buffers strip — a light, separate fetch so
+        // Live freeze balance for the safety nets — a light, separate fetch so
         // the daily-loop controller stays clean.
         ChangeNotifierProvider(
           create: (ctx) =>
@@ -158,648 +213,841 @@ class _DashboardScaffoldState extends State<_DashboardScaffold>
   @override
   Widget build(BuildContext context) {
     final c = context.watch<DashboardController>();
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Today'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.volunteer_activism),
-            tooltip: 'Browse charities',
-            onPressed: () => _openCharityBrowse(context),
+    return AmbientBackdrop(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        floatingActionButton: c.phase == DashboardPhase.ready
+            ? _AddButton(onTap: () => _openEditor(context, c))
+            : null,
+        body: switch (c.phase) {
+          DashboardPhase.loading => const AppLoader(),
+          DashboardPhase.error => _ErrorRetry(
+            message: c.error?.displayMessage ?? 'Could not load habits',
+            onRetry: c.load,
           ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: c.phase == DashboardPhase.loading ? null : c.load,
+          DashboardPhase.ready => ValueListenableBuilder<TodayLayout>(
+            valueListenable: TodayLayoutSetting.instance,
+            builder: (_, layout, _) => _Today(c: c, layout: layout),
           ),
-          IconButton(
-            icon: const Icon(Icons.person),
-            tooltip: 'Profile',
-            onPressed: () => Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const ProfileView())),
-          ),
-        ],
+        },
       ),
-      floatingActionButton: c.phase == DashboardPhase.ready
-          ? FloatingActionButton(
-              onPressed: () => _openEditor(context, c),
-              child: const Icon(Icons.add),
-            )
-          : null,
-      body: switch (c.phase) {
-        DashboardPhase.loading => const AppLoader(),
-        DashboardPhase.error => _ErrorRetry(
-          message: c.error?.displayMessage ?? 'Could not load habits',
-          onRetry: c.load,
-        ),
-        DashboardPhase.ready => _Content(c: c),
-      },
     );
   }
 }
 
-class _Content extends StatelessWidget {
+/// The scrolling Today screen: a large title that collapses into a frosted
+/// bar, then the chosen layout. Rebuilds every 30 s so countdowns stay live.
+class _Today extends StatefulWidget {
   final DashboardController c;
-  const _Content({required this.c});
+  final TodayLayout layout;
+  const _Today({required this.c, required this.layout});
+
+  @override
+  State<_Today> createState() => _TodayState();
+}
+
+class _TodayState extends State<_Today> {
+  late final Timer _tick;
+
+  @override
+  void initState() {
+    super.initState();
+    _tick = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _tick.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final habits = c.habits;
+    final c = widget.c;
     final buffers = context.watch<BuffersController>();
-    return RefreshIndicator(
-      // Pull-to-refresh reloads both the overview and the live freeze balance.
-      onRefresh: () => Future.wait([c.load(), buffers.load()]),
-      child: ListView(
-        padding: const EdgeInsets.all(12),
-        children: [
-          if (c.refreshError != null)
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.sync_problem),
-                title: const Text('Could not refresh the dashboard'),
-                subtitle: const Text(
-                  'Saved actions are kept. Totals may be out of date. '
-                  'Retry refresh — do not submit the action again.',
-                ),
-                trailing: TextButton(
-                  onPressed: c.load,
-                  child: const Text('Retry'),
-                ),
-              ),
-            ),
-          if (c.actionError != null)
-            _ActionErrorBanner(
-              message: c.actionError!.displayMessage,
-              onDismiss: c.clearActionError,
-            ),
-          _BuffersCard(dashboard: c, buffers: buffers),
-          const SizedBox(height: 8),
-          if (habits.isEmpty)
-            const _EmptyState()
-          else
-            ...habits.map(
-              (h) => _HabitCard(
-                key: ValueKey(h.id ?? h.name),
-                habit: h,
-                controller: c,
-              ),
-            ),
-        ],
+    final plan = c.plan;
+    final now = DateTime.now();
+    final nextUp = widget.layout == TodayLayout.nextUp;
+
+    final sections = <Widget>[
+      if (c.refreshError != null)
+        _Banner(
+          icon: Icons.sync_problem,
+          title: 'Could not refresh the dashboard',
+          body:
+              'Saved actions are kept. Totals may be out of date. '
+              'Retry refresh — do not submit the action again.',
+          action: TextButton(onPressed: c.load, child: const Text('Retry')),
+        ),
+      if (c.actionError != null)
+        _Banner(
+          icon: Icons.error_outline,
+          title: c.actionError!.displayMessage,
+          error: true,
+          action: IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: c.clearActionError,
+          ),
+        ),
+      if (c.habits.isEmpty)
+        _EmptyState(onCreate: () => _openEditor(context, c))
+      else if (nextUp)
+        ..._nextUpSections(context, c, buffers, plan, now)
+      else
+        ..._progressSections(context, c, buffers, plan, now),
+    ];
+
+    return CustomScrollView(
+      physics: const AlwaysScrollableScrollPhysics(
+        parent: BouncingScrollPhysics(),
       ),
+      slivers: [
+        SliverPersistentHeader(
+          pinned: true,
+          delegate: _LargeTitle(
+            top: MediaQuery.paddingOf(context).top,
+            caption: _dateCaption(now),
+            ring: nextUp && plan.scheduled > 0
+                ? ProgressRing(
+                    value: plan.done.length / plan.scheduled,
+                    size: 34,
+                    stroke: 3.5,
+                    child: Text(
+                      '${plan.done.length}/${plan.scheduled}',
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  )
+                : null,
+            onProfile: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const ProfileView())),
+          ),
+        ),
+        // Pull-to-refresh reloads both the overview and the freeze balance.
+        CupertinoSliverRefreshControl(
+          onRefresh: () => Future.wait([c.load(), buffers.load()]),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 120),
+          sliver: SliverList.list(
+            children: [
+              for (var i = 0; i < sections.length; i++)
+                Appear(index: i, child: sections[i]),
+            ],
+          ),
+        ),
+      ],
     );
+  }
+
+  List<Widget> _nextUpSections(
+    BuildContext context,
+    DashboardController c,
+    BuffersController buffers,
+    TodayPlan plan,
+    DateTime now,
+  ) {
+    final next = plan.next;
+    return [
+      AnimatedSwitcher(
+        duration: GlassMotion.of(context, GlassMotion.slow),
+        switchInCurve: GlassMotion.curve,
+        switchOutCurve: GlassMotion.curve,
+        transitionBuilder: (child, a) => FadeTransition(
+          opacity: a,
+          child: ScaleTransition(
+            scale: Tween(begin: 0.96, end: 1.0).animate(a),
+            child: child,
+          ),
+        ),
+        child: next == null
+            ? _AllClear(key: const ValueKey('clear'), plan: plan)
+            : _NextUpCard(
+                key: ValueKey(next.habit.id ?? next.habit.name),
+                item: next,
+                c: c,
+                now: now,
+              ),
+      ),
+      if (plan.todo.length > 1)
+        _Section(
+          title: 'Later today',
+          items: plan.todo.skip(1).toList(),
+          c: c,
+          now: now,
+        ),
+      if (plan.done.isNotEmpty)
+        _Section(title: 'Done', items: plan.done, c: c, now: now),
+      if (plan.later.isNotEmpty)
+        _Section(title: 'Not today', items: plan.later, c: c, now: now),
+      _SafetyNets(c: c, buffers: buffers),
+    ];
+  }
+
+  List<Widget> _progressSections(
+    BuildContext context,
+    DashboardController c,
+    BuffersController buffers,
+    TodayPlan plan,
+    DateTime now,
+  ) {
+    return [
+      _ProgressCard(c: c, buffers: buffers, plan: plan, now: now),
+      if (plan.scheduled > 0)
+        _Section(
+          title: 'Today',
+          items: [...plan.todo, ...plan.done],
+          c: c,
+          now: now,
+        ),
+      if (plan.later.isNotEmpty)
+        _Section(title: 'Not today', items: plan.later, c: c, now: now),
+    ];
   }
 }
 
-/// Compact buffers strip: the live **freeze balance** (`GET /Protection`), the
-/// monthly **skip budget** (from the habit overview), the current debt, and an
-/// entry point to manage vacations. Freeze is a real server value here — never a
-/// hardcoded 5/5.
-class _BuffersCard extends StatelessWidget {
-  final DashboardController dashboard;
-  final BuffersController buffers;
-  const _BuffersCard({required this.dashboard, required this.buffers});
+/// iOS-style large title: the date and "Today" scroll away and a small title
+/// fades in on a frosted bar. Only that bar uses a real backdrop blur.
+class _LargeTitle extends SliverPersistentHeaderDelegate {
+  final double top;
+  final String caption;
+  final Widget? ring;
+  final VoidCallback onProfile;
+
+  const _LargeTitle({
+    required this.top,
+    required this.caption,
+    required this.ring,
+    required this.onProfile,
+  });
+
+  static const _bar = 52.0;
+
+  @override
+  double get minExtent => top + _bar;
+
+  @override
+  double get maxExtent => top + _bar + 56;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlaps) {
+    final theme = Theme.of(context);
+    final t = GlassTokens.of(context);
+    final p = (shrinkOffset / (maxExtent - minExtent)).clamp(0.0, 1.0);
+    final barOpacity = ((p - 0.5) / 0.5).clamp(0.0, 1.0);
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        if (barOpacity > 0)
+          Opacity(
+            opacity: barOpacity,
+            child: ClipRect(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: t.strongFill,
+                    border: Border(
+                      bottom: BorderSide(color: t.separator, width: 0.5),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        Positioned(
+          top: top,
+          left: 0,
+          right: 0,
+          height: _bar,
+          child: Opacity(
+            opacity: barOpacity,
+            child: Center(
+              child: Text(
+                'Today',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          top: top + 8,
+          right: 16,
+          child: Row(
+            children: [
+              if (ring != null) ...[ring!, const SizedBox(width: 10)],
+              Pressable(
+                onTap: onProfile,
+                child: Semantics(
+                  button: true,
+                  label: 'Profile',
+                  child: Glass(
+                    blur: true,
+                    radius: const BorderRadius.all(Radius.circular(18)),
+                    child: const SizedBox.square(
+                      dimension: 36,
+                      child: Icon(Icons.person_rounded, size: 20),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Positioned(
+          left: 20,
+          right: 20,
+          bottom: 6,
+          child: Opacity(
+            opacity: (1 - p * 1.8).clamp(0.0, 1.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  caption,
+                  style: theme.textTheme.labelLarge?.copyWith(color: t.muted),
+                ),
+                Text(
+                  'Today',
+                  style: theme.textTheme.displaySmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 34,
+                    color: theme.colorScheme.onSurface,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  bool shouldRebuild(_LargeTitle old) => true;
+}
+
+/// The habit due soonest, with its countdown, stake and the one action to take.
+class _NextUpCard extends StatelessWidget {
+  final TodayItem item;
+  final DashboardController c;
+  final DateTime now;
+  const _NextUpCard({
+    super.key,
+    required this.item,
+    required this.c,
+    required this.now,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final skipsLeft = dashboard.skipsLeft;
-    final totalSkip = dashboard.totalSkip;
-    final balance = buffers.balance;
-    final owed = _hasDebt(dashboard.totalDebt);
-
-    final freezeLabel = balance == null
-        ? (buffers.loading ? '…' : '—')
-        : '${balance.balance}/${balance.cap}';
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 6, 6, 6),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text(
-                  'Safety nets',
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const Spacer(),
-                IconButton(
-                  visualDensity: VisualDensity.compact,
-                  icon: Icon(
-                    Icons.info_outline,
-                    size: 18,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                  tooltip: 'What are these?',
-                  onPressed: () => _showInfo(context),
-                ),
-              ],
-            ),
-            IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+    final t = GlassTokens.of(context);
+    final h = item.habit;
+    final busy = c.isBusy(h);
+    final stake = stakeLine(h);
+    final skipsLeft = c.skipsLeft;
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Pressable(
+        onTap: () => _openHabit(context, c, item),
+        scale: 0.985,
+        child: Glass(
+          radius: const BorderRadius.all(Radius.circular(28)),
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
-                  Expanded(
-                    child: _stat(
-                      theme,
-                      Icons.ac_unit,
-                      'Freezes',
-                      freezeLabel,
-                      'auto-saves a miss',
-                      color: AppColors.freeze,
+                  Text(
+                    'Next up',
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: t.accent,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _stat(
-                      theme,
-                      Icons.fast_forward,
-                      'Skips',
-                      '$skipsLeft/$totalSkip',
-                      'you choose, monthly',
+                  const Spacer(),
+                  Text(
+                    _timeLeft(item.deadline, now),
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: t.muted,
+                      fontFeatures: const [FontFeature.tabularFigures()],
                     ),
                   ),
                 ],
               ),
-            ),
-            if (owed) ...[
-              const SizedBox(height: 8),
-              _stat(
-                theme,
-                Icons.account_balance_wallet,
-                'Owed',
-                '${dashboard.totalDebt}',
-                'to charity',
-                color: theme.colorScheme.error,
+              const SizedBox(height: 10),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      h.name ?? 'Habit',
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        height: 1.1,
+                      ),
+                    ),
+                  ),
+                  if (h.status.currentStreak > 0)
+                    _Streak(h.status.currentStreak),
+                ],
+              ),
+              if (stake != null) ...[
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.volunteer_activism_outlined,
+                      size: 16,
+                      color: t.muted,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        stake,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: t.muted,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                height: 54,
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: t.accent,
+                    foregroundColor: t.onAccent,
+                    shape: const StadiumBorder(),
+                    minimumSize: const Size.fromHeight(54),
+                  ),
+                  onPressed: busy ? null : () => _complete(c, h),
+                  child: busy
+                      ? SizedBox.square(
+                          dimension: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: t.muted,
+                          ),
+                        )
+                      : const Text('Complete'),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  TextButton(
+                    style: TextButton.styleFrom(foregroundColor: t.muted),
+                    onPressed: busy || skipsLeft <= 0
+                        ? null
+                        : () => _skip(c, h),
+                    child: const Text('Skip'),
+                  ),
+                  Text(
+                    '$skipsLeft left this month',
+                    style: theme.textTheme.bodySmall?.copyWith(color: t.muted),
+                  ),
+                ],
               ),
             ],
-            const Divider(height: 16),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              dense: true,
-              leading: const Icon(
-                Icons.beach_access,
-                color: AppColors.vacation,
-              ),
-              title: const Text('Vacations'),
-              subtitle: const Text('Pause habits for a date range'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const VacationListView()),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Shown in place of Next up once nothing is left to do today.
+class _AllClear extends StatelessWidget {
+  final TodayPlan plan;
+  const _AllClear({super.key, required this.plan});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final t = GlassTokens.of(context);
+    final none = plan.scheduled == 0;
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Glass(
+        radius: const BorderRadius.all(Radius.circular(28)),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
+        child: Column(
+          children: [
+            Icon(
+              none ? Icons.bedtime_outlined : Icons.check_circle_rounded,
+              size: 44,
+              color: none ? t.muted : t.accent,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              none ? 'Nothing due today' : 'All done for today',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
               ),
             ),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              dense: true,
-              leading: const Icon(Icons.nfc),
-              title: const Text('NFC tags'),
-              subtitle: const Text('See what a tag is linked to'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const TagInspectorView()),
-              ),
+            const SizedBox(height: 4),
+            Text(
+              none
+                  ? 'Enjoy the rest.'
+                  : '${plan.done.length} of ${plan.scheduled} settled. See you tomorrow.',
+              style: theme.textTheme.bodyMedium?.copyWith(color: t.muted),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
       ),
     );
   }
+}
 
-  void _showInfo(BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (_) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Your safety nets',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 16),
-              _infoRow(
-                context,
-                Icons.ac_unit,
-                AppColors.freeze,
-                'Freezes',
-                'Automatic. If you miss a scheduled day, a freeze is spent for '
-                    'you — your streak survives and you’re not charged. You earn '
-                    'them over time, and the cap grows as your streak grows.',
-              ),
-              _infoRow(
-                context,
-                Icons.fast_forward,
-                null,
-                'Skips',
-                'You choose these. Tap Skip when you know you won’t do a habit '
-                    'today — it won’t break your streak or charge you. Limited to '
-                    'a monthly allowance.',
-              ),
-              _infoRow(
-                context,
-                Icons.beach_access,
-                AppColors.vacation,
-                'Vacation',
-                'Pause all habits for a date range, for longer breaks. No misses '
-                    'and no charges while a vacation is active.',
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+/// Progress list's header: today's ring, what's next, and the safety nets.
+class _ProgressCard extends StatelessWidget {
+  final DashboardController c;
+  final BuffersController buffers;
+  final TodayPlan plan;
+  final DateTime now;
+  const _ProgressCard({
+    required this.c,
+    required this.buffers,
+    required this.plan,
+    required this.now,
+  });
 
-  Widget _infoRow(
-    BuildContext context,
-    IconData icon,
-    Color? color,
-    String title,
-    String body,
-  ) {
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final t = GlassTokens.of(context);
+    final next = plan.next;
+    final done = plan.done.length, total = plan.scheduled;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            icon,
-            color: color ?? theme.colorScheme.onSurfaceVariant,
-            size: 22,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.only(top: 8),
+      child: Glass(
+        radius: const BorderRadius.all(Radius.circular(28)),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Text(
-                  title,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  body,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// A distinct bordered pill so each safety net reads as its own thing (not a
-  /// flow from one into the next).
-  Widget _stat(
-    ThemeData theme,
-    IconData icon,
-    String label,
-    String value,
-    String hint, {
-    Color? color,
-  }) {
-    final c = color ?? theme.colorScheme.onSurfaceVariant;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.colorScheme.outlineVariant),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: c),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      value,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: c,
-                      ),
+                ProgressRing(
+                  value: total == 0 ? 0 : done / total,
+                  size: 68,
+                  stroke: 7,
+                  child: Text(
+                    '$done/$total',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
                     ),
-                    const SizedBox(width: 4),
-                    Flexible(
-                      child: Text(
-                        label,
-                        style: theme.textTheme.bodySmall,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        total == 0
+                            ? 'Nothing due today'
+                            : next == null
+                            ? 'All done for today'
+                            : '$done of $total done',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        next == null
+                            ? 'See you tomorrow.'
+                            : 'Next: ${next.habit.name ?? 'Habit'} · '
+                                  '${_timeLeft(next.deadline, now)}',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: t.muted,
+                        ),
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                  ],
-                ),
-                Text(
-                  hint,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                    ],
                   ),
-                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
-          ),
-        ],
+            const SizedBox(height: 16),
+            _NetPills(c: c, buffers: buffers),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _HabitCard extends StatelessWidget {
-  final HabitOverviewHabitRes habit;
-  final DashboardController controller;
-  const _HabitCard({super.key, required this.habit, required this.controller});
+/// A titled glass group of habit rows.
+class _Section extends StatelessWidget {
+  final String title;
+  final List<TodayItem> items;
+  final DashboardController c;
+  final DateTime now;
+  const _Section({
+    required this.title,
+    required this.items,
+    required this.c,
+    required this.now,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final status = habit.status;
-    final busy = controller.isBusy(habit);
-    final stake = habit.stake;
-    final stakeLabel =
-        '${stake.currency ?? ''} ${stake.amount.toStringAsFixed(2)}'.trim();
-
-    // Use the server's habit-local date, not the phone's weekday or the
-    // account-local weekly history. They can be on different days while travelling.
-    final today = tryParseStandardDate(status.today);
-    final todayIndex = today == null ? null : today.weekday % 7;
-    final days = habit.days ?? const <bool>[];
-    final scheduledToday =
-        todayIndex != null && todayIndex < days.length && days[todayIndex];
-    final restDay = !scheduledToday;
-    final paused = !habit.enabled;
-    final todayStatus = controller.todayStatus(habit);
-    final settled = todayStatus != null && todayStatus != 'not_applicable';
-    final dim = paused || restDay || settled;
-
-    return Opacity(
-      opacity: dim ? 0.6 : 1,
-      child: Card(
-        margin: const EdgeInsets.symmetric(vertical: 6),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: habit.id == null
-              ? null
-              : () => _openEditor(
-                  context,
-                  controller,
-                  habitId: habit.id,
-                  enabled: habit.enabled,
-                ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Container(
-                height: 4,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: AppColors.gradientFor(habit.id),
+    final t = GlassTokens.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
+          child: Text(
+            title,
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: t.muted,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        Glass(
+          child: AnimatedSize(
+            duration: GlassMotion.of(context, GlassMotion.slow),
+            curve: GlassMotion.curve,
+            alignment: Alignment.topCenter,
+            child: Column(
+              children: [
+                for (var i = 0; i < items.length; i++) ...[
+                  if (i > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 58),
+                      child: Divider(height: 0.5, color: t.separator),
+                    ),
+                  _HabitRow(
+                    key: ValueKey(items[i].habit.id ?? items[i].habit.name),
+                    item: items[i],
+                    c: c,
+                    now: now,
                   ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(14),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// One habit: a check circle (tap to complete when open), its name and today's
+/// state. Swipe an open habit left to skip it.
+class _HabitRow extends StatelessWidget {
+  final TodayItem item;
+  final DashboardController c;
+  final DateTime now;
+  const _HabitRow({
+    super.key,
+    required this.item,
+    required this.c,
+    required this.now,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final t = GlassTokens.of(context);
+    final h = item.habit;
+    final open = item.state == TodayState.todo;
+    final busy = c.isBusy(h);
+    final quiet =
+        item.state == TodayState.rest ||
+        item.state == TodayState.paused ||
+        item.state == TodayState.unknown;
+    final subtitle = open
+        ? _timeLeft(item.deadline, now)
+        : _statusLabel(item.state);
+
+    final row = Pressable(
+      onTap: () => _openHabit(context, c, item),
+      scale: 0.99,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        child: Row(
+          children: [
+            _CheckCircle(
+              state: item.state,
+              busy: busy,
+              onTap: open && !busy ? () => _complete(c, h) : null,
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: AnimatedOpacity(
+                opacity: open ? 1 : (quiet ? 0.55 : 0.75),
+                duration: GlassMotion.of(context, GlassMotion.fast),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            habit.name ?? 'Habit',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        if (status.currentStreak > 0) ...[
-                          const Icon(
-                            Icons.local_fire_department,
-                            size: 18,
-                            color: AppColors.streak,
-                          ),
-                          const SizedBox(width: 2),
-                          Text(
-                            '${status.currentStreak}',
-                            style: theme.textTheme.labelLarge?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                        if (status.maxStreak > 0) ...[
-                          const SizedBox(width: 8),
-                          const Icon(
-                            Icons.emoji_events,
-                            size: 17,
-                            color: AppColors.best,
-                          ),
-                          const SizedBox(width: 2),
-                          Text(
-                            '${status.maxStreak}',
-                            style: theme.textTheme.labelLarge?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 4),
                     Text(
-                      '$stakeLabel → ${habit.charity.name ?? 'charity'}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                      h.name ?? 'Habit',
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w500,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      _scheduleSummary(habit.days),
+                      subtitle,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                        color: t.muted,
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Day ends at midnight · ${habit.timezone ?? 'UTC'}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    _todayRow(
-                      context,
-                      busy: busy,
-                      paused: paused,
-                      restDay: restDay,
-                      statusAvailable: today != null && todayStatus != null,
-                      todayStatus: todayStatus,
                     ),
                   ],
                 ),
               ),
-            ],
+            ),
+            if (h.status.currentStreak > 0) _Streak(h.status.currentStreak),
+          ],
+        ),
+      ),
+    );
+    if (!open || h.id == null) return row;
+    final canSkip = c.skipsLeft > 0 && !busy;
+    return Dismissible(
+      key: ValueKey('skip-${h.id}'),
+      direction: canSkip ? DismissDirection.endToStart : DismissDirection.none,
+      // The row stays; the reload moves it into Done once the skip lands.
+      confirmDismiss: (_) async {
+        unawaited(_skip(c, h));
+        return false;
+      },
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        color: t.track,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.fast_forward_rounded, size: 18, color: t.muted),
+            const SizedBox(width: 6),
+            Text(
+              'Skip · ${c.skipsLeft} left',
+              style: theme.textTheme.labelLarge?.copyWith(color: t.muted),
+            ),
+          ],
+        ),
+      ),
+      child: row,
+    );
+  }
+}
+
+class _CheckCircle extends StatelessWidget {
+  final TodayState state;
+  final bool busy;
+  final VoidCallback? onTap;
+  const _CheckCircle({required this.state, required this.busy, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GlassTokens.of(context);
+    final (IconData? icon, Color? fill) = switch (state) {
+      TodayState.todo => (null, null),
+      TodayState.done => (Icons.check_rounded, t.accent),
+      TodayState.skipped => (Icons.fast_forward_rounded, t.muted),
+      TodayState.frozen => (Icons.ac_unit_rounded, AppColors.freeze),
+      TodayState.vacation => (Icons.beach_access_rounded, AppColors.vacation),
+      TodayState.settled => (Icons.close_rounded, AppColors.fail),
+      TodayState.rest => (Icons.bedtime_outlined, null),
+      TodayState.paused => (Icons.pause_rounded, null),
+      TodayState.unknown => (Icons.question_mark_rounded, null),
+    };
+    final Widget body = busy
+        ? SizedBox.square(
+            key: const ValueKey('busy'),
+            dimension: 26,
+            child: Padding(
+              padding: const EdgeInsets.all(4),
+              child: CircularProgressIndicator(strokeWidth: 2, color: t.muted),
+            ),
+          )
+        : Container(
+            key: ValueKey(state),
+            width: 26,
+            height: 26,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: fill,
+              border: fill == null
+                  ? Border.all(color: t.muted, width: 1.6)
+                  : null,
+            ),
+            child: icon == null
+                ? null
+                : Icon(
+                    icon,
+                    size: 16,
+                    color: fill == null ? t.muted : Colors.white,
+                  ),
+          );
+    return Semantics(
+      button: onTap != null,
+      label: onTap != null ? 'Mark done' : null,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: AnimatedSwitcher(
+            duration: GlassMotion.of(context, GlassMotion.fast),
+            transitionBuilder: (child, a) =>
+                ScaleTransition(scale: a, child: child),
+            child: body,
           ),
         ),
       ),
     );
   }
-
-  /// Today-centric state (mirrors argon): only show Complete/Skip when today is a
-  /// scheduled, actionable day; otherwise a status line (paused / done / skipped /
-  /// rest day).
-  Widget _todayRow(
-    BuildContext context, {
-    required bool busy,
-    required bool paused,
-    required bool restDay,
-    required bool statusAvailable,
-    required String? todayStatus,
-  }) {
-    final theme = Theme.of(context);
-    if (busy) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 6),
-        child: SizedBox(
-          height: 20,
-          width: 20,
-          child: CircularProgressIndicator(strokeWidth: 2),
-        ),
-      );
-    }
-    if (paused) return _statusLine(theme, Icons.pause_circle_outline, 'Paused');
-    if (!statusAvailable) {
-      return _statusLine(
-        theme,
-        Icons.info_outline,
-        "Today's status unavailable",
-      );
-    }
-    if (todayStatus == 'succeeded') {
-      return _statusLine(
-        theme,
-        Icons.check_circle,
-        'Completed today',
-        color: Colors.green.shade700,
-      );
-    }
-    if (todayStatus == 'skip') {
-      return _statusLine(theme, Icons.fast_forward, 'Skipped today');
-    }
-    if (todayStatus == 'vacation') {
-      return _statusLine(theme, Icons.beach_access, 'On vacation');
-    }
-    if (todayStatus == 'frozen') {
-      return _statusLine(theme, Icons.ac_unit, 'Covered by a freeze today');
-    }
-    if (todayStatus == 'failed') {
-      return _statusLine(theme, Icons.info_outline, 'Today is already settled');
-    }
-    if (restDay) return _statusLine(theme, Icons.bedtime_outlined, 'Rest day');
-
-    final canSkip = controller.skipsLeft > 0;
-    return Row(
-      children: [
-        Expanded(
-          child: FilledButton.icon(
-            icon: const Icon(Icons.check, size: 18),
-            label: const Text('Complete'),
-            onPressed: () => controller.complete(habit),
-          ),
-        ),
-        const SizedBox(width: 8),
-        OutlinedButton(
-          // The theme's default minimumSize is Size.fromHeight(50) == infinite
-          // min width, which is fine for a full-width button but crashes layout
-          // ("BoxConstraints forces an infinite width") for a non-flex child in
-          // a Row. Pin a bounded min width so Skip sizes to its content.
-          style: OutlinedButton.styleFrom(minimumSize: const Size(88, 50)),
-          onPressed: canSkip ? () => controller.skip(habit) : null,
-          child: const Text('Skip'),
-        ),
-      ],
-    );
-  }
-
-  Widget _statusLine(
-    ThemeData theme,
-    IconData icon,
-    String label, {
-    Color? color,
-  }) {
-    final c = color ?? theme.colorScheme.onSurfaceVariant;
-    return Row(
-      children: [
-        Icon(icon, size: 20, color: c),
-        const SizedBox(width: 6),
-        Flexible(
-          child: Text(
-            label,
-            style: theme.textTheme.labelLarge?.copyWith(color: c),
-          ),
-        ),
-      ],
-    );
-  }
 }
 
-/// Human-readable schedule from days[] (Sunday=0), mirroring argon's
-/// scheduleSummary.
-String _scheduleSummary(List<bool>? days) {
-  final d = days ?? const <bool>[];
-  final active = d.where((x) => x).length;
-  if (active == 0) return 'No schedule';
-  if (active == 7) return 'Every day';
-  if (active == 5 && d.length >= 6 && d[1] && d[2] && d[3] && d[4] && d[5]) {
-    return 'Weekdays';
-  }
-  if (active == 2 && d.length >= 7 && d[0] && d[6]) return 'Weekends';
-  const names = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  return [
-    for (var i = 0; i < d.length && i < 7; i++)
-      if (d[i]) names[i],
-  ].join(', ');
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+class _Streak extends StatelessWidget {
+  final int days;
+  const _Streak(this.days);
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.only(top: 64),
-      child: Column(
+      padding: const EdgeInsets.only(left: 8, top: 2),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.task_alt,
-            size: 48,
-            color: theme.colorScheme.onSurfaceVariant,
+          const Icon(
+            Icons.local_fire_department_rounded,
+            size: 16,
+            color: AppColors.streak,
           ),
-          const SizedBox(height: 12),
-          Text('No habits yet', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 4),
+          const SizedBox(width: 2),
           Text(
-            'Create one to start staking.',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+            '$days',
+            style: Theme.of(
+              context,
+            ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
           ),
         ],
       ),
@@ -807,29 +1055,333 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-class _ActionErrorBanner extends StatelessWidget {
-  final String message;
-  final VoidCallback onDismiss;
-  const _ActionErrorBanner({required this.message, required this.onDismiss});
+/// Next up's quiet footer: freezes, skips and anything owed, tap for details.
+class _SafetyNets extends StatelessWidget {
+  final DashboardController c;
+  final BuffersController buffers;
+  const _SafetyNets({required this.c, required this.buffers});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Card(
-      color: theme.colorScheme.errorContainer,
-      child: ListTile(
-        dense: true,
-        leading: Icon(
-          Icons.error_outline,
-          color: theme.colorScheme.onErrorContainer,
+    final t = GlassTokens.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
+          child: Text(
+            'Safety nets',
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: t.muted,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
-        title: Text(
-          message,
-          style: TextStyle(color: theme.colorScheme.onErrorContainer),
+        _NetPills(c: c, buffers: buffers),
+      ],
+    );
+  }
+}
+
+/// Freezes, skips and debt as small glass pills; tapping any explains them.
+class _NetPills extends StatelessWidget {
+  final DashboardController c;
+  final BuffersController buffers;
+  const _NetPills({required this.c, required this.buffers});
+
+  @override
+  Widget build(BuildContext context) {
+    final balance = buffers.balance;
+    final freezes = balance == null
+        ? (buffers.loading ? '…' : '—')
+        : '${balance.balance}/${balance.cap}';
+    final owed = _hasDebt(c.totalDebt);
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        _Pill(
+          icon: Icons.ac_unit_rounded,
+          color: AppColors.freeze,
+          label: '$freezes freezes',
         ),
-        trailing: IconButton(
-          icon: Icon(Icons.close, color: theme.colorScheme.onErrorContainer),
-          onPressed: onDismiss,
+        _Pill(
+          icon: Icons.fast_forward_rounded,
+          label: '${c.skipsLeft}/${c.totalSkip} skips',
+        ),
+        if (owed)
+          _Pill(
+            icon: Icons.account_balance_wallet_outlined,
+            color: AppColors.fail,
+            label: '${c.totalDebt} owed',
+          ),
+      ],
+    );
+  }
+}
+
+class _Pill extends StatelessWidget {
+  final IconData icon;
+  final Color? color;
+  final String label;
+  const _Pill({required this.icon, required this.label, this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GlassTokens.of(context);
+    return Pressable(
+      onTap: () => _showSafetyNets(context),
+      child: Glass(
+        strong: true,
+        radius: const BorderRadius.all(Radius.circular(14)),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: color ?? t.muted),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+void _showSafetyNets(BuildContext context) {
+  final t = GlassTokens.of(context);
+  showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    backgroundColor: Colors.transparent,
+    elevation: 0,
+    builder: (ctx) => ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+        child: ColoredBox(
+          color: t.strongFill,
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Your safety nets',
+                    style: Theme.of(ctx).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _infoRow(
+                    ctx,
+                    Icons.ac_unit_rounded,
+                    AppColors.freeze,
+                    'Freezes',
+                    'Automatic. If you miss a scheduled day, a freeze is spent for '
+                        'you — your streak survives and you’re not charged. You earn '
+                        'them over time, and the cap grows as your streak grows.',
+                  ),
+                  _infoRow(
+                    ctx,
+                    Icons.fast_forward_rounded,
+                    null,
+                    'Skips',
+                    'You choose these. Tap Skip, or swipe a habit left, when you '
+                        'know you won’t do it today — it won’t break your streak or '
+                        'charge you. Limited to a monthly allowance.',
+                  ),
+                  _infoRow(
+                    ctx,
+                    Icons.beach_access_rounded,
+                    AppColors.vacation,
+                    'Vacation',
+                    'Pause all habits for a date range, for longer breaks. No misses '
+                        'and no charges while a vacation is active. Find it in Profile.',
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+Widget _infoRow(
+  BuildContext context,
+  IconData icon,
+  Color? color,
+  String title,
+  String body,
+) {
+  final theme = Theme.of(context);
+  final t = GlassTokens.of(context);
+  return Padding(
+    padding: const EdgeInsets.only(bottom: 16),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: color ?? t.muted, size: 22),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                body,
+                style: theme.textTheme.bodySmall?.copyWith(color: t.muted),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+/// The frosted "+" that creates a habit.
+class _AddButton extends StatelessWidget {
+  final VoidCallback onTap;
+  const _AddButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Pressable(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
+      scale: 0.92,
+      child: Semantics(
+        button: true,
+        label: 'New habit',
+        child: Glass(
+          blur: true,
+          strong: true,
+          radius: const BorderRadius.all(Radius.circular(28)),
+          child: const SizedBox.square(
+            dimension: 56,
+            child: Icon(Icons.add_rounded, size: 28),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Banner extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String? body;
+  final Widget action;
+  final bool error;
+  const _Banner({
+    required this.icon,
+    required this.title,
+    required this.action,
+    this.body,
+    this.error = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final t = GlassTokens.of(context);
+    final tint = error ? theme.colorScheme.error : t.muted;
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Glass(
+        strong: true,
+        padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+        child: Row(
+          children: [
+            Icon(icon, color: tint),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: error ? theme.colorScheme.error : null,
+                    ),
+                  ),
+                  if (body != null)
+                    Text(
+                      body!,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: t.muted,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            action,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  final VoidCallback onCreate;
+  const _EmptyState({required this.onCreate});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final t = GlassTokens.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Glass(
+        radius: const BorderRadius.all(Radius.circular(28)),
+        padding: const EdgeInsets.fromLTRB(20, 32, 20, 20),
+        child: Column(
+          children: [
+            Icon(Icons.task_alt_rounded, size: 44, color: t.accent),
+            const SizedBox(height: 12),
+            Text(
+              'No habits yet',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Create one to start staking.',
+              style: theme.textTheme.bodyMedium?.copyWith(color: t.muted),
+            ),
+            const SizedBox(height: 20),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: t.accent,
+                foregroundColor: t.onAccent,
+                shape: const StadiumBorder(),
+              ),
+              onPressed: onCreate,
+              child: const Text('Create a habit'),
+            ),
+          ],
         ),
       ),
     );

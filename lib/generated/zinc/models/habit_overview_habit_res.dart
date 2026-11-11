@@ -26,6 +26,10 @@ class HabitOverviewHabitRes {
     this.timezone,
     this.days,
     this.totalDebt,
+    this.deadlineTime,
+    this.todayDeadlineUtc,
+    this.proof,
+    this.routineId,
   });
 
   factory HabitOverviewHabitRes.fromJson(Map<String, Object?> json) =>
@@ -43,6 +47,10 @@ class HabitOverviewHabitRes {
   final int timeLeftToEodMinutes;
   final HabitVersionMetaRes version;
   final String? totalDebt;
+  final String? deadlineTime;
+  final DateTime? todayDeadlineUtc;
+  final String? proof;
+  final String? routineId;
 
   Map<String, Object?> toJson() => _$HabitOverviewHabitResToJson(this);
 }

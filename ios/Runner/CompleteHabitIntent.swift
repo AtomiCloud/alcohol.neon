@@ -41,10 +41,10 @@ struct CompleteHabitIntent: AppIntent {
         // zinc actually recorded it — a false tick could make the user skip a habit they
         // think is complete and get charged the stake. So we POST first and only tick on
         // a confirmed success.
-        let ok = await completeOnServer(versionId: versionId)
+        let ok = await completeHabitOnServer(versionId: versionId)
         clearPending()
         if ok {
-            setDone(versionId: versionId, done: true)
+            markScheduleItemDone(versionId: versionId)
         }
         WidgetCenter.shared.reloadAllTimelines()
         return .result()
@@ -63,59 +63,59 @@ struct CompleteHabitIntent: AppIntent {
         d?.removeObject(forKey: "pending_id")
         d?.removeObject(forKey: "pending_at")
     }
+}
 
-    // POST {zinc_base}/api/v1.0/Habit/{uid}/{versionId}/executions with the cached
-    // bearer token. Mirrors the app's ExecutionRepository.complete (empty `{}` body).
-    private func completeOnServer(versionId: String) async -> Bool {
-        guard let defaults = UserDefaults(suiteName: appGroupId),
-              let base = defaults.string(forKey: "zinc_base"),
-              let token = defaults.string(forKey: "zinc_token"),
-              let uid = defaults.string(forKey: "zinc_uid"),
-              var comps = URLComponents(string: base) else { return false }
+// Shared with the Live Activity's intent (HabitActivity.swift).
+// POST {zinc_base}/api/v1.0/Habit/{uid}/{versionId}/executions with the cached
+// bearer token. Mirrors the app's ExecutionRepository.complete (empty `{}` body).
+func completeHabitOnServer(versionId: String) async -> Bool {
+    guard let defaults = UserDefaults(suiteName: appGroupId),
+          let base = defaults.string(forKey: "zinc_base"),
+          let token = defaults.string(forKey: "zinc_token"),
+          let uid = defaults.string(forKey: "zinc_uid"),
+          var comps = URLComponents(string: base) else { return false }
 
-        comps.path = "/api/v1.0/Habit/\(uid)/\(versionId)/executions"
-        comps.query = nil
-        guard let url = comps.url else { return false }
+    comps.path = "/api/v1.0/Habit/\(uid)/\(versionId)/executions"
+    comps.query = nil
+    guard let url = comps.url else { return false }
 
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = "{}".data(using: .utf8)
+    var req = URLRequest(url: url)
+    req.httpMethod = "POST"
+    req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+    req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    req.httpBody = "{}".data(using: .utf8)
 
-        do {
-            let (_, resp) = try await URLSession.shared.data(for: req)
-            let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
-            NSLog("WIDGETCB POST \(url.absoluteString) -> \(code)")
-            return (200...299).contains(code)
-        } catch {
-            NSLog("WIDGETCB POST error \(error.localizedDescription)")
-            return false
-        }
+    do {
+        let (_, resp) = try await URLSession.shared.data(for: req)
+        let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
+        NSLog("WIDGETCB POST \(url.absoluteString) -> \(code)")
+        return (200...299).contains(code)
+    } catch {
+        NSLog("WIDGETCB POST error \(error.localizedDescription)")
+        return false
     }
+}
 
-    // Set the matching item's done flag in the shared schedule and adjust the count.
-    private func setDone(versionId: String, done: Bool) {
-        guard let defaults = UserDefaults(suiteName: appGroupId),
-              let raw = defaults.string(forKey: dataKey),
-              let data = raw.data(using: .utf8),
-              var obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              var items = obj["items"] as? [[String: Any]] else { return }
+// Mark the matching item done in the shared schedule the home-screen widget
+// reads, and bump its done count. Shared with the Live Activity's intent.
+func markScheduleItemDone(versionId: String) {
+    guard let defaults = UserDefaults(suiteName: appGroupId),
+          let raw = defaults.string(forKey: dataKey),
+          let data = raw.data(using: .utf8),
+          var obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+          var items = obj["items"] as? [[String: Any]] else { return }
 
-        var count = (obj["done"] as? Int) ?? 0
-        for i in items.indices where (items[i]["id"] as? String) == versionId {
-            let was = (items[i]["done"] as? Bool) ?? false
-            if was != done {
-                items[i]["done"] = done
-                count += done ? 1 : -1
-            }
-        }
-        obj["items"] = items
-        obj["done"] = max(0, count)
+    var count = (obj["done"] as? Int) ?? 0
+    for i in items.indices
+    where (items[i]["id"] as? String) == versionId && (items[i]["done"] as? Bool) != true {
+        items[i]["done"] = true
+        count += 1
+    }
+    obj["items"] = items
+    obj["done"] = count
 
-        if let out = try? JSONSerialization.data(withJSONObject: obj),
-           let str = String(data: out, encoding: .utf8) {
-            defaults.set(str, forKey: dataKey)
-        }
+    if let out = try? JSONSerialization.data(withJSONObject: obj),
+       let str = String(data: out, encoding: .utf8) {
+        defaults.set(str, forKey: dataKey)
     }
 }

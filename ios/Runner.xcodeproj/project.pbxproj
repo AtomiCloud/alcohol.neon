@@ -34,6 +34,10 @@
 		C15D55A98FBB078E711B1EBF /* raichuProfile.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 119F0BF53AEAA4E2F4D97B03 /* raichuProfile.xcconfig */; };
 		C62E66CAE8CDD2532D09B540 /* NeonWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CD9E88B89FBFF9FBF840613 /* NeonWidget.swift */; };
 		DD40DA7E1A5ED0BC10B1190D /* CompleteHabitIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33E63E5799D7684FE7110CA5 /* CompleteHabitIntent.swift */; };
+		9DA8E3FB8458C7094A430ABD /* HabitActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF8DAE922A7A375F001A37B5 /* HabitActivity.swift */; };
+		03C6CA0E0737702B01F166F7 /* HabitActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF8DAE922A7A375F001A37B5 /* HabitActivity.swift */; };
+		52A7765F1E5B1A3D4B1363B5 /* LiveActivityBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7749C4371EBFB0243B1BCB19 /* LiveActivityBridge.swift */; };
+		F0F8C329E92ACA313A77B439 /* HabitLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B399C002EDE48D2753BA23C /* HabitLiveActivity.swift */; };
 		E84DDC109B42DE723E31EF96 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C3690EE18A2026C5DFA064EB /* WidgetKit.framework */; };
 /* End PBXBuildFile section */
 
@@ -90,6 +94,9 @@
 		331C807B294A618700263BE5 /* RunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunnerTests.swift; sourceTree = "<group>"; };
 		331C8081294A63A400263BE5 /* RunnerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RunnerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		33E63E5799D7684FE7110CA5 /* CompleteHabitIntent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CompleteHabitIntent.swift; sourceTree = "<group>"; };
+		EF8DAE922A7A375F001A37B5 /* HabitActivity.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HabitActivity.swift; sourceTree = "<group>"; };
+		7749C4371EBFB0243B1BCB19 /* LiveActivityBridge.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LiveActivityBridge.swift; sourceTree = "<group>"; };
+		7B399C002EDE48D2753BA23C /* HabitLiveActivity.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HabitLiveActivity.swift; sourceTree = "<group>"; };
 		3B1D1332CD14E99B9F6CC941 /* Runner.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = Runner.entitlements; sourceTree = "<group>"; };
 		3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = AppFrameworkInfo.plist; path = Flutter/AppFrameworkInfo.plist; sourceTree = "<group>"; };
 		3D38608939C677F051134014 /* Pods-Runner.release-raichu.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release-raichu.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release-raichu.xcconfig"; sourceTree = "<group>"; };
@@ -249,6 +256,8 @@
 				7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
 				33E63E5799D7684FE7110CA5 /* CompleteHabitIntent.swift */,
+				EF8DAE922A7A375F001A37B5 /* HabitActivity.swift */,
+				7749C4371EBFB0243B1BCB19 /* LiveActivityBridge.swift */,
 				3B1D1332CD14E99B9F6CC941 /* Runner.entitlements */,
 			);
 			path = Runner;
@@ -259,6 +268,7 @@
 			children = (
 				4CD9E88B89FBFF9FBF840613 /* NeonWidget.swift */,
 				405EA21C21C5262ECB7F6EBB /* NeonWidgetBundle.swift */,
+				7B399C002EDE48D2753BA23C /* HabitLiveActivity.swift */,
 				D08C47273F6C110426087C84 /* Assets.xcassets */,
 				AA0AB4BA5FB771640A403D5F /* Info.plist */,
 			);
@@ -558,6 +568,8 @@
 				C62E66CAE8CDD2532D09B540 /* NeonWidget.swift in Sources */,
 				1DFCBFFFAB528855D3C8CDA6 /* NeonWidgetBundle.swift in Sources */,
 				5E5D8D5BD6AA7884FCF6CF91 /* CompleteHabitIntent.swift in Sources */,
+				03C6CA0E0737702B01F166F7 /* HabitActivity.swift in Sources */,
+				F0F8C329E92ACA313A77B439 /* HabitLiveActivity.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -569,6 +581,8 @@
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
 				7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */,
 				DD40DA7E1A5ED0BC10B1190D /* CompleteHabitIntent.swift in Sources */,
+				9DA8E3FB8458C7094A430ABD /* HabitActivity.swift in Sources */,
+				52A7765F1E5B1A3D4B1363B5 /* LiveActivityBridge.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -711,7 +725,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = iphoneos;
@@ -880,7 +894,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INFOPLIST_FILE = Runner/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -951,7 +965,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INFOPLIST_FILE = Runner/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1032,7 +1046,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INFOPLIST_FILE = Runner/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1191,7 +1205,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INFOPLIST_FILE = Runner/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1378,7 +1392,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
@@ -1429,7 +1443,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = iphoneos;
@@ -1545,7 +1559,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INFOPLIST_FILE = Runner/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1615,7 +1629,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INFOPLIST_FILE = Runner/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1722,7 +1736,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INFOPLIST_FILE = Runner/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1795,7 +1809,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INFOPLIST_FILE = Runner/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1996,7 +2010,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INFOPLIST_FILE = Runner/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

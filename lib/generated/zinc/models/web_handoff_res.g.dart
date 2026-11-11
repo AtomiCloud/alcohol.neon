@@ -8,8 +8,8 @@ part of 'web_handoff_res.dart';
 
 WebHandoffRes _$WebHandoffResFromJson(Map<String, dynamic> json) =>
     WebHandoffRes(
+      expiresInSeconds: (json['expiresInSeconds'] as num).toInt(),
       url: json['url'] as String?,
-      expiresInSeconds: (json['expiresInSeconds'] as num?)?.toInt(),
     );
 
 Map<String, dynamic> _$WebHandoffResToJson(WebHandoffRes instance) =>

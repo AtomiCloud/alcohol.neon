@@ -18,6 +18,7 @@ import '../generated/zinc/models/payment_consent_res.dart';
 import '../generated/zinc/models/update_configuration_req.dart';
 import '../networking/api_client.dart';
 import '../services/notification_service.dart';
+import '../services/live_activity_service.dart';
 import '../services/widget_service.dart';
 import 'timezone_preference.dart';
 
@@ -95,6 +96,7 @@ class SessionController extends ChangeNotifier {
     _phase = SessionPhase.idle;
     _deviceWork = _deviceWork.then((_) async {
       await WidgetService.instance.clear();
+      await LiveActivityService.instance.end();
       try {
         await NotificationService.instance.cancelAll();
       } catch (_) {

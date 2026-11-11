@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'auth/auth_service.dart';
 import 'config/app_config.dart';
 import 'core/navigation.dart';
+import 'features/dashboard/today_layout.dart';
 import 'features/nfc/nfc_deep_links.dart';
 import 'features/root/root_view.dart';
 import 'session/session_controller.dart';
@@ -12,6 +13,7 @@ import 'theme/app_theme.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await AppConfig.load();
+  await TodayLayoutSetting.instance.load();
   runApp(
     MultiProvider(
       providers: [

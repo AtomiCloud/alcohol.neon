@@ -3,8 +3,10 @@ import '../../widgets/app_loader.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/problem.dart';
+import '../../data/proof_repository.dart';
 import '../../generated/zinc/models/charity_principal_res.dart';
 import '../../generated/zinc/models/create_habit_req.dart';
+import '../../generated/zinc/models/habit_version_res.dart';
 import '../../generated/zinc/models/update_habit_req.dart';
 import '../../session/session_controller.dart';
 import '../../theme/app_theme.dart';
@@ -13,6 +15,7 @@ import '../friends/friend_stake_tile.dart';
 import '../nfc/link_tag_flow.dart';
 import '../payment/consent_service.dart';
 import '../strava/strava_proof_tile.dart';
+import '../strava/strava_settings.dart';
 import 'stake_sheet.dart';
 
 /// M3 — create / edit a habit. Field contract mirrors argon (verified against
@@ -63,6 +66,10 @@ class _HabitEditorViewState extends State<HabitEditorView> {
   String? _charityId;
   String? _charityName;
   String? _existingTimezone;
+
+  // New habit only: proof chosen before Create, set up once the habit exists.
+  List<String> _stravaDraft = const [];
+  bool _nfcDraft = false;
 
   bool _enabled = true;
   bool _loading = false; // loading an existing habit (edit)
@@ -284,9 +291,12 @@ class _HabitEditorViewState extends State<HabitEditorView> {
 
     if (!mounted) return;
     switch (res) {
-      case Ok():
+      case Ok(:final value):
         if (charityId != null) await _session.rememberFirstCharity(charityId);
         if (!mounted) return;
+        if (!widget.isEdit && value is HabitVersionRes) {
+          return _setUpProof(uid, value.habitId);
+        }
         Navigator.of(context).pop(true);
       case Err(:final problem):
         setState(() {
@@ -294,6 +304,97 @@ class _HabitEditorViewState extends State<HabitEditorView> {
           _error = problem;
         });
     }
+  }
+
+  /// After Create: binds the Strava proof and links an NFC tag if they were
+  /// switched on. The habit already exists, so a failure doesn't undo it:
+  /// the editor reopens on the new habit, saying what wasn't set up, where
+  /// Strava and NFC can be tried again.
+  Future<void> _setUpProof(String uid, String habitId) async {
+    final name = _task.text.trim();
+    final failed = <String>[];
+    if (_stravaDraft.isNotEmpty) {
+      final bound = await ProofRepository(_session.auth.makeApiClient()).bind(
+        uid,
+        habitId,
+        pluginKey: stravaPluginKey,
+        settings: encodeStravaSettings(_stravaDraft),
+      );
+      if (!mounted) return;
+      if (bound case Err()) failed.add('Strava');
+    }
+    if (_nfcDraft) {
+      final scan = await _askToScan(name);
+      if (!mounted) return;
+      if (scan &&
+          !await runLinkTagFlow(context, habitId: habitId, habitName: name)) {
+        failed.add('the NFC tag');
+      }
+      if (!mounted) return;
+    }
+    final navigator = Navigator.of(context);
+    if (failed.isEmpty) {
+      navigator.pop(true);
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '“$name” is created, but ${failed.join(' and ')} isn’t set up. '
+          'Try again here.',
+        ),
+        duration: const Duration(seconds: 8),
+      ),
+    );
+    navigator.pushReplacement(
+      MaterialPageRoute<bool>(
+        builder: (_) => HabitEditorView(habitId: habitId),
+      ),
+      result: true,
+    );
+  }
+
+  /// Asks to scan the NFC tag now; false when the user picks "Not now".
+  Future<bool> _askToScan(String name) async {
+    final scan = await showModalBottomSheet<bool>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.nfc, size: 48),
+              const SizedBox(height: 12),
+              Text(
+                'Link an NFC tag to “$name”',
+                style: Theme.of(ctx).textTheme.titleMedium,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Tap the sticker any day to complete the habit.',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: const Text('Scan tag'),
+                ),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Not now'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    return scan ?? false;
   }
 
   Future<void> _delete() async {
@@ -441,6 +542,37 @@ class _HabitEditorViewState extends State<HabitEditorView> {
                       ),
                     ),
                   ),
+                if (!widget.isEdit) ...[
+                  const SizedBox(height: 16),
+                  Text('Proof', style: theme.textTheme.labelLarge),
+                  const SizedBox(height: 8),
+                  StravaProofTile.draft(
+                    draft: _stravaDraft,
+                    onDraftChanged: (v) => setState(() => _stravaDraft = v),
+                  ),
+                  const SizedBox(height: 8),
+                  Card(
+                    child: SwitchListTile(
+                      secondary: const Icon(Icons.nfc),
+                      title: const Text('NFC tag'),
+                      subtitle: Text(
+                        _nfcDraft ? 'Scan it after Create' : 'Tap a sticker',
+                      ),
+                      value: _nfcDraft,
+                      onChanged: (v) => setState(() => _nfcDraft = v),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+                    child: Text(
+                      'Optional. Leave both off and you tick it off yourself. '
+                      'Friends can be told once the habit exists.',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ],
                 if (widget.isEdit) ...[
                   const SizedBox(height: 8),
                   SwitchListTile(

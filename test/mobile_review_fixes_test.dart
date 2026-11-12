@@ -324,6 +324,188 @@ void main() {
     );
   }
 
+  group('proof chosen in New habit is set up after Create', () {
+    SessionHarness proofHarness({int bindStatus = 200}) => SessionHarness(
+      respond: (r) async {
+        final path = r.url.path;
+        if (r.method == 'POST' && path.endsWith('/Habit/user-1')) {
+          return jsonResponse({...habitVersion, 'habitId': 'h-new'});
+        }
+        if (path.contains('/Habit/') && path.endsWith('/h-new')) {
+          return jsonResponse({...habitVersion, 'habitId': 'h-new'});
+        }
+        if (path.endsWith('/Proof/plugins')) {
+          return jsonResponse([
+            {
+              'key': 'strava',
+              'name': 'Strava',
+              'version': 1,
+              'alwaysBound': false,
+              'settingsSchema': jsonEncode({
+                'properties': {
+                  'sportTypes': {
+                    'items': {
+                      'enum': ['Run', 'Ride'],
+                    },
+                  },
+                },
+              }),
+            },
+          ]);
+        }
+        if (path.endsWith('/Strava/user-1')) {
+          return jsonResponse({'connected': true});
+        }
+        if (r.method == 'PUT' && path.endsWith('/Proof/user-1/h-new')) {
+          return bindStatus == 200
+              ? jsonResponse({
+                  'habitId': 'h-new',
+                  'pluginKey': 'strava',
+                  'pluginVersion': 1,
+                  'settings': jsonDecode(r.body)['settings'],
+                })
+              : jsonResponse({'title': 'Try later', 'status': 503}, 503);
+        }
+        return null;
+      },
+    );
+
+    /// Opens New habit from a launcher, so its pop result can be read.
+    Future<List<bool?>> openNewHabit(
+      WidgetTester tester,
+      SessionHarness h,
+    ) async {
+      final results = <bool?>[];
+      await pumpScreen(
+        tester,
+        h,
+        Builder(
+          builder: (context) => TextButton(
+            onPressed: () async => results.add(
+              await Navigator.of(context).push<bool>(
+                MaterialPageRoute(builder: (_) => const HabitEditorView()),
+              ),
+            ),
+            child: const Text('open'),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, 'Evening run');
+      return results;
+    }
+
+    Future<void> pickRun(WidgetTester tester) async {
+      await tester.scrollUntilVisible(
+        find.text('Complete with Strava'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text('Complete with Strava'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Run'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Use Strava'));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> create(WidgetTester tester, {bool settle = true}) async {
+      await tester.scrollUntilVisible(
+        find.text('Create habit'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.ensureVisible(find.text('Create habit'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Create habit'));
+      if (settle) {
+        await tester.pumpAndSettle();
+        return;
+      }
+      // Create's spinner keeps running while the NFC sheet is open.
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+    }
+
+    testWidgets('Strava binds the new habit with the picked activities', (
+      tester,
+    ) async {
+      final h = proofHarness();
+      await h.start();
+      final results = await openNewHabit(tester, h);
+      await pickRun(tester);
+      expect(
+        h.requests.where((r) => r.url.path.contains('/Proof/user-1/')),
+        isEmpty,
+        reason: 'nothing is bound before the habit exists',
+      );
+      await create(tester);
+      expect(bodyOf(h, 'PUT', '/Proof/user-1/h-new'), {
+        'pluginKey': 'strava',
+        'settings': jsonEncode({
+          'sportTypes': ['Run'],
+        }),
+      });
+      expect(results, [true]);
+      expect(find.text('New habit'), findsNothing);
+      await tester.pumpWidget(const SizedBox.shrink());
+      h.dispose();
+    });
+
+    testWidgets('a failed Strava bind keeps the habit and reopens it to edit', (
+      tester,
+    ) async {
+      final h = proofHarness(bindStatus: 503);
+      await h.start();
+      final results = await openNewHabit(tester, h);
+      await pickRun(tester);
+      await create(tester);
+      expect(results, [true], reason: 'Today reloads: the habit exists');
+      expect(find.text('Edit habit'), findsOneWidget);
+      expect(
+        find.text(
+          '“Evening run” is created, but Strava isn’t set up. Try again here.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        h.requests.where((r) => r.method == 'DELETE'),
+        isEmpty,
+        reason: 'the create is not undone',
+      );
+      await tester.pumpWidget(const SizedBox.shrink());
+      h.dispose();
+    });
+
+    testWidgets('NFC asks to scan after Create, and Not now skips it', (
+      tester,
+    ) async {
+      final h = proofHarness();
+      await h.start();
+      final results = await openNewHabit(tester, h);
+      await tester.scrollUntilVisible(
+        find.text('NFC tag'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text('NFC tag'));
+      await tester.pumpAndSettle();
+      expect(find.text('Scan it after Create'), findsOneWidget);
+      await create(tester, settle: false);
+      expect(find.text('Link an NFC tag to “Evening run”'), findsOneWidget);
+      expect(results, isEmpty, reason: 'still on the editor while it asks');
+      await tester.tap(find.text('Not now'));
+      await tester.pumpAndSettle();
+      expect(results, [true]);
+      expect(find.text('Edit habit'), findsNothing);
+      expect(find.textContaining('isn’t set up'), findsNothing);
+      await tester.pumpWidget(const SizedBox.shrink());
+      h.dispose();
+    });
+  });
+
   testWidgets('Settings shows no default charity and saves a timezone alone', (
     tester,
   ) async {

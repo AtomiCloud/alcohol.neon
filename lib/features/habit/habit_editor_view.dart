@@ -601,6 +601,7 @@ class _HabitEditorViewState extends State<HabitEditorView> {
                   ),
                   // Strava proof and friend stake need the habit id and save
                   // on their own, so they're offered once the habit exists.
+                  const SizedBox(height: 8),
                   StravaProofTile(habitId: widget.habitId!),
                   FriendStakeTile(habitId: widget.habitId!),
                 ],

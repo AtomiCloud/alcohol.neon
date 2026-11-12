@@ -1,3 +1,10 @@
+## [1.23.1](https://github.com/AtomiCloud/alcohol.neon/compare/v1.23.0...v1.23.1) (2026-11-12)
+
+
+### 🐛 Bug Fixes 🐛
+
+* restamp the iOS URL scheme so Strava redirects open pichu ([27f200d](https://github.com/AtomiCloud/alcohol.neon/commit/27f200d9b44b19cf1f910906568f475e7686d881))
+
 ## [1.23.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.22.0...v1.23.0) (2026-11-12)
 
 

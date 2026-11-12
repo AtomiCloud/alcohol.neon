@@ -1,3 +1,16 @@
+## [1.21.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.20.0...v1.21.0) (2026-11-12)
+
+
+### ✨ Features ✨
+
+* drop onboarding and ask for a charity only with a stake ([d002501](https://github.com/AtomiCloud/alcohol.neon/commit/d0025011f16aa5e6e1d484f204e75f6e1fa0b64c))
+* show only the charity's name in the habit editor ([3f6d31c](https://github.com/AtomiCloud/alcohol.neon/commit/3f6d31c6abb4dcdffd7f2a4ed8cdfabf65a314a0))
+
+
+### 🐛 Bug Fixes 🐛
+
+* pre-fill the default charity when editing a habit without one ([02cd162](https://github.com/AtomiCloud/alcohol.neon/commit/02cd162d42b3e179ace5539c5437ebdcddf6bd70))
+
 ## [1.20.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.19.0...v1.20.0) (2026-11-12)
 
 

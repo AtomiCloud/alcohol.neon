@@ -37,7 +37,7 @@ jobs:
     steps:
       - uses: AtomiCloud/actions.setup-nix@v3
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: aab
           path: donor
@@ -56,7 +56,7 @@ jobs:
           track: internal
           status: completed
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: aab-${{ inputs.flavor }}
           path: build/app/outputs/stamped/*.aab

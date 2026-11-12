@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Home Screen widget palette, dark mode: the dark glass card the iOS widget uses. -->
+<resources>
+    <color name="widget_bg">#161817</color>
+    <color name="widget_edge">#1FFFFFFF</color>
+    <color name="widget_text">#FFFFFF</color>
+    <color name="widget_muted">#99FFFFFF</color>
+    <color name="widget_accent">#34D399</color>
+    <color name="widget_accent_dim">#6634D399</color>
+    <color name="widget_track">#1FFFFFFF</color>
+</resources>

@@ -117,4 +117,6 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    // JVM tests for the widgets' pure logic (src/test; `pls test:android`).
+    testImplementation("junit:junit:4.13.2")
 }

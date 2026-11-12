@@ -16,7 +16,8 @@
 
         <FrameLayout
             android:layout_width="64dp"
-            android:layout_height="64dp">
+            android:layout_height="64dp"
+            android:layout_marginBottom="8dp">
 
             <ProgressBar
                 android:id="@+id/ring"
@@ -35,21 +36,16 @@
                 android:layout_gravity="center"
                 android:fontFamily="sans-serif-medium"
                 android:text="–"
-                android:textColor="#FFFFFF"
+                android:textColor="@color/widget_text"
                 android:textSize="17sp" />
         </FrameLayout>
-
-        <FrameLayout
-            android:layout_width="1dp"
-            android:layout_height="0dp"
-            android:layout_weight="1" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:fontFamily="sans-serif-medium"
             android:text="@string/widget_today_label"
-            android:textColor="#34D399"
+            android:textColor="@color/widget_accent"
             android:textSize="18sp" />
 
         <TextView
@@ -57,163 +53,40 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:maxLines="1"
-            android:text="Open the app"
-            android:textColor="#99FFFFFF"
-            android:textSize="12sp" />
+            android:textColor="@color/widget_muted"
+            android:textSize="12sp"
+            android:visibility="gone" />
     </LinearLayout>
 
-    <FrameLayout
+    <LinearLayout
         android:layout_width="0dp"
         android:layout_height="match_parent"
-        android:layout_weight="1">
+        android:layout_weight="1"
+        android:orientation="vertical">
 
+        <!-- Rows (layout/widget_today_row) are added here at runtime. -->
         <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:gravity="center_vertical"
-            android:orientation="vertical">
-        <LinearLayout
-            android:id="@+id/row1"
+            android:id="@+id/rows"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="4dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:visibility="gone">
+            android:orientation="vertical" />
 
-            <ImageView
-                android:id="@+id/row1_button"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:layout_marginEnd="8dp"
-                android:contentDescription="Complete"
-                android:padding="4dp"
-                android:src="@drawable/widget_circle" />
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/row1_name"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:ellipsize="end"
-                    android:fontFamily="sans-serif-medium"
-                    android:maxLines="1"
-                    android:textColor="#FFFFFF"
-                    android:textSize="14sp" />
-
-                <TextView
-                    android:id="@+id/row1_sub"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:textColor="#99FFFFFF"
-                    android:textSize="12sp" />
-            </LinearLayout>
-        </LinearLayout>
-        <LinearLayout
-            android:id="@+id/row2"
-            android:layout_width="match_parent"
+        <TextView
+            android:id="@+id/more"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="4dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:visibility="gone">
-
-            <ImageView
-                android:id="@+id/row2_button"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:layout_marginEnd="8dp"
-                android:contentDescription="Complete"
-                android:padding="4dp"
-                android:src="@drawable/widget_circle" />
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/row2_name"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:ellipsize="end"
-                    android:fontFamily="sans-serif-medium"
-                    android:maxLines="1"
-                    android:textColor="#FFFFFF"
-                    android:textSize="14sp" />
-
-                <TextView
-                    android:id="@+id/row2_sub"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:textColor="#99FFFFFF"
-                    android:textSize="12sp" />
-            </LinearLayout>
-        </LinearLayout>
-        <LinearLayout
-            android:id="@+id/row3"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="4dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:visibility="gone">
-
-            <ImageView
-                android:id="@+id/row3_button"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:layout_marginEnd="8dp"
-                android:contentDescription="Complete"
-                android:padding="4dp"
-                android:src="@drawable/widget_circle" />
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/row3_name"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:ellipsize="end"
-                    android:fontFamily="sans-serif-medium"
-                    android:maxLines="1"
-                    android:textColor="#FFFFFF"
-                    android:textSize="14sp" />
-
-                <TextView
-                    android:id="@+id/row3_sub"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:textColor="#99FFFFFF"
-                    android:textSize="12sp" />
-            </LinearLayout>
-        </LinearLayout>
-        </LinearLayout>
+            android:layout_marginStart="44dp"
+            android:textColor="@color/widget_muted"
+            android:textSize="12sp"
+            android:visibility="gone" />
 
         <TextView
             android:id="@+id/empty"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center_vertical"
-            android:text="Nothing left to do today"
-            android:textColor="#99FFFFFF"
-            android:textSize="13sp"
-            android:visibility="gone" />
-    </FrameLayout>
+            android:layout_marginTop="6dp"
+            android:text="Open LazyTax to load today"
+            android:textColor="@color/widget_muted"
+            android:textSize="13sp" />
+    </LinearLayout>
 </LinearLayout>

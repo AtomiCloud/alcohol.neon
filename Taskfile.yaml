@@ -62,6 +62,14 @@ tasks:
     cmds:
       - flutter test
 
+  test:android:
+    desc: Run the Android widgets' JVM unit tests (android/app/src/test)
+    dir: android
+    cmds:
+      # nixpkgs' Flutter keeps its Gradle plugin in the read-only store, so Gradle
+      # needs a writable project cache dir (flutter build passes one too).
+      - ./gradlew --project-cache-dir=../build/gradle-project-cache :app:testPichuDebugUnitTest
+
   test:ios-stamp:
     desc: Test the iOS stamp's Info.plist helpers (macOS only)
     cmds:

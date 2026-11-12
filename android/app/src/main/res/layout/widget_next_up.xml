@@ -21,7 +21,7 @@
             android:layout_weight="1"
             android:fontFamily="sans-serif-medium"
             android:text="@string/widget_next_up_label"
-            android:textColor="#34D399"
+            android:textColor="@color/widget_accent"
             android:textSize="14sp" />
 
         <ProgressBar
@@ -48,7 +48,7 @@
         android:fontFamily="sans-serif-medium"
         android:maxLines="2"
         android:text="Open the app"
-        android:textColor="#FFFFFF"
+        android:textColor="@color/widget_text"
         android:textSize="20sp" />
 
     <LinearLayout
@@ -62,7 +62,7 @@
             android:id="@+id/countdown"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="#99FFFFFF"
+            android:textColor="@color/widget_muted"
             android:textSize="13sp" />
     </LinearLayout>
 
@@ -85,7 +85,7 @@
             android:id="@+id/proof"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="#99FFFFFF"
+            android:textColor="@color/widget_muted"
             android:textSize="13sp" />
     </LinearLayout>
 </LinearLayout>

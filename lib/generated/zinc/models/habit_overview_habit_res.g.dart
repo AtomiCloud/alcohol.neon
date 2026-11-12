@@ -11,7 +11,6 @@ HabitOverviewHabitRes _$HabitOverviewHabitResFromJson(
 ) => HabitOverviewHabitRes(
   stake: StakeRes.fromJson(json['stake'] as Map<String, dynamic>),
   enabled: json['enabled'] as bool,
-  charity: HabitCharityRefRes.fromJson(json['charity'] as Map<String, dynamic>),
   status: HabitStatusRes.fromJson(json['status'] as Map<String, dynamic>),
   timeLeftToEodMinutes: (json['timeLeftToEodMinutes'] as num).toInt(),
   version: HabitVersionMetaRes.fromJson(
@@ -22,6 +21,9 @@ HabitOverviewHabitRes _$HabitOverviewHabitResFromJson(
   notificationTime: json['notificationTime'] as String?,
   timezone: json['timezone'] as String?,
   days: (json['days'] as List<dynamic>?)?.map((e) => e as bool).toList(),
+  charity: json['charity'] == null
+      ? null
+      : HabitCharityRefRes.fromJson(json['charity'] as Map<String, dynamic>),
   totalDebt: json['totalDebt'] as String?,
   deadlineTime: json['deadlineTime'] as String?,
   todayDeadlineUtc: json['todayDeadlineUtc'] == null

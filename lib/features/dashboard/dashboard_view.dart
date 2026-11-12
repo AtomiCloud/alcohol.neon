@@ -1397,6 +1397,7 @@ class _EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final t = GlassTokens.of(context);
+    final followsPhone = context.watch<SessionController>().followPhoneTimezone;
     return Padding(
       padding: const EdgeInsets.only(top: 8),
       child: Glass(
@@ -1407,14 +1408,18 @@ class _EmptyState extends StatelessWidget {
             Icon(Icons.task_alt_rounded, size: 44, color: t.accent),
             const SizedBox(height: 12),
             Text(
-              'No habits yet',
+              'Make your first habit',
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 4),
             Text(
-              'Create one to start staking.',
+              followsPhone
+                  ? 'Choose what to do and on which days. Your timezone '
+                        'already follows your phone.'
+                  : 'Choose what to do and on which days.',
+              textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(color: t.muted),
             ),
             const SizedBox(height: 20),

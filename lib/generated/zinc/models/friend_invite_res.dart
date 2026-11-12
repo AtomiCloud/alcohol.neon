@@ -8,13 +8,12 @@ part 'friend_invite_res.g.dart';
 
 @JsonSerializable()
 class FriendInviteRes {
-  const FriendInviteRes({required this.expiresAtUtc, this.code});
+  const FriendInviteRes({this.code});
 
   factory FriendInviteRes.fromJson(Map<String, Object?> json) =>
       _$FriendInviteResFromJson(json);
 
   final String? code;
-  final DateTime expiresAtUtc;
 
   Map<String, Object?> toJson() => _$FriendInviteResToJson(this);
 }

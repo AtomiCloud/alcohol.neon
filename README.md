@@ -101,7 +101,7 @@ The [release strategy](./docs/release-strategy.md) and
 
 ## Status
 
-The Flutter app includes onboarding, today's habit dashboard and completion/skip,
+The Flutter app includes today's habit dashboard and completion/skip,
 habit editing, charity browsing, account settings, payment consent, subscription
 information, vacations, NFC completion, local reminders, and an iOS widget.
 These are implemented features, not a claim of production/device verification.

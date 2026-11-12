@@ -27,8 +27,8 @@ void main() {
     final res = ConfigurationRes.fromJson(json);
     expect(res.principal.timezone, 'Asia/Singapore');
     expect(res.principal.defaultCharityId, 'ch1');
-    expect(res.charity.name, 'Red Cross');
-    expect(res.charity.countries, contains('SG'));
+    expect(res.charity?.name, 'Red Cross');
+    expect(res.charity?.countries, contains('SG'));
   });
 
   test('Charity list decodes unwrapped principals', () {

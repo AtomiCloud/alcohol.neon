@@ -1646,17 +1646,17 @@
             "content": {
               "text/plain": {
                 "schema": {
-                  "$ref": "#/components/schemas/FriendRes"
+                  "$ref": "#/components/schemas/FriendRelationRes"
                 }
               },
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/FriendRes"
+                  "$ref": "#/components/schemas/FriendRelationRes"
                 }
               },
               "text/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/FriendRes"
+                  "$ref": "#/components/schemas/FriendRelationRes"
                 }
               }
             }
@@ -5541,14 +5541,19 @@
         "additionalProperties": false
       },
       "ConfigurationRes": {
-        "required": ["charity", "principal"],
+        "required": ["principal"],
         "type": "object",
         "properties": {
           "principal": {
             "$ref": "#/components/schemas/ConfigurationPrincipalRes"
           },
           "charity": {
-            "$ref": "#/components/schemas/CharityPrincipalRes"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CharityPrincipalRes"
+              }
+            ],
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -5670,7 +5675,6 @@
         "additionalProperties": false
       },
       "CreateHabitReq": {
-        "required": ["charityId"],
         "type": "object",
         "properties": {
           "task": {
@@ -5694,7 +5698,8 @@
           },
           "charityId": {
             "type": "string",
-            "format": "uuid"
+            "format": "uuid",
+            "nullable": true
           },
           "timezone": {
             "type": "string",
@@ -5836,16 +5841,11 @@
         "additionalProperties": false
       },
       "FriendInviteRes": {
-        "required": ["expiresAtUtc"],
         "type": "object",
         "properties": {
           "code": {
             "type": "string",
             "nullable": true
-          },
-          "expiresAtUtc": {
-            "type": "string",
-            "format": "date-time"
           }
         },
         "additionalProperties": false
@@ -6003,7 +6003,7 @@
         "additionalProperties": false
       },
       "HabitOverviewHabitRes": {
-        "required": ["charity", "enabled", "stake", "status", "timeLeftToEodMinutes", "version"],
+        "required": ["enabled", "stake", "status", "timeLeftToEodMinutes", "version"],
         "type": "object",
         "properties": {
           "id": {
@@ -6036,7 +6036,12 @@
             "type": "boolean"
           },
           "charity": {
-            "$ref": "#/components/schemas/HabitCharityRefRes"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HabitCharityRefRes"
+              }
+            ],
+            "nullable": true
           },
           "status": {
             "$ref": "#/components/schemas/HabitStatusRes"
@@ -6146,7 +6151,7 @@
         "additionalProperties": false
       },
       "HabitVersionRes": {
-        "required": ["charityId", "habitId", "id", "version"],
+        "required": ["habitId", "id", "version"],
         "type": "object",
         "properties": {
           "id": {
@@ -6186,7 +6191,8 @@
           },
           "charityId": {
             "type": "string",
-            "format": "uuid"
+            "format": "uuid",
+            "nullable": true
           },
           "timezone": {
             "type": "string",
@@ -6331,7 +6337,7 @@
         "additionalProperties": false
       },
       "NfcTagResolutionRes": {
-        "required": ["habitVersion", "tag", "todayExecution"],
+        "required": ["habitVersion", "tag"],
         "type": "object",
         "properties": {
           "tag": {
@@ -6345,7 +6351,12 @@
             "nullable": true
           },
           "todayExecution": {
-            "$ref": "#/components/schemas/HabitExecutionRes"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HabitExecutionRes"
+              }
+            ],
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -6810,7 +6821,7 @@
         "additionalProperties": false
       },
       "UpdateHabitReq": {
-        "required": ["charityId", "enabled"],
+        "required": ["enabled"],
         "type": "object",
         "properties": {
           "task": {
@@ -6834,7 +6845,8 @@
           },
           "charityId": {
             "type": "string",
-            "format": "uuid"
+            "format": "uuid",
+            "nullable": true
           },
           "enabled": {
             "type": "boolean"

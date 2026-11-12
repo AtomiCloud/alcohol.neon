@@ -20,7 +20,7 @@ bool shouldSyncTimezone({
     deviceTimezone != configuredTimezone;
 
 /// The device's IANA timezone (e.g. `Asia/Singapore`) via `flutter_timezone`,
-/// as onboarding uses; `null` when the platform can't report one.
+/// used for a new configuration; `null` when the platform can't report one.
 Future<String?> deviceTimezone() async {
   try {
     return (await FlutterTimezone.getLocalTimezone()).identifier;

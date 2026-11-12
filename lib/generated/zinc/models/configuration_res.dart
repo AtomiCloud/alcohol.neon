@@ -11,13 +11,13 @@ part 'configuration_res.g.dart';
 
 @JsonSerializable()
 class ConfigurationRes {
-  const ConfigurationRes({required this.principal, required this.charity});
+  const ConfigurationRes({required this.principal, this.charity});
 
   factory ConfigurationRes.fromJson(Map<String, Object?> json) =>
       _$ConfigurationResFromJson(json);
 
   final ConfigurationPrincipalRes principal;
-  final CharityPrincipalRes charity;
+  final CharityPrincipalRes? charity;
 
   Map<String, Object?> toJson() => _$ConfigurationResToJson(this);
 }

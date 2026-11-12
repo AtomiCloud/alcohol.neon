@@ -9,11 +9,11 @@ part 'create_habit_req.g.dart';
 @JsonSerializable()
 class CreateHabitReq {
   const CreateHabitReq({
-    required this.charityId,
     this.task,
     this.daysOfWeek,
     this.notificationTime,
     this.stake,
+    this.charityId,
     this.timezone,
     this.deadlineTime,
     this.routineId,
@@ -26,7 +26,7 @@ class CreateHabitReq {
   final List<String>? daysOfWeek;
   final String? notificationTime;
   final String? stake;
-  final String charityId;
+  final String? charityId;
   final String? timezone;
   final String? deadlineTime;
   final String? routineId;

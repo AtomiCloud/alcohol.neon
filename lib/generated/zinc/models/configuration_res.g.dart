@@ -11,9 +11,11 @@ ConfigurationRes _$ConfigurationResFromJson(Map<String, dynamic> json) =>
       principal: ConfigurationPrincipalRes.fromJson(
         json['principal'] as Map<String, dynamic>,
       ),
-      charity: CharityPrincipalRes.fromJson(
-        json['charity'] as Map<String, dynamic>,
-      ),
+      charity: json['charity'] == null
+          ? null
+          : CharityPrincipalRes.fromJson(
+              json['charity'] as Map<String, dynamic>,
+            ),
     );
 
 Map<String, dynamic> _$ConfigurationResToJson(ConfigurationRes instance) =>

@@ -76,7 +76,7 @@ void main() {
 
     final res = ConfigurationRes.fromJson(json);
     expect(res.principal.timezone, 'Asia/Singapore');
-    expect(res.charity.name, 'Red Cross');
+    expect(res.charity?.name, 'Red Cross');
   });
 
   test('UpdateConfigurationReq serialises both fields (camelCase)', () {

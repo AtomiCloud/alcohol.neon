@@ -16,7 +16,6 @@ class HabitOverviewHabitRes {
   const HabitOverviewHabitRes({
     required this.stake,
     required this.enabled,
-    required this.charity,
     required this.status,
     required this.timeLeftToEodMinutes,
     required this.version,
@@ -25,6 +24,7 @@ class HabitOverviewHabitRes {
     this.notificationTime,
     this.timezone,
     this.days,
+    this.charity,
     this.totalDebt,
     this.deadlineTime,
     this.todayDeadlineUtc,
@@ -42,7 +42,7 @@ class HabitOverviewHabitRes {
   final List<bool>? days;
   final StakeRes stake;
   final bool enabled;
-  final HabitCharityRefRes charity;
+  final HabitCharityRefRes? charity;
   final HabitStatusRes status;
   final int timeLeftToEodMinutes;
   final HabitVersionMetaRes version;

@@ -5,18 +5,49 @@ import 'package:alcohol_neon/core/navigation.dart';
 import 'package:alcohol_neon/features/dashboard/dashboard_view.dart';
 import 'package:alcohol_neon/features/habit/habit_editor_view.dart';
 import 'package:alcohol_neon/features/nfc/nfc_deep_links.dart';
-import 'package:alcohol_neon/features/onboarding/onboarding_view.dart';
-import 'package:alcohol_neon/features/onboarding/timezone_picker.dart';
+import 'package:alcohol_neon/features/root/authed_gate.dart';
+import 'package:alcohol_neon/features/settings/timezone_picker.dart';
 import 'package:alcohol_neon/features/settings/settings_view.dart';
 import 'package:alcohol_neon/session/session_controller.dart';
 import 'package:alcohol_neon/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 
 import 'support/session_harness.dart';
+
+/// zinc for a user whose configuration has no default charity yet: every
+/// `PUT /Configuration` echoes its body back as the saved principal.
+Future<http.Response?> noDefaultCharity(http.Request r) async {
+  final path = r.url.path;
+  if (path.endsWith('/Configuration/me')) {
+    return jsonResponse({
+      'principal': {
+        'id': 'cfg1',
+        'timezone': 'Asia/Singapore',
+        'defaultCharityId': null,
+      },
+      'charity': null,
+    });
+  }
+  if (r.method == 'PUT' && path.contains('/Configuration/')) {
+    return jsonResponse({'id': 'cfg1', ...jsonDecode(r.body) as Map});
+  }
+  return null;
+}
+
+Map<String, Object?> bodyOf(SessionHarness h, String method, String part) =>
+    jsonDecode(
+          h.requests
+              .singleWhere(
+                (r) => r.method == method && r.url.path.contains(part),
+              )
+              .body,
+        )
+        as Map<String, Object?>;
 
 Future<void> pumpScreen(
   WidgetTester tester,
@@ -121,69 +152,201 @@ void main() {
     h.dispose();
   });
 
-  for (final empty in [false, true]) {
+  testWidgets(
+    'first launch with no configuration opens Today to make a habit',
+    (tester) async {
+      var configured = false;
+      final h = SessionHarness(
+        respond: (r) async {
+          final path = r.url.path;
+          if (r.method == 'POST' && path.endsWith('/Configuration')) {
+            configured = true;
+            return jsonResponse({'id': 'cfg-new', 'timezone': 'UTC'});
+          }
+          if (path.endsWith('/Configuration/me') && !configured) {
+            return jsonResponse({'title': 'Not found', 'status': 404}, 404);
+          }
+          if (path.endsWith('/overview')) {
+            return jsonResponse({...overviewBody(), 'habits': <Object?>[]});
+          }
+          return null;
+        },
+      );
+      final links = NfcDeepLinkService(links: () => const Stream.empty());
+      addTearDown(links.dispose);
+      await pumpScreen(tester, h, const AuthedGate(), links: links);
+      expect(configured, isTrue);
+      expect(find.text('Make your first habit'), findsOneWidget);
+      expect(
+        find.text(
+          'Choose what to do and on which days. Your timezone already '
+          'follows your phone.',
+        ),
+        findsOneWidget,
+      );
+      await tester.pumpWidget(const SizedBox.shrink());
+      h.dispose();
+    },
+  );
+
+  testWidgets('a habit with no stake asks for no charity and saves none', (
+    tester,
+  ) async {
+    final h = SessionHarness(respond: noDefaultCharity);
+    await h.start();
+    await pumpScreen(tester, h, const HabitEditorView());
+    expect(find.byIcon(Icons.volunteer_activism), findsNothing);
+    expect(
+      find.text(
+        'No money at stake, so no charity needed. Add a stake any time.',
+      ),
+      findsOneWidget,
+    );
+    await tester.enterText(find.byType(TextField).first, 'Read a chapter');
+    await tester.ensureVisible(find.text('Create habit'));
+    await tester.tap(find.text('Create habit'));
+    await tester.pumpAndSettle();
+    final body = bodyOf(h, 'POST', '/Habit/');
+    expect(body['stake'], '0');
+    expect(body.containsKey('charityId'), isTrue);
+    expect(body['charityId'], isNull);
+    expect(
+      h.requests.where(
+        (r) => r.method == 'PUT' && r.url.path.contains('/Configuration/'),
+      ),
+      isEmpty,
+      reason: 'no charity, so the default stays unset',
+    );
+    await tester.pumpWidget(const SizedBox.shrink());
+    h.dispose();
+  });
+
+  for (final hasDefault in [false, true]) {
     testWidgets(
-      'onboarding preserves detected zone when timezone list ${empty ? 'is empty' : 'fails'}',
+      hasDefault
+          ? 'picking another charity keeps the existing default'
+          : 'the first charity picked for a stake becomes the default',
       (tester) async {
-        messenger.setMockMethodCallHandler(timezoneChannel, (call) async {
-          if (call.method == 'getLocalTimezone') return 'Asia/Tokyo';
-          if (empty) return <String>[];
-          throw PlatformException(code: 'unavailable');
-        });
-        final h = SessionHarness();
-        await h.start();
-        await pumpScreen(tester, h, const OnboardingView());
-        expect(find.text('Asia/Tokyo'), findsOneWidget);
-        expect(find.text(timezoneDiscoveryNotice), findsOneWidget);
-        await tester.tap(find.text('Timezone'));
-        await tester.pumpAndSettle();
-        final picker = tester.widget<TimezonePicker>(
-          find.byType(TimezonePicker),
+        final h = SessionHarness(
+          respond: (r) async {
+            final path = r.url.path;
+            if (path.endsWith('/consent')) {
+              return jsonResponse({'hasPaymentConsent': true});
+            }
+            if (path.contains('/Habit/') && path.endsWith('/h1')) {
+              return jsonResponse({
+                ...habitVersion,
+                'stake': '5',
+                'charityId': null,
+              });
+            }
+            if (path.endsWith('/Charity')) {
+              return jsonResponse([
+                {'id': 'ch2', 'name': 'Furkids'},
+              ]);
+            }
+            return hasDefault ? null : noDefaultCharity(r);
+          },
         );
-        expect(picker.timezones.length, greaterThan(400));
-        expect(picker.selected, 'Asia/Tokyo');
+        await h.start();
+        await pumpScreen(tester, h, const HabitEditorView(habitId: 'h1'));
+        final hint =
+            'A charity is only needed because there’s money at stake. Your '
+            'first one is remembered for next time.';
+        expect(find.text(hint), hasDefault ? findsNothing : findsOneWidget);
+        if (hasDefault) {
+          // The habit has no charity yet, so the default fills the row.
+          expect(find.text('Red Cross'), findsOneWidget);
+        } else {
+          await tester.scrollUntilVisible(
+            find.text('Save changes'),
+            200,
+            scrollable: find.byType(Scrollable).first,
+          );
+          await tester.ensureVisible(find.text('Save changes'));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('Save changes'));
+          await tester.pumpAndSettle();
+          expect(
+            find.text('Choose a charity'),
+            findsNWidgets(2),
+            reason: 'the charity row and the save error',
+          );
+          expect(h.requests.where((r) => r.method == 'PUT'), isEmpty);
+        }
+
+        final charityRow = find.byIcon(Icons.volunteer_activism);
+        await tester.scrollUntilVisible(
+          charityRow,
+          -200,
+          scrollable: find.byType(Scrollable).first,
+        );
+        await tester.tap(charityRow);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Furkids'));
+        await tester.pumpAndSettle();
+        // The row is just the charity's name, with no "Charity" label.
+        expect(
+          find.descendant(
+            of: find.ancestor(of: charityRow, matching: find.byType(ListTile)),
+            matching: find.byType(Text),
+          ),
+          findsOneWidget,
+        );
+        expect(find.text('Furkids'), findsOneWidget);
+        await tester.scrollUntilVisible(
+          find.text('Save changes'),
+          200,
+          scrollable: find.byType(Scrollable).first,
+        );
+        await tester.ensureVisible(find.text('Save changes'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Save changes'));
+        await tester.pumpAndSettle();
+
+        expect(bodyOf(h, 'PUT', '/Habit/')['charityId'], 'ch2');
+        final configPuts = h.requests.where(
+          (r) => r.method == 'PUT' && r.url.path.contains('/Configuration/'),
+        );
+        if (hasDefault) {
+          expect(configPuts, isEmpty);
+          expect(h.session.config?.defaultCharityId, 'ch1');
+        } else {
+          expect(bodyOf(h, 'PUT', '/Configuration/'), {
+            'timezone': 'Asia/Singapore',
+            'defaultCharityId': 'ch2',
+          });
+          expect(h.session.config?.defaultCharityId, 'ch2');
+        }
         await tester.pumpWidget(const SizedBox.shrink());
         h.dispose();
       },
     );
   }
 
-  testWidgets(
-    'onboarding fallback is searchable and retry preserves selection',
-    (tester) async {
-      final h = SessionHarness();
-      await h.start();
-      await pumpScreen(tester, h, const OnboardingView());
-      expect(find.text(timezoneDiscoveryNotice), findsOneWidget);
-      await tester.tap(find.text('Timezone'));
-      await tester.pumpAndSettle();
-      final picker = tester.widget<TimezonePicker>(find.byType(TimezonePicker));
-      expect(picker.timezones.length, greaterThan(400));
-      expect(
-        picker.timezones,
-        containsAll(['Asia/Tokyo', 'America/New_York', 'UTC']),
-      );
-      await tester.enterText(find.byType(TextField), 'New_York');
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('America/New York'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Retry timezone discovery'));
-      await tester.pumpAndSettle();
-      expect(find.text('America/New York'), findsOneWidget);
-
-      messenger.setMockMethodCallHandler(timezoneChannel, (call) async {
-        return call.method == 'getLocalTimezone'
-            ? 'Asia/Tokyo'
-            : ['Asia/Tokyo'];
-      });
-      await tester.tap(find.text('Retry timezone discovery'));
-      await tester.pumpAndSettle();
-      expect(find.text('America/New York'), findsOneWidget);
-      expect(find.text(timezoneDiscoveryNotice), findsNothing);
-      await tester.pumpWidget(const SizedBox.shrink());
-      h.dispose();
-    },
-  );
+  testWidgets('Settings shows no default charity and saves a timezone alone', (
+    tester,
+  ) async {
+    final h = SessionHarness(respond: noDefaultCharity);
+    await h.start();
+    await pumpScreen(tester, h, const SettingsView());
+    expect(find.text('None yet'), findsOneWidget);
+    await tester.tap(find.text('Timezone'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'Tokyo');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Asia/Tokyo'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Save changes'), 250);
+    await tester.tap(find.text('Save changes'));
+    await tester.pumpAndSettle();
+    expect(bodyOf(h, 'PUT', '/Configuration/'), {
+      'timezone': 'Asia/Tokyo',
+      'defaultCharityId': null,
+    });
+    await tester.pumpWidget(const SizedBox.shrink());
+    h.dispose();
+  });
 
   testWidgets(
     'Settings fallback keeps saved zone and explains its limited scope',

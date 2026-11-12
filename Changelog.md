@@ -1,3 +1,11 @@
+## [1.25.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.24.0...v1.25.0) (2026-11-12)
+
+
+### ✨ Features ✨
+
+* glass Friends, Inbox and Strava ([e6ae3de](https://github.com/AtomiCloud/alcohol.neon/commit/e6ae3deaab20ccf472bed45f8a5692544b4f7bf9))
+* glass Vacations, Subscription, Charity, payment and timezone ([1f39052](https://github.com/AtomiCloud/alcohol.neon/commit/1f390525d07f4d0d375bb3594303c44bb47f2f2d))
+
 ## [1.24.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.23.1...v1.24.0) (2026-11-12)
 
 

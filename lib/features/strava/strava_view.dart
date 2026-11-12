@@ -450,7 +450,7 @@ class StravaConsentView extends StatelessWidget {
             'Deleting your data',
             'Disconnecting deletes your Strava data from LazyTax straight '
                 'away, and so does deleting your LazyTax account. To ask for '
-                'deletion any other way, contact LazyTax support.',
+                'deletion any other way, email support@lazytax.club.',
           ),
           const SizedBox(height: 8),
           Text(
@@ -462,6 +462,10 @@ class StravaConsentView extends StatelessWidget {
           ),
           Wrap(
             children: [
+              TextButton(
+                onPressed: () => _open('mailto:support@lazytax.club'),
+                child: const Text('Email support'),
+              ),
               TextButton(
                 onPressed: () => _open('https://www.strava.com/legal/terms'),
                 child: const Text('Strava terms'),

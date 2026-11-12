@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../core/problem.dart';
 import '../../data/friend_repository.dart';
@@ -13,7 +14,9 @@ import '../../widgets/compact_buttons.dart';
 /// Profile → Friends: search by username, answer requests, invite with a
 /// link or code, and manage the friend list.
 class FriendsView extends StatelessWidget {
-  const FriendsView({super.key});
+  /// From an invite link: accepted as soon as the screen opens.
+  final String? inviteCode;
+  const FriendsView({super.key, this.inviteCode});
 
   @override
   Widget build(BuildContext context) {
@@ -25,13 +28,43 @@ class FriendsView extends StatelessWidget {
           session.userId ?? '',
         )..load();
       },
-      child: const _FriendsScaffold(),
+      child: _FriendsScaffold(inviteCode: inviteCode),
     );
   }
 }
 
-class _FriendsScaffold extends StatelessWidget {
-  const _FriendsScaffold();
+/// The snackbar text after accepting an invite code.
+String inviteResultMessage(Result<FriendRes> res) => switch (res) {
+  Ok(:final value) => 'You and ${value.username} are now friends.',
+  Err(:final problem) when problem.status == 404 =>
+    'That invite doesn’t exist or has expired. Ask for a new one.',
+  Err(:final problem) when problem.status == 400 =>
+    'That’s your own invite. Send it to a friend instead.',
+  Err(:final problem) => problem.displayMessage,
+};
+
+class _FriendsScaffold extends StatefulWidget {
+  final String? inviteCode;
+  const _FriendsScaffold({this.inviteCode});
+
+  @override
+  State<_FriendsScaffold> createState() => _FriendsScaffoldState();
+}
+
+class _FriendsScaffoldState extends State<_FriendsScaffold> {
+  @override
+  void initState() {
+    super.initState();
+    final code = widget.inviteCode;
+    if (code == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final res = await context.read<FriendsController>().acceptInvite(code);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(inviteResultMessage(res))));
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -293,12 +326,26 @@ class _InviteCard extends StatelessWidget {
     if (!context.mounted) return;
     switch (res) {
       case Ok(:final value):
-        await _copy(context, inviteLink(value.code));
+        await _share(context, inviteLink(value.code));
       case Err(:final problem):
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(problem.displayMessage)));
     }
+  }
+
+  /// Opens the system share sheet; the link's preview card comes from the
+  /// invite page's Open Graph tags.
+  Future<void> _share(BuildContext context, String link) async {
+    final box = context.findRenderObject() as RenderBox?;
+    await SharePlus.instance.share(
+      ShareParams(
+        text: 'Be my LazyTax friend: $link',
+        sharePositionOrigin: box == null
+            ? null
+            : box.localToGlobal(Offset.zero) & box.size,
+      ),
+    );
   }
 
   Future<void> _copy(BuildContext context, String link) async {
@@ -317,17 +364,9 @@ class _InviteCard extends StatelessWidget {
     if (code == null || !context.mounted) return;
     final res = await c.acceptInvite(code);
     if (!context.mounted) return;
-    final message = switch (res) {
-      Ok(:final value) => 'You and ${value.username} are now friends.',
-      Err(:final problem) when problem.status == 404 =>
-        'That invite doesn’t exist or has expired. Ask for a new one.',
-      Err(:final problem) when problem.status == 400 =>
-        'That’s your own invite. Send it to a friend instead.',
-      Err(:final problem) => problem.displayMessage,
-    };
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ).showSnackBar(SnackBar(content: Text(inviteResultMessage(res))));
   }
 
   @override
@@ -380,14 +419,20 @@ class _InviteCard extends StatelessWidget {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.link),
-                    label: const Text('Create invite link'),
+                    label: const Text('Share invite link'),
                   )
-                else
+                else ...[
                   FilledButton.icon(
+                    onPressed: () => _share(context, inviteLink(invite.code)),
+                    icon: Icon(Icons.adaptive.share),
+                    label: const Text('Share invite link'),
+                  ),
+                  OutlinedButton.icon(
                     onPressed: () => _copy(context, inviteLink(invite.code)),
                     icon: const Icon(Icons.copy),
                     label: const Text('Copy link'),
                   ),
+                ],
                 OutlinedButton.icon(
                   onPressed: () => _enterCode(context),
                   icon: const Icon(Icons.input),
@@ -444,7 +489,7 @@ class _InviteCodeDialogState extends State<_InviteCodeDialog> {
         autofocus: true,
         autocorrect: false,
         decoration: InputDecoration(
-          hintText: 'Code or lazytax.club/f/… link',
+          hintText: 'Code or invite link',
           errorText: _error,
           suffixIcon: IconButton(
             tooltip: 'Paste',

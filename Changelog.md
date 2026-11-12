@@ -1,3 +1,10 @@
+## [1.23.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.22.0...v1.23.0) (2026-11-12)
+
+
+### ✨ Features ✨
+
+* glass Profile and Settings with shared glass widgets ([7a98d2f](https://github.com/AtomiCloud/alcohol.neon/commit/7a98d2f781a916a74c1bc0dffeb0958e9b1e3bc2))
+
 ## [1.22.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.21.0...v1.22.0) (2026-11-12)
 
 

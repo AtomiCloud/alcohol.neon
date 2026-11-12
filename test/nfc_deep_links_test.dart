@@ -52,6 +52,26 @@ void main() {
       await links.close();
     });
 
+    test('parks a /f/{code} invite on the tag host, not as a tag', () async {
+      final links = StreamController<Uri>();
+      final svc = NfcDeepLinkService(links: () => links.stream);
+
+      svc.start(base);
+      links.add(Uri.parse('https://lazytax.club/f/ab23cdefgh')); // other host
+      links.add(Uri.parse('https://t.lazytax.club/x/ab23cdefgh'));
+      await Future<void>.delayed(Duration.zero);
+      expect(svc.pendingInviteCode, isNull);
+
+      links.add(Uri.parse('https://t.lazytax.club/f/AB23cdefgh/'));
+      await Future<void>.delayed(Duration.zero);
+
+      expect(svc.pendingTagId, isNull);
+      expect(svc.consumeInvite(), 'ab23cdefgh');
+      expect(svc.pendingInviteCode, isNull);
+
+      await links.close();
+    });
+
     test('a newer link replaces an unconsumed one', () async {
       final links = StreamController<Uri>();
       final svc = NfcDeepLinkService(links: () => links.stream);

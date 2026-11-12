@@ -83,7 +83,7 @@ class FriendRequestsRes {
       );
 }
 
-/// A 7-day invite. The app builds the link: `https://lazytax.club/f/{code}`.
+/// A 7-day invite. The app builds the link: `https://t.lazytax.club/f/{code}`.
 class FriendInviteRes {
   final String code;
   final DateTime? expiresAtUtc;

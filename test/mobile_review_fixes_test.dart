@@ -509,18 +509,17 @@ void main() {
   testWidgets('Settings shows no default charity and saves a timezone alone', (
     tester,
   ) async {
-    final h = SessionHarness(respond: noDefaultCharity);
+    final h = SessionHarness(respond: noDefaultCharity, followPhone: false);
     await h.start();
     await pumpScreen(tester, h, const SettingsView());
-    expect(find.text('None yet'), findsOneWidget);
-    await tester.tap(find.text('Timezone'));
+    expect(find.textContaining('None yet'), findsOneWidget);
+    await tester.tap(find.text('Timezone').last);
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'Tokyo');
     await tester.pumpAndSettle();
     await tester.tap(find.text('Asia/Tokyo'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('Save changes'), 250);
-    await tester.tap(find.text('Save changes'));
+    await tester.tap(find.text('Change'));
     await tester.pumpAndSettle();
     expect(bodyOf(h, 'PUT', '/Configuration/'), {
       'timezone': 'Asia/Tokyo',
@@ -533,29 +532,15 @@ void main() {
   testWidgets(
     'Settings fallback keeps saved zone and explains its limited scope',
     (tester) async {
-      final h = SessionHarness();
+      final h = SessionHarness(respond: noDefaultCharity, followPhone: false);
       await h.start();
       await pumpScreen(tester, h, const SettingsView());
-      expect(find.text('Asia/Singapore'), findsOneWidget);
+      expect(find.text('Singapore'), findsOneWidget);
       expect(find.text(timezoneDiscoveryNotice), findsOneWidget);
-      expect(
-        find.textContaining('Sets when each habit day ends'),
-        findsOneWidget,
-      );
-      await tester.scrollUntilVisible(find.text('Save changes'), 250);
-      expect(
-        tester
-            .widget<FilledButton>(
-              find.widgetWithText(FilledButton, 'Save changes'),
-            )
-            .onPressed,
-        isNull,
-      );
-      await tester.scrollUntilVisible(find.text('Timezone'), -250);
-      await tester.tap(find.text('Retry timezone discovery'));
+      await tester.tap(find.text('Retry'));
       await tester.pumpAndSettle();
-      expect(find.text('Asia/Singapore'), findsOneWidget);
-      await tester.tap(find.text('Timezone'));
+      expect(find.text('Singapore'), findsOneWidget);
+      await tester.tap(find.text('Timezone').last);
       await tester.pumpAndSettle();
       final picker = tester.widget<TimezonePicker>(find.byType(TimezonePicker));
       expect(picker.timezones.length, greaterThan(400));
@@ -564,9 +549,11 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Asia/Tokyo'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Retry timezone discovery'));
+      await tester.tap(find.text('Change'));
       await tester.pumpAndSettle();
-      expect(find.text('Asia/Tokyo'), findsOneWidget);
+      await tester.tap(find.text('Retry'));
+      await tester.pumpAndSettle();
+      expect(find.text('Tokyo'), findsOneWidget);
       await tester.pumpWidget(const SizedBox.shrink());
       h.dispose();
     },

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import '../../config/app_config.dart';
 import '../../config/dev_overrides.dart';
 import '../../config/landscape.dart';
+import '../../services/notification_service.dart';
 
 /// Prompts for the dev password ("iitm") then opens [DevConfigView]. Pass
 /// [requirePassword] = false to skip the prompt (the pre-login logo path).
@@ -153,6 +154,14 @@ class _DevConfigViewState extends State<DevConfigView> {
     _showRestart('Overrides cleared. Restart the app to apply.');
   }
 
+  Future<void> _sendTestNotification() async {
+    await NotificationService.instance.showNow();
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Test notification sent')));
+  }
+
   void _showRestart(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -241,6 +250,14 @@ class _DevConfigViewState extends State<DevConfigView> {
             onPressed: _reset,
             icon: const Icon(Icons.restore),
             label: const Text('Reset overrides'),
+          ),
+          const Divider(height: 32),
+          Text('TOOLS', style: theme.textTheme.labelSmall),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: _sendTestNotification,
+            icon: const Icon(Icons.notifications_active_outlined),
+            label: const Text('Send test notification'),
           ),
         ],
       ),

@@ -1,3 +1,10 @@
+## [1.26.1](https://github.com/ProtoDurian/alcohol.neon/compare/v1.26.0...v1.26.1) (2026-11-12)
+
+
+### 🐛 Bug Fixes 🐛
+
+* show "Couldn't save. Try again." on the widget when Complete fails ([97b8da4](https://github.com/ProtoDurian/alcohol.neon/commit/97b8da4d49dfed6b8fabf3b200dc313da8d5f0f2))
+
 ## [1.26.0](https://github.com/ProtoDurian/alcohol.neon/compare/v1.25.0...v1.26.0) (2026-11-12)
 
 

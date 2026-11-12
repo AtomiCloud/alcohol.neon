@@ -165,8 +165,9 @@ class FriendsController extends ChangeNotifier {
     return res;
   }
 
-  /// Accepts someone's invite code; on success reloads the friend list.
-  Future<Result<FriendRes>> acceptInvite(String code) async {
+  /// Uses someone's invite code (sends them a friend request); on success
+  /// reloads the lists. Returns the relation, see [FriendRepository.acceptInvite].
+  Future<Result<String>> acceptInvite(String code) async {
     final res = await _repo.acceptInvite(_userId, code);
     if (res is Ok) await load();
     return res;

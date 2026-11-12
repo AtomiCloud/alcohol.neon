@@ -409,16 +409,22 @@ class _HabitEditorViewState extends State<HabitEditorView> {
                     },
                   ),
                 ),
-                if (_staked)
+                if (_staked) ...[
+                  const SizedBox(height: 8),
+                  // Only the charity's name, on one line, so long names fit.
                   Card(
                     child: ListTile(
                       leading: const Icon(Icons.volunteer_activism),
-                      title: const Text('Charity'),
-                      subtitle: Text(_charityName ?? 'Choose a charity'),
+                      title: Text(
+                        _charityName ?? 'Choose a charity',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: _pickCharity,
                     ),
                   ),
+                ],
                 if (charityHint != null)
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),

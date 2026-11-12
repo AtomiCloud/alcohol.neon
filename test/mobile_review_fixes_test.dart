@@ -195,7 +195,7 @@ void main() {
     final h = SessionHarness(respond: noDefaultCharity);
     await h.start();
     await pumpScreen(tester, h, const HabitEditorView());
-    expect(find.text('Charity'), findsNothing);
+    expect(find.byIcon(Icons.volunteer_activism), findsNothing);
     expect(
       find.text(
         'No money at stake, so no charity needed. Add a stake any time.',
@@ -259,29 +259,43 @@ void main() {
           200,
           scrollable: find.byType(Scrollable).first,
         );
+        await tester.ensureVisible(find.text('Save changes'));
+        await tester.pumpAndSettle();
         await tester.tap(find.text('Save changes'));
         await tester.pumpAndSettle();
         expect(
           find.text('Choose a charity'),
           findsNWidgets(2),
-          reason: 'row subtitle and the save error',
+          reason: 'the charity row and the save error',
         );
         expect(h.requests.where((r) => r.method == 'PUT'), isEmpty);
 
+        final charityRow = find.byIcon(Icons.volunteer_activism);
         await tester.scrollUntilVisible(
-          find.text('Charity'),
+          charityRow,
           -200,
           scrollable: find.byType(Scrollable).first,
         );
-        await tester.tap(find.text('Charity'));
+        await tester.tap(charityRow);
         await tester.pumpAndSettle();
         await tester.tap(find.text('Furkids'));
         await tester.pumpAndSettle();
+        // The row is just the charity's name, with no "Charity" label.
+        expect(
+          find.descendant(
+            of: find.ancestor(of: charityRow, matching: find.byType(ListTile)),
+            matching: find.byType(Text),
+          ),
+          findsOneWidget,
+        );
+        expect(find.text('Furkids'), findsOneWidget);
         await tester.scrollUntilVisible(
           find.text('Save changes'),
           200,
           scrollable: find.byType(Scrollable).first,
         );
+        await tester.ensureVisible(find.text('Save changes'));
+        await tester.pumpAndSettle();
         await tester.tap(find.text('Save changes'));
         await tester.pumpAndSettle();
 

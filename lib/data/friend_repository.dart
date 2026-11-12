@@ -83,18 +83,15 @@ class FriendRequestsRes {
       );
 }
 
-/// A 7-day invite. The app builds the link: `https://t.lazytax.club/f/{code}`.
+/// The user's permanent invite. The app builds the link:
+/// `https://t.lazytax.club/f/{code}`.
 class FriendInviteRes {
   final String code;
-  final DateTime? expiresAtUtc;
 
-  const FriendInviteRes({required this.code, this.expiresAtUtc});
+  const FriendInviteRes({required this.code});
 
   factory FriendInviteRes.fromJson(Map<String, Object?> json) =>
-      FriendInviteRes(
-        code: json['code'] as String,
-        expiresAtUtc: DateTime.tryParse(json['expiresAtUtc'] as String? ?? ''),
-      );
+      FriendInviteRes(code: json['code'] as String);
 }
 
 /// zinc `/Friend` endpoints, all scoped to the signed-in user.
@@ -169,11 +166,15 @@ class FriendRepository {
   }
 
   /// 404 for an unknown or expired code, 400 for your own.
-  Future<Result<FriendRes>> acceptInvite(String userId, String code) {
+  /// Uses someone's invite: sends its owner a friend request. Returns the
+  /// relation like [sendRequest]: `outgoing` (request sent) or `friend` (they
+  /// had already asked you). Older zinc befriends straight away and returns a
+  /// FriendRes without `relation`, which reads as `friend`.
+  Future<Result<String>> acceptInvite(String userId, String code) {
     return _api.post(
       '$_base/$userId/invites/${Uri.encodeComponent(code)}/accept',
       null,
-      (j) => FriendRes.fromJson(j as Map<String, Object?>),
+      (j) => (j as Map<String, Object?>?)?['relation'] as String? ?? 'friend',
     );
   }
 }

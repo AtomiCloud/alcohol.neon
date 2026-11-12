@@ -34,10 +34,11 @@ class FriendsView extends StatelessWidget {
 }
 
 /// The snackbar text after accepting an invite code.
-String inviteResultMessage(Result<FriendRes> res) => switch (res) {
-  Ok(:final value) => 'You and ${value.username} are now friends.',
+String inviteResultMessage(Result<String> res) => switch (res) {
+  Ok(value: 'friend') => 'You’re now friends.',
+  Ok() => 'Friend request sent. You’ll be friends once they accept.',
   Err(:final problem) when problem.status == 404 =>
-    'That invite doesn’t exist or has expired. Ask for a new one.',
+    'That invite link isn’t valid. Ask your friend to send it again.',
   Err(:final problem) when problem.status == 400 =>
     'That’s your own invite. Send it to a friend instead.',
   Err(:final problem) => problem.displayMessage,
@@ -373,7 +374,6 @@ class _InviteCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final invite = c.invite;
-    final expires = invite?.expiresAtUtc?.toLocal();
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -383,8 +383,8 @@ class _InviteCard extends StatelessWidget {
             Text('Invite a friend', style: theme.textTheme.titleMedium),
             const SizedBox(height: 4),
             Text(
-              'Send a link they can open, or a code they can enter here. '
-              'It works for 7 days.',
+              'Send your link, or a code they can enter here. Using it sends '
+              'you a friend request to accept.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -398,8 +398,7 @@ class _InviteCard extends StatelessWidget {
                 ),
               ),
               Text(
-                'Code ${invite.code}'
-                '${expires == null ? '' : ' · expires ${MaterialLocalizations.of(context).formatMediumDate(expires)}'}',
+                'Code ${invite.code}',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),

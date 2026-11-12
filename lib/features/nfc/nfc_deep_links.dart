@@ -76,7 +76,7 @@ class NfcDeepLinkService extends ChangeNotifier {
 
 /// Wraps the ready authed shell; when a tag or invite link is pending (or
 /// arrives) and the session is ready, pushes [TapCompleteView] or
-/// [FriendsView] (which accepts the invite) on the enclosing navigator.
+/// [FriendsView] (which uses the invite) on the enclosing navigator.
 class NfcTapListener extends StatefulWidget {
   final Widget child;
   const NfcTapListener({super.key, required this.child});

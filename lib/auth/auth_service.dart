@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:logto_dart_sdk/logto_dart_sdk.dart';
 
 import '../config/app_config.dart';
+import '../core/launch_timeline.dart';
 import '../core/problem.dart';
 import '../networking/api_client.dart';
 
@@ -51,6 +52,7 @@ class AuthService extends ChangeNotifier {
       _status = (await _client.isAuthenticated)
           ? AuthStatus.authenticated
           : AuthStatus.unauthenticated;
+      LaunchTimeline.mark('auth-restored ${_status.name}');
     } on LogtoAuthException {
       // A dead stored session must never strand the app on the splash. The iOS
       // Keychain outlives an uninstall, so a revoked/expired refresh token can

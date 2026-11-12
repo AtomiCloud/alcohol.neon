@@ -15,7 +15,7 @@ class RootView extends StatelessWidget {
     final status = context.watch<AuthService>().status;
     switch (status) {
       case AuthStatus.loading:
-        return const Scaffold(body: AppLoader());
+        return const GlassLoadingScreen();
       case AuthStatus.unauthenticated:
         return const SignInView();
       case AuthStatus.authenticated:

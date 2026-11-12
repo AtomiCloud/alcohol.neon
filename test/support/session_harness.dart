@@ -2,7 +2,10 @@ import 'dart:convert';
 
 import 'package:alcohol_neon/auth/auth_service.dart';
 import 'package:alcohol_neon/config/app_config.dart';
+import 'package:alcohol_neon/generated/zinc/models/configuration_principal_res.dart';
+import 'package:alcohol_neon/generated/zinc/models/habit_overview_response.dart';
 import 'package:alcohol_neon/networking/api_client.dart';
+import 'package:alcohol_neon/session/session_cache.dart';
 import 'package:alcohol_neon/session/session_controller.dart';
 import 'package:alcohol_neon/session/timezone_preference.dart';
 import 'package:flutter/foundation.dart';
@@ -101,6 +104,25 @@ class MemoryTimezonePreference extends TimezonePreference {
   Future<void> saveFollowPhone(bool value) async => followPhone = value;
 }
 
+/// In-memory [SessionCache], for the same reason as [MemoryTimezonePreference].
+class MemorySessionCache extends SessionCache {
+  MemorySessionCache([this.snapshot]);
+  SessionSnapshot? snapshot;
+  ConfigurationPrincipalRes? savedConfig;
+  HabitOverviewResponse? savedOverview;
+  @override
+  Future<SessionSnapshot?> load(String userId, {DateTime? now}) async =>
+      snapshot;
+  @override
+  Future<void> saveConfig(String userId, ConfigurationPrincipalRes c) async =>
+      savedConfig = c;
+  @override
+  Future<void> saveOverview(String userId, HabitOverviewResponse o) async =>
+      savedOverview = o;
+  @override
+  Future<void> clear() async => snapshot = null;
+}
+
 /// Real session/repositories with HTTP replaced at their public boundary.
 class SessionHarness {
   SessionHarness({this.respond, bool followPhone = true})
@@ -150,11 +172,16 @@ class SessionHarness {
       return jsonResponse({'title': 'Not found', 'status': 404}, 404);
     });
     auth = HarnessAuth(client);
-    session = SessionController(auth, timezonePreference: timezonePreference);
+    session = SessionController(
+      auth,
+      timezonePreference: timezonePreference,
+      cache: cache,
+    );
   }
 
   final Future<http.Response?> Function(http.Request)? respond;
   final MemoryTimezonePreference timezonePreference;
+  final MemorySessionCache cache = MemorySessionCache();
   final requests = <http.Request>[];
   late final http.Client client;
   late final HarnessAuth auth;

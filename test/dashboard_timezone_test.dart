@@ -2,11 +2,15 @@ import 'dart:convert';
 
 import 'package:alcohol_neon/auth/auth_service.dart';
 import 'package:alcohol_neon/config/app_config.dart';
+import 'package:alcohol_neon/core/problem.dart';
 import 'package:alcohol_neon/data/execution_repository.dart';
 import 'package:alcohol_neon/data/habit_repository.dart';
 import 'package:alcohol_neon/data/protection_repository.dart';
 import 'package:alcohol_neon/features/dashboard/dashboard_view.dart';
+import 'package:alcohol_neon/generated/zinc/models/configuration_principal_res.dart';
+import 'package:alcohol_neon/generated/zinc/models/habit_overview_response.dart';
 import 'package:alcohol_neon/networking/api_client.dart';
+import 'package:alcohol_neon/session/session_cache.dart';
 import 'package:alcohol_neon/session/session_controller.dart';
 import 'package:alcohol_neon/theme/app_theme.dart';
 import 'package:flutter/material.dart';
@@ -14,6 +18,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:provider/provider.dart';
+
+import 'support/session_harness.dart';
 
 class _Auth implements AuthService {
   @override
@@ -45,6 +51,15 @@ class _Session extends ChangeNotifier implements SessionController {
   ProtectionRepository get protections => ProtectionRepository(api);
   @override
   String? takeTimezoneNotice() => null;
+  @override
+  ConfigurationPrincipalRes? get config => null;
+  @override
+  HabitOverviewResponse? takeCachedOverview() => null;
+  @override
+  Future<Result<HabitOverviewResponse>>? takeOverviewPrefetch() => null;
+  @override
+  SessionCache get cache => _cache;
+  final _cache = MemorySessionCache();
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

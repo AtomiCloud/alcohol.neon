@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../core/launch_timeline.dart';
+
 import '../core/problem.dart';
 
 /// Minimal async HTTP client for the zinc REST API. Every call returns `Result<T>`
@@ -112,7 +114,9 @@ class ApiClient {
       );
     }
 
+    final started = Stopwatch()..start();
     final headers = await _headers(requiresAuth: requiresAuth);
+    final tokenMs = started.elapsedMilliseconds;
     if (headers == null) return const Err(Problem.unauthenticated);
     // zinc actions bind [FromBody]; a bodyless POST/PUT/PATCH (e.g. optional-notes
     // complete/skip) must still send application/json or the server returns 415.
@@ -137,6 +141,10 @@ class ApiClient {
     } catch (e) {
       return Err(Problem.network(e));
     }
+    LaunchTimeline.mark(
+      '$method ${uri.path} ${res.statusCode} '
+      '${started.elapsedMilliseconds}ms (token ${tokenMs}ms)',
+    );
     return _handle(res, decode);
   }
 

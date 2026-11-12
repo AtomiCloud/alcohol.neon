@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../auth/auth_service.dart';
+import '../core/launch_timeline.dart';
 import '../core/problem.dart';
 import '../data/cause_repository.dart';
 import '../data/charity_repository.dart';
@@ -14,12 +15,14 @@ import '../data/subscription_repository.dart';
 import '../data/user_repository.dart';
 import '../data/vacation_repository.dart';
 import '../generated/zinc/models/configuration_principal_res.dart';
+import '../generated/zinc/models/habit_overview_response.dart';
 import '../generated/zinc/models/payment_consent_res.dart';
 import '../generated/zinc/models/update_configuration_req.dart';
 import '../networking/api_client.dart';
 import '../services/notification_service.dart';
 import '../services/live_activity_service.dart';
 import '../services/widget_service.dart';
+import 'session_cache.dart';
 import 'timezone_preference.dart';
 
 /// Where the signed-in user is in the bootstrap → configured journey.
@@ -45,13 +48,21 @@ class SessionController extends ChangeNotifier {
   /// Stores the "Follow phone timezone" preference (file-backed by default).
   final TimezonePreference timezonePreference;
 
+  /// Last launch's configuration and Today, for an instant Today on launch.
+  final SessionCache cache;
+
   SessionController(
     AuthService auth, {
     TimezonePreference timezonePreference = const TimezonePreference(),
-  }) : this._(auth, auth.makeApiClient(), timezonePreference);
+    SessionCache cache = const SessionCache(),
+  }) : this._(auth, auth.makeApiClient(), timezonePreference, cache);
 
-  SessionController._(this.auth, ApiClient api, this.timezonePreference)
-    : users = UserRepository(api),
+  SessionController._(
+    this.auth,
+    ApiClient api,
+    this.timezonePreference,
+    this.cache,
+  ) : users = UserRepository(api),
       configs = ConfigRepository(api),
       charities = CharityRepository(api),
       causes = CauseRepository(api),
@@ -92,6 +103,8 @@ class SessionController extends ChangeNotifier {
     _timezoneNotice = null;
     _consent = null;
     _timezoneSync = null;
+    _cachedOverview = null;
+    _overviewPrefetch = null;
     _error = null;
     _phase = SessionPhase.idle;
     _deviceWork = _deviceWork.then((_) async {
@@ -108,6 +121,7 @@ class SessionController extends ChangeNotifier {
   void _onAuthChanged() {
     if (auth.status == AuthStatus.authenticated) return;
     _clearSession();
+    cache.clear();
     notifyListeners();
   }
 
@@ -126,6 +140,24 @@ class SessionController extends ChangeNotifier {
   bool _followPhoneTimezone = true;
   Future<bool>? _timezoneSync;
   String? _timezoneNotice;
+  HabitOverviewResponse? _cachedOverview;
+  Future<Result<HabitOverviewResponse>>? _overviewPrefetch;
+
+  /// Today's overview from the last launch (same day), taken once by the
+  /// dashboard so it can show Today before the fresh one arrives.
+  HabitOverviewResponse? takeCachedOverview() {
+    final o = _cachedOverview;
+    _cachedOverview = null;
+    return o;
+  }
+
+  /// The overview request bootstrap started alongside its own reads, taken
+  /// once by the dashboard's first load instead of starting another.
+  Future<Result<HabitOverviewResponse>>? takeOverviewPrefetch() {
+    final f = _overviewPrefetch;
+    _overviewPrefetch = null;
+    return f;
+  }
 
   SessionPhase get phase => _phase;
   Problem? get error => _error;
@@ -168,14 +200,30 @@ class SessionController extends ChangeNotifier {
 
     final claims = await auth.claims();
     if (generation != _generation) return;
-    _userId = claims?.sub;
+    final uid = _userId = claims?.sub;
+    LaunchTimeline.mark('bootstrap-claims');
+
+    // Saved today on this device: show Today now and refresh it behind the
+    // scenes. A failure below still lands on the error or onboarding screen.
+    if (uid != null) {
+      final snapshot = await cache.load(uid);
+      if (generation != _generation) return;
+      if (snapshot != null) {
+        _config = snapshot.config;
+        _cachedOverview = snapshot.overview;
+        LaunchTimeline.mark('bootstrap-cached');
+        _setPhase(SessionPhase.ready);
+      }
+    }
 
     // Fetch the access token first: if it's expired the SDK refreshes via the
     // refresh token, which also re-stores a fresh id_token. Reading idToken after
     // that means a mid-session expiry self-heals instead of sending a stale token
-    // to POST /User (zinc validates the id_token's lifetime).
+    // to POST /User (zinc validates the id_token's lifetime). It also means the
+    // parallel requests below all reuse that one fresh token.
     final accessToken = await auth.zincAccessToken();
     final idToken = await auth.idToken();
+    LaunchTimeline.mark('bootstrap-tokens');
     if (generation != _generation) return;
     if (idToken == null || accessToken == null) {
       return _fail(
@@ -188,11 +236,24 @@ class SessionController extends ChangeNotifier {
       );
     }
 
+    // The reads below don't depend on each other, and Today's overview doesn't
+    // depend on them, so they all start at once; only the 404 paths (first
+    // sign-in, no configuration yet) change what happens next.
+    // A saved Today already has its dashboard refreshing itself; a prefetch
+    // then would go unused, or be taken stale by a later reload.
+    if (uid != null && _phase != SessionPhase.ready) {
+      _overviewPrefetch = habits.overview(uid);
+    }
+    final meReq = users.me();
+    var cfgReq = configs.mine();
+    final consentReq = uid == null ? null : payments.consent(uid);
+    final followReq = timezonePreference.loadFollowPhone();
+
     // Ensure the zinc user exists. We check with GET /User/Me/All first rather than
     // blindly POSTing: POST /User is create-only (INSERT on the JWT sub) and throws a
     // server-side UniqueConstraintException + error log on every returning sign-in.
     // So: 200 ⇒ already provisioned; 404 ⇒ first sign-in, create now.
-    final me = await users.me();
+    final me = await meReq;
     if (generation != _generation) return;
     if (me case Err(:final problem)) {
       if (problem.status == 404) {
@@ -207,6 +268,9 @@ class SessionController extends ChangeNotifier {
         ) when p.status != 409 && !p.title.toLowerCase().contains('conflict')) {
           return _fail(p);
         }
+        // The parallel reads ran before the user existed; read again.
+        _overviewPrefetch = null;
+        cfgReq = configs.mine();
       } else {
         return _fail(problem);
       }
@@ -214,45 +278,39 @@ class SessionController extends ChangeNotifier {
 
     // Device-local preference; loaded before onboarding too so a hand-picked
     // onboarding timezone can turn it off.
-    final followPhone = await timezonePreference.loadFollowPhone();
+    final followPhone = await followReq;
     if (generation != _generation) return;
     _followPhoneTimezone = followPhone;
 
-    final cfg = await configs.mine();
+    final cfg = await cfgReq;
     if (generation != _generation) return;
     switch (cfg) {
       case Ok(:final value):
         _config = value.principal;
-        // Follow the phone before the app shows anything, so the dashboard's
-        // first load (and the reminders it plans) already uses the new timezone.
-        await syncDeviceTimezone();
+        // Follow the phone before Today's fresh load counts on it, so the
+        // dashboard (and the reminders it plans) uses the new timezone. When
+        // it moves, the prefetched overview is from the old one: drop it, and
+        // the dashboard reloads on the config change.
+        if (await syncDeviceTimezone()) _overviewPrefetch = null;
         if (generation != _generation) return;
-        // Load payment consent up front so the habit editor can gate staked
-        // habits synchronously (off `hasPaymentConsent`). Best-effort: a failure
-        // here leaves consent unknown but must not block reaching the app — the
-        // editor falls back to running the consent flow on demand.
-        await _loadConsent();
+        // Payment consent lets the habit editor gate staked habits
+        // synchronously (off `hasPaymentConsent`). Best-effort: a failure
+        // leaves consent unknown and the editor runs the consent flow on demand.
+        if (await consentReq case Ok(:final value)) _consent = value;
         if (generation != _generation) return;
+        final config = _config;
+        if (uid != null && config != null) cache.saveConfig(uid, config);
+        LaunchTimeline.mark('bootstrap-ready');
         _setPhase(SessionPhase.ready);
       case Err(:final problem):
         // 404 ⇒ no configuration yet ⇒ onboard. Anything else is a real error.
+        _overviewPrefetch = null;
         if (problem.status == 404) {
           _setPhase(SessionPhase.needsOnboarding);
         } else {
           _fail(problem);
         }
     }
-  }
-
-  /// Best-effort load of the payment consent into the cache (no notify; the caller
-  /// flips the phase). Tolerates failure — leaves the previous cache intact.
-  Future<void> _loadConsent() async {
-    final uid = _userId;
-    final generation = _generation;
-    if (uid == null) return;
-    final res = await payments.consent(uid);
-    if (generation != _generation) return;
-    if (res case Ok(:final value)) _consent = value;
   }
 
   /// Re-reads `GET /Payment/{userId}/consent` and refreshes the cached consent so
@@ -279,6 +337,8 @@ class SessionController extends ChangeNotifier {
   /// Called by onboarding once `POST /Configuration` succeeds.
   void onConfigured(ConfigurationPrincipalRes config) {
     _config = config;
+    final uid = _userId;
+    if (uid != null) cache.saveConfig(uid, config);
     _setPhase(SessionPhase.ready);
   }
 
@@ -294,6 +354,8 @@ class SessionController extends ChangeNotifier {
     switch (res) {
       case Ok(:final value):
         _config = value.principal;
+        final uid = _userId;
+        if (uid != null) cache.saveConfig(uid, value.principal);
         notifyListeners();
         return Ok(value.principal);
       case Err(:final problem):

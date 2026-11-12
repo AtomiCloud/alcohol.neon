@@ -1,4 +1,5 @@
 import '../core/problem.dart';
+import '../generated/zinc/models/plan_res.dart';
 import '../generated/zinc/models/subscription_cta_res.dart';
 import '../generated/zinc/models/subscription_res.dart';
 import '../generated/zinc/models/web_handoff_req.dart';
@@ -27,6 +28,16 @@ class SubscriptionRepository {
       '$_subscription/$userId/cta',
       (j) => SubscriptionCtaRes.fromJson(j as Map<String, Object?>),
       query: {'platform': platform, 'storefront': storefront},
+    );
+  }
+
+  /// Every plan with its limits (`GET /Subscription/plans`).
+  Future<Result<List<PlanRes>>> plans() {
+    return _api.get(
+      '$_subscription/plans',
+      (j) => (j as List)
+          .map((e) => PlanRes.fromJson(e as Map<String, Object?>))
+          .toList(),
     );
   }
 

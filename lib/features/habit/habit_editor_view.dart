@@ -230,6 +230,7 @@ class _HabitEditorViewState extends State<HabitEditorView> {
         builder: (_) => CharityPicker(
           repository: _session.charities,
           causeRepository: _session.causes,
+          selectedId: _charityId,
         ),
       ),
     );

@@ -5,6 +5,7 @@ import 'package:alcohol_neon/features/subscription/subscription_controller.dart'
 import 'package:alcohol_neon/features/subscription/subscription_view.dart';
 import 'package:alcohol_neon/networking/api_client.dart';
 import 'package:alcohol_neon/services/storefront_service.dart';
+import 'package:alcohol_neon/widgets/glass_list.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -52,7 +53,7 @@ void main() {
     final c = _controller('neutral', 'free');
     await _pump(tester, c);
 
-    expect(find.byType(FilledButton), findsNothing);
+    expect(find.byType(GlassButton), findsNothing);
     expect(find.byType(TextButton), findsNothing);
     // No steering or price-comparison language anywhere on screen.
     for (final banned in ['subscribe', 'web', 'browser', 'cheap', 'price']) {
@@ -74,8 +75,8 @@ void main() {
     await _pump(tester, c);
 
     expect(find.text('Manage subscription'), findsOneWidget);
-    expect(find.byType(FilledButton), findsOneWidget);
-    expect(find.text('Your current paid plan.'), findsOneWidget);
+    expect(find.byType(GlassButton), findsOneWidget);
+    expect(find.text('Pro plan'), findsOneWidget);
     expect(find.textContaining('renews automatically'), findsNothing);
     c.dispose();
   });
@@ -92,7 +93,7 @@ void main() {
     final c = _controller('upsell-v2', 'free');
     await _pump(tester, c);
 
-    expect(find.byType(FilledButton), findsNothing);
+    expect(find.byType(GlassButton), findsNothing);
     c.dispose();
   });
 
@@ -107,6 +108,9 @@ void main() {
         baseUrl: Uri.parse('https://zinc.test'),
         tokenProvider: () async => 'token',
         client: MockClient((req) async {
+          if (!req.url.path.endsWith('/cta')) {
+            return http.Response('[]', 200);
+          }
           calls++;
           final body = calls == 1
               ? {'variant': 'subscribe', 'tier': 'free'}

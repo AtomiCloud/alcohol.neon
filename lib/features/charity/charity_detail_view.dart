@@ -1,23 +1,31 @@
 import 'package:flutter/material.dart';
-import '../../widgets/app_loader.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/problem.dart';
 import '../../data/charity_repository.dart';
 import '../../generated/zinc/models/charity_principal_res.dart';
+import '../../theme/glass.dart';
+import '../../widgets/app_loader.dart';
+import '../../widgets/glass_list.dart';
+import '../../widgets/glass_modal.dart';
+import '../../widgets/glass_page.dart';
 
-/// Read-only charity detail (M4), reached by tapping a result in browse mode.
-/// Loads `GET /Charity/{id}` → `CharityRes.principal` and shows the mission,
-/// countries, registration info and — only when the scheme is http/https — a
-/// tappable website link (mirroring argon's website-scheme guard).
+/// Charity detail (M4): the mission, countries, registration and, only when
+/// the scheme is http/https, a website link (argon's website-scheme guard).
+/// Loads `GET /Charity/{id}` → `CharityRes.principal`.
+///
+/// With [choosable] (opened from the picker), a "Choose this charity" button
+/// sits at the bottom and pops `true`.
 class CharityDetailView extends StatefulWidget {
   final CharityRepository repository;
   final String charityId;
+  final bool choosable;
 
   const CharityDetailView({
     super.key,
     required this.repository,
     required this.charityId,
+    this.choosable = false,
   });
 
   @override
@@ -49,8 +57,8 @@ class _CharityDetailViewState extends State<CharityDetailView> {
     }
   }
 
-  /// Parses [raw] and returns it only if it's an http/https URL — otherwise null
-  /// (guards against `javascript:` and other unsafe schemes, like argon).
+  /// Parses [raw] and returns it only if it's an http/https URL, otherwise
+  /// null (guards against `javascript:` and other unsafe schemes, like argon).
   Uri? _safeWebsite(String? raw) {
     if (raw == null || raw.isEmpty) return null;
     final uri = Uri.tryParse(raw);
@@ -61,131 +69,139 @@ class _CharityDetailViewState extends State<CharityDetailView> {
 
   Future<void> _openWebsite(Uri uri) async {
     final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!ok && mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Could not open website')));
-    }
+    if (!ok && mounted) showGlassToast(context, 'Could not open the website');
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(_charity?.name ?? 'Charity')),
-      body: _body(),
+    final c = _charity;
+    // The card carries the full name, which may wrap; a long one would be cut
+    // off in the one-line title.
+    return GlassPage(
+      title: 'Charity',
+      dock: widget.choosable && c != null
+          ? GlassButton(
+              label: 'Choose this charity',
+              onPressed: () => Navigator.pop(context, true),
+            )
+          : null,
+      children: _body(c),
     );
   }
 
-  Widget _body() {
-    if (_error != null) {
-      return _ErrorRetry(problem: _error!, onRetry: _load);
+  List<Widget> _body(CharityPrincipalRes? c) {
+    if (_error case final error?) {
+      return [
+        GlassBanner(
+          icon: Icons.cloud_off_rounded,
+          title: error.title,
+          body: error.detail,
+          error: true,
+          action: TextButton(onPressed: _load, child: const Text('Retry')),
+        ),
+      ];
     }
-    final c = _charity;
-    if (c == null) {
-      return const AppLoader();
-    }
+    if (c == null) return const [SizedBox(height: 320, child: AppLoader())];
 
     final theme = Theme.of(context);
+    final t = GlassTokens.of(context);
     final countries = (c.countries ?? const []).join(', ');
     final website = _safeWebsite(c.websiteUrl);
+    final facts = [
+      if (countries.isNotEmpty) (Icons.public_rounded, 'Countries', countries),
+      if ((c.primaryRegistrationNumber ?? '').isNotEmpty)
+        (
+          Icons.badge_outlined,
+          'Registration number',
+          c.primaryRegistrationNumber!,
+        ),
+      if ((c.primaryRegistrationCountry ?? '').isNotEmpty)
+        (Icons.flag_outlined, 'Registered in', c.primaryRegistrationCountry!),
+    ];
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Text(c.name ?? 'Unnamed charity', style: theme.textTheme.headlineSmall),
-        const SizedBox(height: 12),
-        if ((c.mission ?? '').isNotEmpty) ...[
-          Text(c.mission!, style: theme.textTheme.bodyMedium),
-          const SizedBox(height: 16),
-        ],
-        if (countries.isNotEmpty)
-          _DetailRow(icon: Icons.public, label: 'Countries', value: countries),
-        if ((c.primaryRegistrationNumber ?? '').isNotEmpty)
-          _DetailRow(
-            icon: Icons.badge_outlined,
-            label: 'Registration number',
-            value: c.primaryRegistrationNumber!,
+    return [
+      const SizedBox(height: 4),
+      Glass(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CharityLogo(url: c.logoUrl, size: 56),
+            const SizedBox(height: 14),
+            Text(
+              c.name ?? 'Unnamed charity',
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            if ((c.mission ?? '').isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                c.mission!,
+                style: theme.textTheme.bodyMedium?.copyWith(height: 1.4),
+              ),
+            ],
+          ],
+        ),
+      ),
+      if (facts.isNotEmpty)
+        GlassSection(
+          title: 'About',
+          children: [
+            for (final (icon, label, value) in facts)
+              GlassRow(leading: Icon(icon), title: label, subtitle: value),
+          ],
+        ),
+      if (website != null) ...[
+        const SizedBox(height: 16),
+        Glass(
+          child: GlassRow(
+            leading: Icon(Icons.open_in_new_rounded, color: t.accent),
+            title: 'Visit website',
+            accent: true,
+            chevron: false,
+            onTap: () => _openWebsite(website),
           ),
-        if ((c.primaryRegistrationCountry ?? '').isNotEmpty)
-          _DetailRow(
-            icon: Icons.flag_outlined,
-            label: 'Registration country',
-            value: c.primaryRegistrationCountry!,
-          ),
-        if (website != null) ...[
-          const SizedBox(height: 16),
-          OutlinedButton.icon(
-            icon: const Icon(Icons.open_in_new, size: 18),
-            label: const Text('Visit website'),
-            onPressed: () => _openWebsite(website),
-          ),
-        ],
+        ),
       ],
-    );
+    ];
   }
 }
 
-class _DetailRow extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  const _DetailRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
+/// A charity's round logo, or a heart when it has none or it fails to load
+/// (some logoUrls return HTML or a 404).
+class CharityLogo extends StatelessWidget {
+  final String? url;
+  final double size;
+  const CharityLogo({super.key, required this.url, this.size = 40});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 20, color: theme.colorScheme.onSurfaceVariant),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                Text(value, style: theme.textTheme.bodyMedium),
-              ],
-            ),
-          ),
-        ],
+    final t = GlassTokens.of(context);
+    final fallback = DecoratedBox(
+      decoration: BoxDecoration(color: t.track, shape: BoxShape.circle),
+      child: SizedBox.square(
+        dimension: size,
+        child: Icon(
+          Icons.volunteer_activism_rounded,
+          size: size * 0.5,
+          color: t.muted,
+        ),
       ),
     );
-  }
-}
-
-class _ErrorRetry extends StatelessWidget {
-  final Problem problem;
-  final VoidCallback onRetry;
-  const _ErrorRetry({required this.problem, required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(problem.title, style: Theme.of(context).textTheme.titleMedium),
-            if (problem.detail != null) ...[
-              const SizedBox(height: 8),
-              Text(problem.detail!, textAlign: TextAlign.center),
-            ],
-            const SizedBox(height: 16),
-            FilledButton(onPressed: onRetry, child: const Text('Retry')),
-          ],
+    final u = url;
+    if (u == null || u.isEmpty) return fallback;
+    return ClipOval(
+      child: Container(
+        width: size,
+        height: size,
+        color: Colors.white,
+        child: Image.network(
+          u,
+          width: size,
+          height: size,
+          fit: BoxFit.contain,
+          errorBuilder: (_, _, _) => fallback,
         ),
       ),
     );

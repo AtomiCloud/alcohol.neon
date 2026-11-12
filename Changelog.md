@@ -1,3 +1,10 @@
+## [1.22.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.21.0...v1.22.0) (2026-11-12)
+
+
+### ✨ Features ✨
+
+* set up Strava and NFC proof from New habit ([bfe29f8](https://github.com/AtomiCloud/alcohol.neon/commit/bfe29f88955a2b0b63e06a7700828d8eb2056c6f))
+
 ## [1.21.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.20.0...v1.21.0) (2026-11-12)
 
 

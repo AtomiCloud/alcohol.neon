@@ -257,7 +257,7 @@ class _CharityBrowseState extends State<CharityBrowse> {
           title: error.title,
           body: error.detail,
           error: true,
-          action: TextButton(onPressed: _search, child: const Text('Retry')),
+          action: GlassTextButton(label: 'Retry', onPressed: _search),
         ),
       ];
     }

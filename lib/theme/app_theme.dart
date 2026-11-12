@@ -146,6 +146,16 @@ class AppTheme {
 
   static ThemeData _base(ColorScheme scheme, {required Color scaffold}) {
     final isLight = scheme.brightness == Brightness.light;
+    // Android's dialogs, time picker and menus share the glass sheet's
+    // surface and the emerald accent (iOS uses sheets and action sheets).
+    final sheet = isLight ? const Color(0xF7F2F2F7) : const Color(0xF51C1C1E);
+    final accent = isLight ? _accent : _accentDark;
+    final onAccent = isLight ? Colors.white : const Color(0xFF052E1B);
+    final track = isLight ? const Color(0x14000000) : const Color(0x1FFFFFFF);
+    final muted = isLight ? const Color(0x9E3C3C43) : const Color(0x9EEBEBF5);
+    Color selected(Color on, Color off) => WidgetStateColor.resolveWith(
+      (s) => s.contains(WidgetState.selected) ? on : off,
+    );
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
@@ -251,6 +261,38 @@ class AppTheme {
         trackColor: WidgetStateProperty.resolveWith(
           (s) => s.contains(WidgetState.selected) ? scheme.primary : null,
         ),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: sheet,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      ),
+      timePickerTheme: TimePickerThemeData(
+        backgroundColor: sheet,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        dialHandColor: accent,
+        dialBackgroundColor: track,
+        dialTextColor: selected(onAccent, scheme.onSurface),
+        hourMinuteColor: selected(accent.withValues(alpha: 0.18), track),
+        hourMinuteTextColor: selected(accent, scheme.onSurface),
+        dayPeriodColor: selected(
+          accent.withValues(alpha: 0.18),
+          Colors.transparent,
+        ),
+        dayPeriodTextColor: selected(accent, scheme.onSurface),
+        dayPeriodBorderSide: BorderSide(color: track),
+        entryModeIconColor: muted,
+        helpTextStyle: TextStyle(color: muted, fontWeight: FontWeight.w600),
+        cancelButtonStyle: TextButton.styleFrom(foregroundColor: muted),
+        confirmButtonStyle: TextButton.styleFrom(foregroundColor: accent),
+      ),
+      popupMenuTheme: PopupMenuThemeData(
+        color: sheet,
+        surfaceTintColor: Colors.transparent,
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,

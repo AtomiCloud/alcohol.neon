@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../widgets/glass_modal.dart';
 
+import '../../theme/glass.dart';
 import '../../widgets/glass_list.dart';
 import 'package:provider/provider.dart';
 
@@ -194,24 +195,26 @@ class _StravaProofTileState extends State<StravaProofTile> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    const leading = Icon(Icons.directions_run_rounded, color: stravaOrange);
     switch (_phase) {
       case _Phase.hidden:
         return const SizedBox.shrink();
       case _Phase.loading:
-        return const GlassCard(
-          child: ListTile(
-            leading: Icon(Icons.directions_run, color: stravaOrange),
-            title: Text('Complete with Strava'),
-            subtitle: LinearProgressIndicator(),
+        return const Glass(
+          child: GlassRow(
+            leading: leading,
+            title: 'Complete with Strava',
+            subtitle: 'Loading…',
+            trailing: _Spinner(),
           ),
         );
       case _Phase.error:
-        return GlassCard(
-          child: ListTile(
-            leading: const Icon(Icons.directions_run, color: stravaOrange),
-            title: const Text('Complete with Strava'),
-            subtitle: Text(_error?.displayMessage ?? 'Could not load'),
-            trailing: TextButton(onPressed: _load, child: const Text('Retry')),
+        return Glass(
+          child: GlassRow(
+            leading: leading,
+            title: 'Complete with Strava',
+            subtitle: _error?.displayMessage ?? 'Could not load',
+            trailing: GlassTextButton(label: 'Retry', onPressed: _load),
           ),
         );
       case _Phase.ready:
@@ -222,16 +225,28 @@ class _StravaProofTileState extends State<StravaProofTile> {
     final bound = _bound.isNotEmpty;
     final String subtitle;
     final VoidCallback? onTap;
-    Widget? trailing = const Icon(Icons.chevron_right);
+    Widget? trailing;
     if (bound) {
       subtitle =
           'Checks off when you record: '
           '${_bound.map(sportTypeLabel).join(', ')}';
       onTap = _saving ? null : _pick;
-      trailing = IconButton(
-        tooltip: 'Stop using Strava',
-        icon: const Icon(Icons.close),
-        onPressed: _saving ? null : () => _save(const []),
+      trailing = Semantics(
+        button: true,
+        label: 'Stop using Strava',
+        excludeSemantics: true,
+        child: Pressable(
+          onTap: _saving ? null : () => _save(const []),
+          scale: 0.9,
+          child: Padding(
+            padding: const EdgeInsets.all(6),
+            child: Icon(
+              Icons.close_rounded,
+              size: 20,
+              color: GlassTokens.of(context).muted,
+            ),
+          ),
+        ),
       );
     } else if (!allowed) {
       subtitle =
@@ -246,28 +261,24 @@ class _StravaProofTileState extends State<StravaProofTile> {
       onTap = _saving ? null : _pick;
     }
 
-    return GlassCard(
+    return Glass(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ListTile(
+          GlassRow(
             leading: Icon(
-              allowed ? Icons.directions_run : Icons.lock_outline,
+              allowed ? Icons.directions_run_rounded : Icons.lock_outline,
               color: stravaOrange,
             ),
-            title: const Text('Complete with Strava'),
-            subtitle: Text(subtitle),
-            trailing: _saving
-                ? const SizedBox.square(
-                    dimension: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : trailing,
+            title: 'Complete with Strava',
+            subtitle: subtitle,
+            trailing: _saving ? const _Spinner() : trailing,
+            chevron: trailing == null && !_saving,
             onTap: onTap,
           ),
           if (_saveError != null)
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              padding: const EdgeInsets.fromLTRB(54, 0, 4, 8),
               child: Row(
                 children: [
                   Expanded(
@@ -279,15 +290,9 @@ class _StravaProofTileState extends State<StravaProofTile> {
                     ),
                   ),
                   if (_saveErrorIsTier)
-                    TextButton(
-                      onPressed: _openPlans,
-                      child: const Text('See plans'),
-                    )
+                    GlassTextButton(label: 'See plans', onPressed: _openPlans)
                   else if (!_connected)
-                    TextButton(
-                      onPressed: _openStrava,
-                      child: const Text('Connect'),
-                    ),
+                    GlassTextButton(label: 'Connect', onPressed: _openStrava),
                 ],
               ),
             ),
@@ -295,6 +300,19 @@ class _StravaProofTileState extends State<StravaProofTile> {
       ),
     );
   }
+}
+
+class _Spinner extends StatelessWidget {
+  const _Spinner();
+
+  @override
+  Widget build(BuildContext context) => SizedBox.square(
+    dimension: 18,
+    child: CircularProgressIndicator(
+      strokeWidth: 2,
+      color: GlassTokens.of(context).muted,
+    ),
+  );
 }
 
 /// Multi-select of Strava sport types; pops the picked list (in [options]
@@ -325,31 +343,38 @@ class _SportTypeSheetState extends State<_SportTypeSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Activities that count', style: theme.textTheme.titleLarge),
+              Text(
+                'Activities that count',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               const SizedBox(height: 4),
               Text(
                 'A recorded Strava activity of any of these types, of any '
                 'length, completes the habit for the day. You can still check '
                 'in by hand.',
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+                  color: GlassTokens.of(context).muted,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               Flexible(
                 child: widget.options.isEmpty
                     ? const Text('Could not read Strava’s activity types.')
                     : SingleChildScrollView(
                         child: Wrap(
                           spacing: 8,
-                          runSpacing: 4,
+                          runSpacing: 8,
                           children: [
                             for (final t in widget.options)
-                              FilterChip(
-                                label: Text(sportTypeLabel(t)),
-                                selected: _picked.contains(t),
-                                onSelected: (on) => setState(
-                                  () => on ? _picked.add(t) : _picked.remove(t),
+                              GlassPill(
+                                label: sportTypeLabel(t),
+                                on: _picked.contains(t),
+                                onTap: () => setState(
+                                  () => _picked.contains(t)
+                                      ? _picked.remove(t)
+                                      : _picked.add(t),
                                 ),
                               ),
                           ],
@@ -357,17 +382,14 @@ class _SportTypeSheetState extends State<_SportTypeSheet> {
                       ),
               ),
               const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: _picked.isEmpty
-                      ? null
-                      : () => Navigator.of(context).pop([
-                          for (final t in widget.options)
-                            if (_picked.contains(t)) t,
-                        ]),
-                  child: const Text('Use Strava'),
-                ),
+              GlassButton(
+                label: 'Use Strava',
+                onPressed: _picked.isEmpty
+                    ? null
+                    : () => Navigator.of(context).pop([
+                        for (final t in widget.options)
+                          if (_picked.contains(t)) t,
+                      ]),
               ),
             ],
           ),

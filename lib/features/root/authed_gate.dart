@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../widgets/app_loader.dart';
+import '../../widgets/glass_list.dart';
 import 'package:provider/provider.dart';
 
 import '../../auth/auth_service.dart';
@@ -50,36 +51,23 @@ class _BootstrapError extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final problem = session.error;
-    return Scaffold(
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                problem?.title ?? 'Something went wrong',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              if (problem?.detail != null) ...[
-                const SizedBox(height: 8),
-                Text(problem!.detail!, textAlign: TextAlign.center),
-              ],
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: session.bootstrap,
-                child: const Text('Try again'),
-              ),
-              const SizedBox(height: 4),
-              // Escape hatch when the failure is auth-related (e.g. an expired
-              // token that "Try again" can't recover) — re-authenticate.
-              TextButton(
-                onPressed: () => context.read<AuthService>().signOut(),
-                child: const Text('Sign out'),
-              ),
-            ],
+    return GlassMessageScreen(
+      message: GlassMessage(
+        icon: Icons.cloud_off_rounded,
+        tint: Theme.of(context).colorScheme.error,
+        title: problem?.title ?? 'Something went wrong',
+        body: problem?.detail,
+        actions: [
+          GlassButton(label: 'Try again', onPressed: session.bootstrap),
+          const SizedBox(height: 4),
+          // Escape hatch when the failure is auth-related (e.g. an expired
+          // token that "Try again" can't recover) — re-authenticate.
+          GlassTextButton(
+            label: 'Sign out',
+            muted: true,
+            onPressed: () => context.read<AuthService>().signOut(),
           ),
-        ),
+        ],
       ),
     );
   }

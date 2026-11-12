@@ -4,6 +4,9 @@ import 'package:provider/provider.dart';
 import '../../core/problem.dart';
 import '../../data/nfc_tag_repository.dart';
 import '../../session/session_controller.dart';
+import '../../theme/glass.dart';
+import '../../widgets/glass_list.dart';
+import '../../widgets/glass_page.dart';
 import 'habit_schedule.dart';
 
 /// Landing screen for a tag tap (plan Flow 2): resolve the tag, then either
@@ -71,7 +74,7 @@ class _TapCompleteViewState extends State<TapCompleteView> {
                   type: 'neon:nfc',
                   detail:
                       "This tag isn't linked to any of your habits. "
-                      'Link it from a habit, or scan it from Dashboard → NFC tags.',
+                      'Link it from a habit, or scan it from Profile → NFC tags.',
                 )
               : problem;
         });
@@ -135,81 +138,82 @@ class _TapCompleteViewState extends State<TapCompleteView> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final t = GlassTokens.of(context);
     final name = _habitName ?? 'your habit';
 
     final (
       IconData icon,
-      Color? color,
+      Color? tint,
       String title,
       String? body,
     ) = switch (_phase) {
-      _Phase.working => (Icons.nfc, null, 'Checking your tag…', null),
+      _Phase.working => (
+        Icons.nfc_rounded,
+        t.accent,
+        'Checking your tag…',
+        null,
+      ),
       _Phase.done => (
-        Icons.check_circle,
-        Colors.green,
+        Icons.check_rounded,
+        t.accent,
         'Done!',
         '"$name" is completed for today. See you tomorrow 👋',
       ),
       _Phase.alreadyDone => (
-        Icons.thumb_up,
-        Colors.green,
+        Icons.thumb_up_rounded,
+        t.accent,
         'Already done today',
         '"$name" was already completed — nothing more to do.',
       ),
       _Phase.notScheduled => (
-        Icons.event_available,
+        Icons.event_available_rounded,
         null,
         'Rest day',
         '"$name" isn\'t scheduled today. Enjoy the break!',
       ),
       _Phase.otherStatus => (
-        Icons.info_outline,
+        Icons.info_outline_rounded,
         null,
         'Nothing to do',
         _statusLabel,
       ),
       _Phase.error => (
-        Icons.error_outline,
+        Icons.error_outline_rounded,
         theme.colorScheme.error,
         _problem?.title ?? 'Something went wrong',
         _problem?.detail,
       ),
     };
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('NFC tag')),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (_phase == _Phase.working)
-                const CircularProgressIndicator()
-              else
-                Icon(icon, size: 64, color: color),
-              const SizedBox(height: 16),
-              Text(
-                title,
-                style: theme.textTheme.titleLarge,
-                textAlign: TextAlign.center,
+    return GlassPage(
+      title: 'NFC tag',
+      children: [
+        const SizedBox(height: 16),
+        GlassMessage(
+          icon: icon,
+          tint: tint,
+          visual: _phase == _Phase.working
+              ? SizedBox.square(
+                  dimension: 30,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 3,
+                    color: t.accent,
+                  ),
+                )
+              : null,
+          title: title,
+          body: body,
+          actions: [
+            if (_phase == _Phase.error)
+              GlassButton(label: 'Try again', onPressed: _run)
+            else if (_phase != _Phase.working)
+              GlassButton(
+                label: 'Back to dashboard',
+                onPressed: () => Navigator.of(context).pop(),
               ),
-              if (body != null) ...[
-                const SizedBox(height: 8),
-                Text(body, textAlign: TextAlign.center),
-              ],
-              const SizedBox(height: 24),
-              if (_phase == _Phase.error)
-                FilledButton(onPressed: _run, child: const Text('Try again'))
-              else if (_phase != _Phase.working)
-                FilledButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Back to dashboard'),
-                ),
-            ],
-          ),
+          ],
         ),
-      ),
+      ],
     );
   }
 }

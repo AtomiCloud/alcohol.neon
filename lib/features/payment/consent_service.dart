@@ -320,10 +320,10 @@ class ConsentExplainer extends StatelessWidget {
               onPressed: () => Navigator.pop(context, true),
             ),
             const SizedBox(height: 4),
-            TextButton(
+            GlassTextButton(
+              label: 'Not now',
+              muted: true,
               onPressed: () => Navigator.pop(context, false),
-              style: TextButton.styleFrom(foregroundColor: t.muted),
-              child: const Text('Not now'),
             ),
           ],
         ),

@@ -326,9 +326,7 @@ class _SettingsViewState extends State<SettingsView> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const AmbientBackdrop(
-        child: Scaffold(backgroundColor: Colors.transparent, body: AppLoader()),
-      );
+      return const GlassLoadingScreen();
     }
     return GlassPage(
       title: 'Settings',
@@ -339,10 +337,7 @@ class _SettingsViewState extends State<SettingsView> {
                 title: _loadError!.title,
                 body: _loadError!.detail,
                 error: true,
-                action: TextButton(
-                  onPressed: _load,
-                  child: const Text('Retry'),
-                ),
+                action: GlassTextButton(label: 'Retry', onPressed: _load),
               ),
             ]
           : _content(context),
@@ -369,10 +364,7 @@ class _SettingsViewState extends State<SettingsView> {
           icon: Icons.public_off_rounded,
           title: 'Timezone list unavailable',
           body: timezoneDiscoveryNotice,
-          action: TextButton(
-            onPressed: _loadTimezones,
-            child: const Text('Retry'),
-          ),
+          action: GlassTextButton(label: 'Retry', onPressed: _loadTimezones),
         ),
       GlassSection(
         title: 'Timezone',

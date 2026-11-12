@@ -84,7 +84,7 @@ class _FriendsScaffoldState extends State<_FriendsScaffold> {
             icon: Icons.cloud_off_rounded,
             title: c.error?.displayMessage ?? 'Could not load friends',
             error: true,
-            action: TextButton(onPressed: c.load, child: const Text('Retry')),
+            action: GlassTextButton(label: 'Retry', onPressed: c.load),
           ),
         ],
         FriendsPhase.ready => _content(context, c),
@@ -415,10 +415,9 @@ class _InviteCard extends StatelessWidget {
             ),
           const SizedBox(height: 4),
           Center(
-            child: TextButton(
+            child: GlassTextButton(
+              label: 'Have a code? Enter it',
               onPressed: () => _enterCode(context),
-              style: TextButton.styleFrom(foregroundColor: t.accent),
-              child: const Text('Have a code? Enter it'),
             ),
           ),
         ],
@@ -504,10 +503,9 @@ class _InviteCodeSheetState extends State<_InviteCodeSheet> {
                   enabledBorder: InputBorder.none,
                   focusedBorder: InputBorder.none,
                   filled: false,
-                  suffixIcon: TextButton(
+                  suffixIcon: GlassTextButton(
+                    label: 'Paste',
                     onPressed: _paste,
-                    style: TextButton.styleFrom(foregroundColor: t.accent),
-                    child: const Text('Paste'),
                   ),
                 ),
               ),

@@ -114,7 +114,7 @@ class _SubscriptionViewState extends State<SubscriptionView>
           title: error.title,
           body: error.detail,
           error: true,
-          action: TextButton(onPressed: c.load, child: const Text('Retry')),
+          action: GlassTextButton(label: 'Retry', onPressed: c.load),
         ),
       ];
     }

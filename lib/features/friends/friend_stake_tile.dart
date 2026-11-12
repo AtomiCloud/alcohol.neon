@@ -98,55 +98,50 @@ class _FriendStakeTileState extends State<FriendStakeTile> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    const title = Text('Tell my friends if I miss');
+    const title = 'Tell my friends if I miss';
     const icon = Icon(Icons.campaign_outlined);
     switch (_phase) {
       case _Phase.hidden:
         return const SizedBox.shrink();
       case _Phase.loading:
-        return const GlassCard(
-          child: ListTile(
+        return const Glass(
+          child: GlassRow(
             leading: icon,
             title: title,
-            subtitle: LinearProgressIndicator(),
+            subtitle: 'Loading…',
+            trailing: _Spinner(),
           ),
         );
       case _Phase.error:
-        return GlassCard(
-          child: ListTile(
+        return Glass(
+          child: GlassRow(
             leading: icon,
             title: title,
-            subtitle: Text(_error?.displayMessage ?? 'Could not load'),
-            trailing: TextButton(onPressed: _load, child: const Text('Retry')),
+            subtitle: _error?.displayMessage ?? 'Could not load',
+            trailing: GlassTextButton(label: 'Retry', onPressed: _load),
           ),
         );
       case _Phase.ready:
         break;
     }
     final names = _watchers.map((w) => w.username).join(', ');
-    return GlassCard(
+    return Glass(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ListTile(
+          GlassRow(
             leading: icon,
             title: title,
-            subtitle: Text(
-              _watchers.isEmpty
-                  ? 'Off'
-                  : 'Telling ${_watchers.length == 1 ? names : '${_watchers.length} friends: $names'}',
-            ),
-            trailing: _saving
-                ? const SizedBox.square(
-                    dimension: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.chevron_right),
+            subtitle: _watchers.isEmpty
+                ? 'Off'
+                : 'Telling ${_watchers.length == 1 ? names : '${_watchers.length} friends: $names'}',
+            trailing: _saving ? const _Spinner() : null,
+            chevron: !_saving,
             onTap: _saving ? null : _edit,
           ),
           if (_saveError != null)
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              padding: const EdgeInsets.fromLTRB(54, 0, 16, 12),
               child: Text(
                 _saveError!.displayMessage,
                 style: theme.textTheme.bodySmall?.copyWith(
@@ -158,6 +153,19 @@ class _FriendStakeTileState extends State<FriendStakeTile> {
       ),
     );
   }
+}
+
+class _Spinner extends StatelessWidget {
+  const _Spinner();
+
+  @override
+  Widget build(BuildContext context) => SizedBox.square(
+    dimension: 18,
+    child: CircularProgressIndicator(
+      strokeWidth: 2,
+      color: GlassTokens.of(context).muted,
+    ),
+  );
 }
 
 /// Pick up to [FriendStakeRepository.maxWatchers] friends; pops their ids
@@ -192,28 +200,32 @@ class _WatcherSheetState extends State<_WatcherSheet> {
     final theme = Theme.of(context);
     const max = FriendStakeRepository.maxWatchers;
     final muted = theme.textTheme.bodySmall?.copyWith(
-      color: theme.colorScheme.onSurfaceVariant,
+      color: GlassTokens.of(context).muted,
     );
     final Widget list = switch (_friends) {
       null => const Padding(
         padding: EdgeInsets.all(24),
-        child: Center(child: CircularProgressIndicator()),
+        child: Center(child: _Spinner()),
       ),
-      Err(:final problem) => ListTile(
-        title: Text(problem.displayMessage),
-        trailing: TextButton(onPressed: _fetch, child: const Text('Retry')),
+      Err(:final problem) => GlassBanner(
+        icon: Icons.error_outline_rounded,
+        title: problem.displayMessage,
+        error: true,
+        action: GlassTextButton(label: 'Retry', onPressed: _fetch),
       ),
-      Ok(:final value) when value.isEmpty => ListTile(
-        leading: const Icon(Icons.group_add_outlined),
-        title: const Text('Add friends first'),
-        subtitle: const Text('Only friends can be told.'),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: () {
-          Navigator.of(context).pop();
-          Navigator.of(
-            context,
-          ).push(MaterialPageRoute(builder: (_) => const FriendsView()));
-        },
+      Ok(:final value) when value.isEmpty => Glass(
+        child: GlassRow(
+          leading: const Icon(Icons.group_add_outlined),
+          title: 'Add friends first',
+          subtitle: 'Only friends can be told.',
+          chevron: true,
+          onTap: () {
+            Navigator.of(context).pop();
+            Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const FriendsView()));
+          },
+        ),
       ),
       Ok(:final value) => Glass(
         child: ListView.separated(
@@ -274,7 +286,9 @@ class _WatcherSheetState extends State<_WatcherSheet> {
             children: [
               Text(
                 'Tell my friends if I miss',
-                style: theme.textTheme.titleLarge,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: 4),
               Text(

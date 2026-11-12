@@ -334,6 +334,164 @@ class GlassButton extends StatelessWidget {
   }
 }
 
+/// A text-only action, such as Retry in a [GlassBanner] or Not now under a
+/// [GlassButton]: emerald text ([muted] grey, [destructive] red) that shrinks
+/// while pressed, with no ripple, on both platforms.
+class GlassTextButton extends StatelessWidget {
+  final String label;
+  final VoidCallback? onPressed;
+  final bool muted;
+  final bool destructive;
+  const GlassTextButton({
+    super.key,
+    required this.label,
+    required this.onPressed,
+    this.muted = false,
+    this.destructive = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final t = GlassTokens.of(context);
+    final enabled = onPressed != null;
+    final color = destructive
+        ? theme.colorScheme.error
+        : muted
+        ? t.muted
+        : t.accent;
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      label: label,
+      excludeSemantics: true,
+      child: Pressable(
+        onTap: onPressed,
+        scale: 0.94,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 44, minWidth: 44),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Center(
+              widthFactor: 1,
+              child: Opacity(
+                opacity: enabled ? 1 : 0.45,
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: color,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A centered glass card for a state that fills a screen, such as an empty
+/// list, a load error or the result of an NFC tap: [visual] (an icon in a
+/// tinted circle by default), a title, a muted [body] and its actions.
+class GlassMessage extends StatelessWidget {
+  final IconData icon;
+
+  /// The circle's tint: emerald for success, red for an error, grey when null.
+  final Color? tint;
+
+  /// Replaces the icon, such as a spinner while working.
+  final Widget? visual;
+  final String title;
+  final String? body;
+
+  /// Usually one [GlassButton], then an optional [GlassTextButton].
+  final List<Widget> actions;
+  const GlassMessage({
+    super.key,
+    required this.icon,
+    required this.title,
+    this.tint,
+    this.visual,
+    this.body,
+    this.actions = const [],
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final t = GlassTokens.of(context);
+    final color = tint ?? t.muted;
+    return Glass(
+      radius: const BorderRadius.all(Radius.circular(28)),
+      padding: const EdgeInsets.fromLTRB(20, 32, 20, 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Container(
+              width: 72,
+              height: 72,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: color.withValues(alpha: 0.14),
+              ),
+              child: visual ?? Icon(icon, size: 36, color: color),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          if (body != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              body!,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(color: t.muted),
+            ),
+          ],
+          if (actions.isNotEmpty) ...[
+            const SizedBox(height: 24),
+            for (final a in actions) Center(child: a),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// A whole screen holding one [GlassMessage] on the glass backdrop, such as
+/// the sign-in or session error with Try again.
+class GlassMessageScreen extends StatelessWidget {
+  final GlassMessage message;
+  const GlassMessageScreen({super.key, required this.message});
+
+  @override
+  Widget build(BuildContext context) => AmbientBackdrop(
+    child: Scaffold(
+      backgroundColor: Colors.transparent,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: message,
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 /// A glass notice at the top of a page's content, such as an error with a
 /// retry. The same banner Today uses.
 class GlassBanner extends StatelessWidget {

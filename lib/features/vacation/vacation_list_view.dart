@@ -84,7 +84,7 @@ class _VacationPageState extends State<_VacationPage> {
             icon: Icons.cloud_off_rounded,
             title: c.error?.displayMessage ?? 'Could not load vacations',
             error: true,
-            action: TextButton(onPressed: c.load, child: const Text('Retry')),
+            action: GlassTextButton(label: 'Retry', onPressed: c.load),
           ),
         ],
         VacationPhase.ready => _content(c),

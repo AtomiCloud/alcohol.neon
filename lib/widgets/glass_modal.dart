@@ -116,19 +116,30 @@ void showGlassToast(
 /// A bottom sheet in the glass style, such as the stake keypad: a frosted
 /// surface with a grabber, attached to the bottom edge. The surface follows
 /// the theme while open, so a switch to dark or light mode repaints it.
-Future<T?> showGlassSheet<T>(BuildContext context, WidgetBuilder builder) {
+/// With [dismissible] false it stays until the app pops it, such as the NFC
+/// "hold near the tag" sheet; [routeSettings] names it for that pop.
+Future<T?> showGlassSheet<T>(
+  BuildContext context,
+  WidgetBuilder builder, {
+  bool dismissible = true,
+  RouteSettings? routeSettings,
+}) {
   return showModalBottomSheet<T>(
     context: context,
     isScrollControlled: true,
+    isDismissible: dismissible,
+    enableDrag: dismissible,
+    routeSettings: routeSettings,
     elevation: 0,
     backgroundColor: Colors.transparent,
-    builder: (ctx) => _SheetSurface(child: builder(ctx)),
+    builder: (ctx) => _SheetSurface(grabber: dismissible, child: builder(ctx)),
   );
 }
 
 class _SheetSurface extends StatelessWidget {
   final Widget child;
-  const _SheetSurface({required this.child});
+  final bool grabber;
+  const _SheetSurface({required this.child, required this.grabber});
 
   @override
   Widget build(BuildContext context) {
@@ -143,20 +154,24 @@ class _SheetSurface extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // The same grabber as Material's drag handle.
-          Center(
-            child: Container(
-              margin: const EdgeInsets.symmetric(vertical: 22),
-              width: 32,
-              height: 4,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.onSurfaceVariant.withValues(
-                  alpha: 0.4,
+          // The same grabber as Material's drag handle; none when it can't
+          // be dragged away.
+          if (!grabber)
+            const SizedBox(height: 28)
+          else
+            Center(
+              child: Container(
+                margin: const EdgeInsets.symmetric(vertical: 22),
+                width: 32,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.4,
+                  ),
+                  borderRadius: BorderRadius.circular(2),
                 ),
-                borderRadius: BorderRadius.circular(2),
               ),
             ),
-          ),
           Flexible(child: child),
         ],
       ),

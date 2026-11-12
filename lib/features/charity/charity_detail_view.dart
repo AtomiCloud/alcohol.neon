@@ -97,7 +97,7 @@ class _CharityDetailViewState extends State<CharityDetailView> {
           title: error.title,
           body: error.detail,
           error: true,
-          action: TextButton(onPressed: _load, child: const Text('Retry')),
+          action: GlassTextButton(label: 'Retry', onPressed: _load),
         ),
       ];
     }

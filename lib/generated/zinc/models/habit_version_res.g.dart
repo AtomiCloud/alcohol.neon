@@ -11,7 +11,6 @@ HabitVersionRes _$HabitVersionResFromJson(Map<String, dynamic> json) =>
       id: json['id'] as String,
       habitId: json['habitId'] as String,
       version: (json['version'] as num).toInt(),
-      charityId: json['charityId'] as String,
       task: json['task'] as String?,
       daysOfWeek: (json['daysOfWeek'] as List<dynamic>?)
           ?.map((e) => e as String)
@@ -19,6 +18,7 @@ HabitVersionRes _$HabitVersionResFromJson(Map<String, dynamic> json) =>
       notificationTime: json['notificationTime'] as String?,
       stake: json['stake'] as String?,
       ratio: json['ratio'] as String?,
+      charityId: json['charityId'] as String?,
       timezone: json['timezone'] as String?,
       deadlineTime: json['deadlineTime'] as String?,
     );

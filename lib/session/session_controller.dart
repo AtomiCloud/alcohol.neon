@@ -26,10 +26,10 @@ import 'session_cache.dart';
 import 'timezone_preference.dart';
 
 /// Where the signed-in user is in the bootstrap → configured journey.
-enum SessionPhase { idle, bootstrapping, needsOnboarding, ready, error }
+enum SessionPhase { idle, bootstrapping, ready, error }
 
 /// Runs the post-sign-in bootstrap (plan §6A): provision the zinc user, then load
-/// configuration — routing to onboarding when absent. Owns the zinc repositories so
+/// configuration, creating it on first sign-in. Owns the zinc repositories so
 /// features share one [ApiClient]. Provided after [AuthService] (see main.dart).
 class SessionController extends ChangeNotifier {
   final AuthService auth;
@@ -204,7 +204,7 @@ class SessionController extends ChangeNotifier {
     LaunchTimeline.mark('bootstrap-claims');
 
     // Saved today on this device: show Today now and refresh it behind the
-    // scenes. A failure below still lands on the error or onboarding screen.
+    // scenes. A failure below still lands on the error screen.
     if (uid != null) {
       final snapshot = await cache.load(uid);
       if (generation != _generation) return;
@@ -276,8 +276,7 @@ class SessionController extends ChangeNotifier {
       }
     }
 
-    // Device-local preference; loaded before onboarding too so a hand-picked
-    // onboarding timezone can turn it off.
+    // Device-local preference, read before the timezone sync below uses it.
     final followPhone = await followReq;
     if (generation != _generation) return;
     _followPhoneTimezone = followPhone;
@@ -292,25 +291,35 @@ class SessionController extends ChangeNotifier {
         // it moves, the prefetched overview is from the old one: drop it, and
         // the dashboard reloads on the config change.
         if (await syncDeviceTimezone()) _overviewPrefetch = null;
-        if (generation != _generation) return;
-        // Payment consent lets the habit editor gate staked habits
-        // synchronously (off `hasPaymentConsent`). Best-effort: a failure
-        // leaves consent unknown and the editor runs the consent flow on demand.
-        if (await consentReq case Ok(:final value)) _consent = value;
-        if (generation != _generation) return;
-        final config = _config;
-        if (uid != null && config != null) cache.saveConfig(uid, config);
-        LaunchTimeline.mark('bootstrap-ready');
-        _setPhase(SessionPhase.ready);
-      case Err(:final problem):
-        // 404 ⇒ no configuration yet ⇒ onboard. Anything else is a real error.
+      case Err(:final problem) when problem.status == 404:
+        // No configuration yet (first sign-in): create it with the phone's
+        // timezone and no default charity. The first charity the user picks
+        // for a staked habit becomes the default (see [rememberFirstCharity]).
         _overviewPrefetch = null;
-        if (problem.status == 404) {
-          _setPhase(SessionPhase.needsOnboarding);
-        } else {
-          _fail(problem);
+        final created = await configs.create(
+          timezone: await deviceTimezone() ?? 'UTC',
+        );
+        if (generation != _generation) return;
+        switch (created) {
+          case Ok(:final value):
+            _config = value;
+          case Err(:final problem):
+            return _fail(problem);
         }
+      case Err(:final problem):
+        _overviewPrefetch = null;
+        return _fail(problem);
     }
+    if (generation != _generation) return;
+    // Payment consent lets the habit editor gate staked habits
+    // synchronously (off `hasPaymentConsent`). Best-effort: a failure
+    // leaves consent unknown and the editor runs the consent flow on demand.
+    if (await consentReq case Ok(:final value)) _consent = value;
+    if (generation != _generation) return;
+    final config = _config;
+    if (uid != null && config != null) cache.saveConfig(uid, config);
+    LaunchTimeline.mark('bootstrap-ready');
+    _setPhase(SessionPhase.ready);
   }
 
   /// Re-reads `GET /Payment/{userId}/consent` and refreshes the cached consent so
@@ -334,12 +343,30 @@ class SessionController extends ChangeNotifier {
     }
   }
 
-  /// Called by onboarding once `POST /Configuration` succeeds.
-  void onConfigured(ConfigurationPrincipalRes config) {
-    _config = config;
-    final uid = _userId;
-    if (uid != null) cache.saveConfig(uid, config);
-    _setPhase(SessionPhase.ready);
+  /// Makes [charityId] the default charity when the user has none yet, so the
+  /// first charity picked for a staked habit is pre-filled next time. Keeps the
+  /// timezone. Best-effort: on failure the default stays unset and the next
+  /// staked habit tries again.
+  Future<void> rememberFirstCharity(String charityId) async {
+    final generation = _generation;
+    final cfg = _config;
+    final id = cfg?.id;
+    if (cfg == null || id == null) return;
+    if (cfg.defaultCharityId?.isNotEmpty ?? false) return;
+    final res = await configs.update(
+      id,
+      UpdateConfigurationReq(
+        timezone: cfg.timezone,
+        defaultCharityId: charityId,
+      ),
+    );
+    if (generation != _generation) return;
+    if (res case Ok(:final value)) {
+      _config = value.principal;
+      final uid = _userId;
+      if (uid != null) cache.saveConfig(uid, value.principal);
+      notifyListeners();
+    }
   }
 
   /// Re-reads `GET /Configuration/me` and refreshes the cached principal so
@@ -365,8 +392,8 @@ class SessionController extends ChangeNotifier {
 
   /// Follow-the-phone: when [followPhoneTimezone] is ON and the device's IANA
   /// timezone differs from Configuration.Timezone, `PUT /Configuration/{id}`
-  /// with the phone's timezone (default charity unchanged) and notify. zinc
-  /// then re-times pending checks. Returns whether the timezone changed.
+  /// with the phone's timezone (the default charity, or none, unchanged) and
+  /// notify. zinc then re-times pending checks. Returns whether the timezone changed.
   /// Best-effort: a failed PUT leaves the config as is and is retried on the
   /// next launch / resume. Concurrent calls share one in-flight sync.
   Future<bool> syncDeviceTimezone() {
@@ -383,10 +410,7 @@ class SessionController extends ChangeNotifier {
     final generation = _generation;
     final cfg = _config;
     final id = cfg?.id;
-    final charityId = cfg?.defaultCharityId;
-    if (cfg == null || id == null || charityId == null || charityId.isEmpty) {
-      return false;
-    }
+    if (cfg == null || id == null) return false;
     if (!_followPhoneTimezone) return false;
     final device = await deviceTimezone();
     if (generation != _generation) return false;
@@ -399,7 +423,10 @@ class SessionController extends ChangeNotifier {
     }
     final res = await configs.update(
       id,
-      UpdateConfigurationReq(timezone: device, defaultCharityId: charityId),
+      UpdateConfigurationReq(
+        timezone: device,
+        defaultCharityId: cfg.defaultCharityId,
+      ),
     );
     if (generation != _generation) return false;
     if (res case Ok(:final value)) {

@@ -17,8 +17,8 @@ import 'charity_detail_view.dart';
 ///
 /// Two modes:
 ///  - **selection** (the M1 picker behaviour): tapping a result returns the
-///    [CharityPrincipalRes] via `Navigator.pop`. Used by onboarding + the habit
-///    editor.
+///    [CharityPrincipalRes] via `Navigator.pop`. Used by the habit editor and
+///    Settings.
 ///  - **browse**: tapping a result opens [CharityDetailView] instead.
 class CharityBrowse extends StatefulWidget {
   final CharityRepository repository;
@@ -43,7 +43,7 @@ class CharityBrowse extends StatefulWidget {
 }
 
 /// Backwards-compatible alias for the M1 selection picker. Existing call sites
-/// (onboarding, habit editor) push `CharityPicker(repository: ...)` and expect a
+/// (habit editor, Settings) push `CharityPicker(repository: ...)` and expect a
 /// [CharityPrincipalRes] back via `Navigator.pop` — that contract is preserved.
 class CharityPicker extends CharityBrowse {
   const CharityPicker({

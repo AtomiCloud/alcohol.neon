@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:alcohol_neon/generated/zinc/models/configuration_principal_res.dart';
 import 'package:alcohol_neon/generated/zinc/models/habit_overview_response.dart';
 import 'package:alcohol_neon/session/session_cache.dart';
 import 'package:alcohol_neon/session/session_controller.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 
@@ -147,6 +149,100 @@ void main() {
         reason: 'the overview from before the user existed is dropped',
       );
       h.dispose();
+    });
+
+    group('with the phone in Asia/Tokyo', () {
+      final messenger =
+          TestWidgetsFlutterBinding.ensureInitialized().defaultBinaryMessenger;
+      const channel = MethodChannel('flutter_timezone');
+      setUp(() {
+        messenger.setMockMethodCallHandler(channel, (call) async {
+          return call.method == 'getLocalTimezone' ? 'Asia/Tokyo' : null;
+        });
+      });
+      tearDown(() => messenger.setMockMethodCallHandler(channel, null));
+
+      bool isConfigWrite(http.Request r, String method) =>
+          r.method == method && r.url.path.contains('/Configuration');
+
+      test('no configuration: creates one in the phone timezone with no '
+          'default charity, then is ready', () async {
+        Map<String, Object?>? created;
+        final h = SessionHarness(
+          respond: (r) async {
+            if (isConfigWrite(r, 'POST')) {
+              created = jsonDecode(r.body) as Map<String, Object?>;
+              return jsonResponse({
+                'id': 'cfg-new',
+                'timezone': created!['timezone'],
+                'defaultCharityId': null,
+              });
+            }
+            if (r.url.path.endsWith('/Configuration/me')) {
+              return jsonResponse({'title': 'Not found', 'status': 404}, 404);
+            }
+            return null;
+          },
+        );
+        await h.start();
+        expect(created, {'timezone': 'Asia/Tokyo', 'defaultCharityId': null});
+        expect(h.session.phase, SessionPhase.ready);
+        expect(h.session.config?.id, 'cfg-new');
+        expect(h.session.config?.defaultCharityId, isNull);
+        expect(h.cache.savedConfig?.id, 'cfg-new');
+        expect(h.requests.where((r) => isConfigWrite(r, 'PUT')), isEmpty);
+        h.dispose();
+      });
+
+      test('a failed create lands on the error screen, not Today', () async {
+        final h = SessionHarness(
+          respond: (r) async {
+            if (isConfigWrite(r, 'POST')) {
+              return jsonResponse({'title': 'Bad Request', 'status': 400}, 400);
+            }
+            if (r.url.path.endsWith('/Configuration/me')) {
+              return jsonResponse({'title': 'Not found', 'status': 404}, 404);
+            }
+            return null;
+          },
+        );
+        await h.start();
+        expect(h.session.phase, SessionPhase.error);
+        expect(h.session.error?.status, 400);
+        h.dispose();
+      });
+
+      test('no default charity still follows the phone timezone', () async {
+        Map<String, Object?>? put;
+        final h = SessionHarness(
+          respond: (r) async {
+            if (isConfigWrite(r, 'PUT')) {
+              put = jsonDecode(r.body) as Map<String, Object?>;
+              return jsonResponse({
+                'id': 'cfg1',
+                'timezone': put!['timezone'],
+                'defaultCharityId': null,
+              });
+            }
+            if (r.url.path.endsWith('/Configuration/me')) {
+              return jsonResponse({
+                'principal': {
+                  'id': 'cfg1',
+                  'timezone': 'Asia/Singapore',
+                  'defaultCharityId': null,
+                },
+                'charity': null,
+              });
+            }
+            return null;
+          },
+        );
+        await h.start();
+        expect(put, {'timezone': 'Asia/Tokyo', 'defaultCharityId': null});
+        expect(h.session.config?.timezone, 'Asia/Tokyo');
+        expect(h.session.phase, SessionPhase.ready);
+        h.dispose();
+      });
     });
   });
 }

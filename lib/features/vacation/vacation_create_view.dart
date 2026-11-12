@@ -5,12 +5,12 @@ import 'package:provider/provider.dart';
 
 import '../../core/problem.dart';
 import '../../theme/app_theme.dart';
-import '../onboarding/timezone_picker.dart';
+import '../settings/timezone_picker.dart';
 import 'vacation_controller.dart';
 
 /// M7 — schedule a vacation window: start + end date pickers (formatted to zinc's
 /// `dd-MM-yyyy` by the controller), with a timezone defaulting to the device's
-/// (reusing the onboarding [TimezonePicker]). Pops `true` on success so the list
+/// (reusing Settings' [TimezonePicker]). Pops `true` on success so the list
 /// can react. Reads its [VacationController] from the provider supplied by the list.
 class VacationCreateView extends StatefulWidget {
   const VacationCreateView({super.key});

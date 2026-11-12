@@ -5541,7 +5541,7 @@
         "additionalProperties": false
       },
       "ConfigurationRes": {
-        "required": ["charity", "principal"],
+        "required": ["principal"],
         "type": "object",
         "properties": {
           "principal": {
@@ -5670,7 +5670,6 @@
         "additionalProperties": false
       },
       "CreateHabitReq": {
-        "required": ["charityId"],
         "type": "object",
         "properties": {
           "task": {
@@ -6003,7 +6002,7 @@
         "additionalProperties": false
       },
       "HabitOverviewHabitRes": {
-        "required": ["charity", "enabled", "stake", "status", "timeLeftToEodMinutes", "version"],
+        "required": ["enabled", "stake", "status", "timeLeftToEodMinutes", "version"],
         "type": "object",
         "properties": {
           "id": {
@@ -6146,7 +6145,7 @@
         "additionalProperties": false
       },
       "HabitVersionRes": {
-        "required": ["charityId", "habitId", "id", "version"],
+        "required": ["habitId", "id", "version"],
         "type": "object",
         "properties": {
           "id": {
@@ -6810,7 +6809,7 @@
         "additionalProperties": false
       },
       "UpdateHabitReq": {
-        "required": ["charityId", "enabled"],
+        "required": ["enabled"],
         "type": "object",
         "properties": {
           "task": {

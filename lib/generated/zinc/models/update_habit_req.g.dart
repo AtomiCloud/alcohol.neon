@@ -8,7 +8,6 @@ part of 'update_habit_req.dart';
 
 UpdateHabitReq _$UpdateHabitReqFromJson(Map<String, dynamic> json) =>
     UpdateHabitReq(
-      charityId: json['charityId'] as String,
       enabled: json['enabled'] as bool,
       task: json['task'] as String?,
       daysOfWeek: (json['daysOfWeek'] as List<dynamic>?)
@@ -16,6 +15,7 @@ UpdateHabitReq _$UpdateHabitReqFromJson(Map<String, dynamic> json) =>
           .toList(),
       notificationTime: json['notificationTime'] as String?,
       stake: json['stake'] as String?,
+      charityId: json['charityId'] as String?,
       timezone: json['timezone'] as String?,
       deadlineTime: json['deadlineTime'] as String?,
     );

@@ -6,10 +6,9 @@ import '../../auth/auth_service.dart';
 import '../../session/session_controller.dart';
 import '../dashboard/dashboard_view.dart';
 import '../nfc/nfc_deep_links.dart';
-import '../onboarding/onboarding_view.dart';
 
-/// Shown once the user is authenticated. Runs the session bootstrap and routes to
-/// onboarding or home based on its outcome.
+/// Shown once the user is authenticated. Runs the session bootstrap, then shows
+/// Today (or the bootstrap error).
 class AuthedGate extends StatefulWidget {
   const AuthedGate({super.key});
 
@@ -34,8 +33,6 @@ class _AuthedGateState extends State<AuthedGate> {
       case SessionPhase.idle:
       case SessionPhase.bootstrapping:
         return const GlassLoadingScreen();
-      case SessionPhase.needsOnboarding:
-        return const OnboardingView();
       case SessionPhase.ready:
         // NfcTapListener consumes a pending /t/{tagId} link (NFC tap) once the
         // session is usable, pushing the tap-to-complete screen.

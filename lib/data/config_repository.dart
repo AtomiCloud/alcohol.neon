@@ -59,7 +59,9 @@ class ConfigRepository {
   static const _base = '/api/v1.0/Configuration';
 
   /// The signed-in user's configuration (`GET /Configuration/me`). An [Err] with
-  /// `problem.status == 404` means "not yet configured" → route to onboarding.
+  /// `problem.status == 404` means "not yet configured" (first sign-in).
+  /// With no default charity, `principal.defaultCharityId` and `charity` are
+  /// null.
   Future<Result<ConfigurationRes>> mine() {
     return _api.get(
       '$_base/me',
@@ -67,10 +69,11 @@ class ConfigRepository {
     );
   }
 
-  /// Creates the user's configuration (`POST /Configuration`).
+  /// Creates the user's configuration (`POST /Configuration`). A null
+  /// [defaultCharityId] means none yet: a charity is only needed for a stake.
   Future<Result<ConfigurationPrincipalRes>> create({
     required String timezone,
-    required String defaultCharityId,
+    String? defaultCharityId,
   }) {
     return _api.post(
       _base,
@@ -87,9 +90,9 @@ class ConfigRepository {
   /// the PUT returns the *flat* principal fields directly, plus the days the
   /// timezone change settled ([ConfigurationUpdate]).
   ///
-  /// zinc's `UpdateConfigurationReqValidator` requires both `timezone` (NotNull,
-  /// ≤64 chars) and `defaultCharityId` (NotNull + valid GUID) — a null/empty
-  /// charity id 422s.
+  /// zinc's `UpdateConfigurationReqValidator` requires `timezone` (NotNull,
+  /// ≤64 chars). `defaultCharityId` is the whole new value: a GUID, or null
+  /// for no default charity.
   Future<Result<ConfigurationUpdate>> update(
     String id,
     UpdateConfigurationReq req,

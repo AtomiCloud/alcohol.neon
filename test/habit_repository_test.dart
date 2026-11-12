@@ -55,7 +55,7 @@ void main() {
     expect(habit.name, 'Morning run');
     expect(habit.stake.amount, 5.0);
     expect(habit.enabled, isTrue);
-    expect(habit.charity.name, 'Red Cross');
+    expect(habit.charity?.name, 'Red Cross');
     expect(habit.status.currentStreak, 4);
     expect(habit.status.isCompleteToday, isFalse);
     expect(habit.status.today, '02-06-2026');

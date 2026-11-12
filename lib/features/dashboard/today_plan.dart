@@ -111,5 +111,5 @@ String? stakeLine(HabitOverviewHabitRes h) {
   if (h.stake.amount <= 0) return null;
   final amount =
       '${h.stake.currency ?? ''} ${h.stake.amount.toStringAsFixed(2)}'.trim();
-  return '$amount to ${h.charity.name ?? 'charity'} if you miss';
+  return '$amount to ${h.charity?.name ?? 'charity'} if you miss';
 }

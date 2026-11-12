@@ -18,8 +18,9 @@ import 'stake_sheet.dart';
 /// M3 — create / edit a habit. Field contract mirrors argon (verified against
 /// zinc's HabitValidator): day names are PascalCase (e.g. "Monday"),
 /// notificationTime is "HH:mm:ss", stake is a non-negative decimal string ("0"
-/// when none), timezone comes from the user's configuration. On save it pops
-/// `true` so the dashboard refreshes.
+/// when none), timezone comes from the user's configuration. A charity is only
+/// asked for (and sent) when the stake is above 0. On save it pops `true` so
+/// the dashboard refreshes.
 class HabitEditorView extends StatefulWidget {
   /// Null → create. Non-null → edit (prefilled from `GET /Habit/{userId}/{id}`).
   final String? habitId;
@@ -152,6 +153,10 @@ class _HabitEditorViewState extends State<HabitEditorView> {
     return t.isEmpty ? '0' : t;
   }
 
+  bool get _staked => (double.tryParse(_stakeWire) ?? 0) > 0;
+
+  bool get _hasCharity => _charityId?.isNotEmpty ?? false;
+
   Future<void> _pickTime() async {
     final picked = await showTimePicker(context: context, initialTime: _time);
     if (picked != null && mounted) setState(() => _time = picked);
@@ -193,7 +198,7 @@ class _HabitEditorViewState extends State<HabitEditorView> {
   String? _validate() {
     if (_task.text.trim().isEmpty) return 'Give the habit a name';
     if (_days.isEmpty) return 'Choose at least one day';
-    if (_charityId == null) return 'Choose a charity';
+    if (_staked && !_hasCharity) return 'Choose a charity';
     if (double.tryParse(_stakeWire) == null) return 'Stake must be a number';
     return null;
   }
@@ -228,8 +233,7 @@ class _HabitEditorViewState extends State<HabitEditorView> {
     // Gate staked habits on payment consent. A positive stake needs a card on
     // file, so collect consent first; only proceed if it succeeds. Truth is the
     // session's cached `/consent` GET, never the Logto claim.
-    final stakeAmount = double.tryParse(_stakeWire) ?? 0;
-    if (stakeAmount > 0 && !_session.hasPaymentConsent) {
+    if (_staked && !_session.hasPaymentConsent) {
       final consent = await ConsentService(_session).ensureConsent(context);
       if (!mounted) return;
       if (consent case Err(:final problem)) {
@@ -241,6 +245,8 @@ class _HabitEditorViewState extends State<HabitEditorView> {
       }
     }
 
+    // With nothing at stake there is no charity to pay, so none is saved.
+    final charityId = _staked ? _charityId : null;
     final Result<dynamic> res;
     if (widget.isEdit) {
       res = await _session.habits.update(
@@ -251,7 +257,7 @@ class _HabitEditorViewState extends State<HabitEditorView> {
           daysOfWeek: days,
           notificationTime: _timeWire,
           stake: _stakeWire,
-          charityId: _charityId!,
+          charityId: charityId,
           enabled: _enabled,
           timezone: tz,
         ),
@@ -264,7 +270,7 @@ class _HabitEditorViewState extends State<HabitEditorView> {
           daysOfWeek: days,
           notificationTime: _timeWire,
           stake: _stakeWire,
-          charityId: _charityId!,
+          charityId: charityId,
           timezone: tz,
         ),
       );
@@ -273,6 +279,8 @@ class _HabitEditorViewState extends State<HabitEditorView> {
     if (!mounted) return;
     switch (res) {
       case Ok():
+        if (charityId != null) await _session.rememberFirstCharity(charityId);
+        if (!mounted) return;
         Navigator.of(context).pop(true);
       case Err(:final problem):
         setState(() {
@@ -320,6 +328,15 @@ class _HabitEditorViewState extends State<HabitEditorView> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final session = context.watch<SessionController>();
+    final hasDefaultCharity =
+        session.config?.defaultCharityId?.isNotEmpty ?? false;
+    final charityHint = !_staked
+        ? 'No money at stake, so no charity needed. Add a stake any time.'
+        : hasDefaultCharity
+        ? null
+        : 'A charity is only needed because there’s money at stake. Your '
+              'first one is remembered for next time.';
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.isEdit ? 'Edit habit' : 'New habit'),
@@ -371,15 +388,6 @@ class _HabitEditorViewState extends State<HabitEditorView> {
                     onTap: _pickTime,
                   ),
                 ),
-                Card(
-                  child: ListTile(
-                    leading: const Icon(Icons.volunteer_activism),
-                    title: const Text('Charity'),
-                    subtitle: Text(_charityName ?? 'Choose a charity'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: _pickCharity,
-                  ),
-                ),
                 const SizedBox(height: 8),
                 Card(
                   child: ListTile(
@@ -401,6 +409,26 @@ class _HabitEditorViewState extends State<HabitEditorView> {
                     },
                   ),
                 ),
+                if (_staked)
+                  Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.volunteer_activism),
+                      title: const Text('Charity'),
+                      subtitle: Text(_charityName ?? 'Choose a charity'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: _pickCharity,
+                    ),
+                  ),
+                if (charityHint != null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+                    child: Text(
+                      charityHint,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
                 if (widget.isEdit) ...[
                   const SizedBox(height: 8),
                   SwitchListTile(

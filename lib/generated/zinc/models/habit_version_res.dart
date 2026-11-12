@@ -12,12 +12,12 @@ class HabitVersionRes {
     required this.id,
     required this.habitId,
     required this.version,
-    required this.charityId,
     this.task,
     this.daysOfWeek,
     this.notificationTime,
     this.stake,
     this.ratio,
+    this.charityId,
     this.timezone,
     this.deadlineTime,
   });
@@ -33,7 +33,7 @@ class HabitVersionRes {
   final String? notificationTime;
   final String? stake;
   final String? ratio;
-  final String charityId;
+  final String? charityId;
   final String? timezone;
   final String? deadlineTime;
 

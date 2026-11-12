@@ -11,7 +11,7 @@ import '../../generated/zinc/models/update_configuration_req.dart';
 import '../../session/session_controller.dart';
 import '../../session/timezone_preference.dart';
 import '../charity/charity_picker.dart';
-import '../onboarding/timezone_picker.dart';
+import 'timezone_picker.dart';
 import '../payment/consent_service.dart';
 import '../subscription/subscription_view.dart';
 
@@ -33,7 +33,7 @@ class _SettingsViewState extends State<SettingsView> {
   ConfigurationRes? _config;
   PaymentConsentRes? _consent;
 
-  // The IANA list + device default (loaded like onboarding_view.dart).
+  // The IANA list + device default.
   List<String> _timezones = const [];
 
   // Current (possibly edited) selections.
@@ -79,7 +79,7 @@ class _SettingsViewState extends State<SettingsView> {
         _config = value;
         _timezone = value.principal.timezone ?? _timezone;
         _charityId = value.principal.defaultCharityId;
-        _charityName = value.charity.name;
+        _charityName = value.charity?.name;
       case Err(:final problem):
         setState(() {
           _loading = false;
@@ -193,15 +193,14 @@ class _SettingsViewState extends State<SettingsView> {
   }
 
   /// Save is enabled only when timezone or defaultCharityId actually changed vs
-  /// the loaded config, AND a charity is selected (zinc 422s on a null/empty id).
+  /// the loaded config. No default charity is fine: one is set with the first
+  /// staked habit.
   bool get _canSave {
     final cfg = _config;
     if (cfg == null) return false;
-    final charityId = _charityId;
-    if (charityId == null || charityId.isEmpty) return false;
     final changed =
         _timezone != cfg.principal.timezone ||
-        charityId != cfg.principal.defaultCharityId;
+        _charityId != cfg.principal.defaultCharityId;
     return changed && !_saving;
   }
 
@@ -294,9 +293,7 @@ class _SettingsViewState extends State<SettingsView> {
     final id = _config?.principal.id;
     final tz = _timezone;
     final charityId = _charityId;
-    if (id == null || tz == null || charityId == null || charityId.isEmpty) {
-      return;
-    }
+    if (id == null || tz == null) return;
 
     setState(() {
       _saving = true;
@@ -391,10 +388,13 @@ class _SettingsViewState extends State<SettingsView> {
         _FieldCard(
           icon: Icons.volunteer_activism,
           label: 'Default charity',
-          value: _charityName ?? 'Choose a charity',
-          subtitle:
-              'The charity pre-selected when you create a habit. You can change '
-              'this anytime.',
+          value: _charityId?.isNotEmpty ?? false
+              ? _charityName ?? 'Choose a charity'
+              : 'None yet',
+          subtitle: _charityId?.isNotEmpty ?? false
+              ? 'Pre-selected when you stake money on a habit. You can change '
+                    'this anytime.'
+              : 'Set when you first stake money on a habit, or choose one now.',
           onTap: _pickCharity,
         ),
         _ConsentCard(

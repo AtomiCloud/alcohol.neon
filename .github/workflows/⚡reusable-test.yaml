@@ -12,3 +12,28 @@ jobs:
       - uses: AtomiCloud/actions.setup-nix@v3
       - name: Run tests
         run: nix develop .#test -c ./scripts/ci/test.sh
+
+  # JVM unit tests for the Android widgets (TodayWidgetsTest), which flutter test
+  # doesn't reach.
+  android:
+    name: Android unit tests
+    runs-on:
+      - nscloud-ubuntu-22.04-amd64-4x8-with-cache
+      - nscloud-cache-size-50gb
+      - nscloud-cache-tag-atomi-nix-store-cache
+    timeout-minutes: 60
+    steps:
+      - uses: AtomiCloud/actions.setup-nix@v3
+        with:
+          # Same as Build AAB: .#build-android comes from cache.nixos.org or Google's
+          # SDK zips, so attic only adds stalling downloads.
+          attic: 'false'
+      - uses: actions/cache@v6
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-test-${{ runner.os }}-${{ hashFiles('android/**/*.gradle*', 'android/gradle/wrapper/gradle-wrapper.properties', 'pubspec.lock') }}
+          restore-keys: gradle-test-${{ runner.os }}-
+      - name: Run Android unit tests
+        run: nix develop .#build-android -c ./scripts/ci/test-android.sh

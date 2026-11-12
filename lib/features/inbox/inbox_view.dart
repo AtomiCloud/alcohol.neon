@@ -4,14 +4,16 @@ import 'package:provider/provider.dart';
 import '../../data/friend_repository.dart';
 import '../../data/inbox_repository.dart';
 import '../../session/session_controller.dart';
+import '../../theme/glass.dart';
 import '../../widgets/app_loader.dart';
+import '../../widgets/glass_list.dart';
+import '../../widgets/glass_page.dart';
 import '../friends/friends_view.dart';
 import 'inbox_controller.dart';
 import 'inbox_kind.dart';
-import '../../widgets/compact_buttons.dart';
 
 /// The in-app inbox (opened from the bell on Today). No push yet: it shows
-/// what zinc has when opened, newest first.
+/// what zinc has when opened, newest first, grouped into Today and Earlier.
 class InboxView extends StatelessWidget {
   const InboxView({super.key});
 
@@ -38,121 +40,119 @@ class _InboxScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.watch<InboxController>();
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Inbox'),
-        actions: [
-          if (c.phase == InboxPhase.ready && c.hasUnread)
-            TextButton(
-              onPressed: c.markAllRead,
-              child: const Text('Mark all read'),
+    final ready = c.phase == InboxPhase.ready;
+    return GlassPage(
+      title: 'Inbox',
+      onRefresh: ready ? c.load : null,
+      actions: [
+        if (ready && c.hasUnread)
+          TextButton(
+            onPressed: c.markAllRead,
+            style: TextButton.styleFrom(
+              foregroundColor: GlassTokens.of(context).accent,
             ),
-        ],
-      ),
-      body: switch (c.phase) {
-        InboxPhase.loading => const AppLoader(),
-        InboxPhase.error => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  c.error?.displayMessage ?? 'Could not load your inbox',
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                FilledButton(onPressed: c.load, child: const Text('Retry')),
-              ],
-            ),
+            child: const Text('Mark all read'),
           ),
-        ),
-        InboxPhase.ready => _List(c: c),
+      ],
+      children: switch (c.phase) {
+        InboxPhase.loading => const [SizedBox(height: 320, child: AppLoader())],
+        InboxPhase.error => [
+          GlassBanner(
+            icon: Icons.cloud_off_rounded,
+            title: c.error?.displayMessage ?? 'Could not load your inbox',
+            error: true,
+            action: TextButton(onPressed: c.load, child: const Text('Retry')),
+          ),
+        ],
+        InboxPhase.ready => _list(context, c),
       },
     );
   }
+
+  List<Widget> _list(BuildContext context, InboxController c) {
+    final now = DateTime.now();
+    bool isToday(InboxNotificationRes n) {
+      final at = n.createdAtUtc?.toLocal();
+      return at != null && DateUtils.isSameDay(at, now);
+    }
+
+    final today = c.items.where(isToday).toList();
+    final earlier = c.items.where((n) => !isToday(n)).toList();
+    return [
+      if (c.actionError case final error?)
+        GlassBanner(
+          icon: Icons.error_outline_rounded,
+          title: error.displayMessage,
+          error: true,
+          action: IconButton(
+            tooltip: 'Dismiss',
+            icon: const Icon(Icons.close_rounded),
+            onPressed: c.clearActionError,
+          ),
+        ),
+      if (c.items.isEmpty) ...[const SizedBox(height: 8), const _Empty()],
+      if (today.isNotEmpty)
+        GlassSection(
+          title: 'Today',
+          dividerIndent: 66,
+          children: [for (final n in today) _Item(n: n, c: c)],
+        ),
+      if (earlier.isNotEmpty)
+        GlassSection(
+          title: 'Earlier',
+          dividerIndent: 66,
+          children: [for (final n in earlier) _Item(n: n, c: c)],
+        ),
+      if (c.hasMore)
+        Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: Center(
+            child: c.loadingMore
+                ? const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: CircularProgressIndicator(),
+                  )
+                : TextButton(
+                    onPressed: c.loadMore,
+                    child: const Text('Load more'),
+                  ),
+          ),
+        ),
+    ];
+  }
 }
 
-class _List extends StatelessWidget {
-  final InboxController c;
-  const _List({required this.c});
+class _Empty extends StatelessWidget {
+  const _Empty();
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return RefreshIndicator(
-      onRefresh: c.load,
-      child: ListView(
-        padding: const EdgeInsets.all(16),
+    final t = GlassTokens.of(context);
+    return Glass(
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 22),
+      child: Column(
         children: [
-          if (c.actionError != null)
-            Card(
-              color: theme.colorScheme.errorContainer,
-              child: ListTile(
-                leading: Icon(
-                  Icons.error_outline,
-                  color: theme.colorScheme.onErrorContainer,
-                ),
-                title: Text(
-                  c.actionError!.displayMessage,
-                  style: TextStyle(color: theme.colorScheme.onErrorContainer),
-                ),
-                trailing: IconButton(
-                  icon: const Icon(Icons.close),
-                  color: theme.colorScheme.onErrorContainer,
-                  onPressed: c.clearActionError,
-                ),
-              ),
+          DecoratedBox(
+            decoration: BoxDecoration(color: t.track, shape: BoxShape.circle),
+            child: const SizedBox.square(
+              dimension: 52,
+              child: Icon(Icons.inbox_outlined, size: 26),
             ),
-          if (c.items.isEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 80),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.inbox_outlined,
-                    size: 48,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(height: 12),
-                  Text('Nothing here yet', style: theme.textTheme.titleMedium),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Friend requests and news from friends show up here.',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            )
-          else
-            Card(
-              child: Column(
-                children: [
-                  for (var i = 0; i < c.items.length; i++) ...[
-                    if (i > 0) const Divider(height: 1),
-                    _Item(n: c.items[i], c: c),
-                  ],
-                ],
-              ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Nothing here yet',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
             ),
-          if (c.hasMore)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Center(
-                child: c.loadingMore
-                    ? const Padding(
-                        padding: EdgeInsets.all(12),
-                        child: CircularProgressIndicator(),
-                      )
-                    : TextButton(
-                        onPressed: c.loadMore,
-                        child: const Text('Load more'),
-                      ),
-              ),
-            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Friend requests and news from friends show up here.',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(color: t.muted),
+          ),
         ],
       ),
     );
@@ -167,114 +167,120 @@ class _Item extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final t = GlassTokens.of(context);
     final kind = inboxKindOf(n);
-    final muted = theme.colorScheme.onSurfaceVariant;
-    final icon = switch (kind) {
-      FriendRequestNotice() => Icons.person_add_alt_1_outlined,
-      FriendAcceptedNotice() => Icons.people_outline,
-      FriendMissedNotice() => Icons.campaign_outlined,
-      PlainNotice() => Icons.notifications_none,
+    final (icon, tint) = switch (kind) {
+      FriendRequestNotice() => (Icons.person_add_alt_1_rounded, t.accent),
+      FriendAcceptedNotice() => (Icons.group_rounded, const Color(0xFF0EA5E9)),
+      FriendMissedNotice() => (Icons.campaign_rounded, const Color(0xFFF59E0B)),
+      PlainNotice() => (Icons.notifications_rounded, t.muted),
     };
     final answer = c.answerFor(n.id);
     final busy = c.isBusy(n.id);
 
-    return InkWell(
-      onTap: () {
-        c.markRead(n);
-        if (kind is FriendAcceptedNotice) {
-          Navigator.of(
-            context,
-          ).push(MaterialPageRoute(builder: (_) => const FriendsView()));
-        }
-      },
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: n.read ? muted : theme.colorScheme.primary),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          n.title,
-                          style: theme.textTheme.bodyLarge?.copyWith(
-                            fontWeight: n.read
-                                ? FontWeight.w400
-                                : FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      if (!n.read)
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primary,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                    ],
+    final content = Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: tint.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: SizedBox.square(
+              dimension: 38,
+              child: Icon(icon, size: 20, color: tint),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  n.title,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    fontWeight: n.read ? FontWeight.w400 : FontWeight.w600,
                   ),
-                  if (n.body.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      n.body,
-                      style: theme.textTheme.bodyMedium?.copyWith(color: muted),
-                    ),
-                  ],
-                  if (n.createdAtUtc != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      _ago(n.createdAtUtc!, DateTime.now().toUtc(), context),
-                      style: theme.textTheme.bodySmall?.copyWith(color: muted),
-                    ),
-                  ],
-                  if (kind is FriendRequestNotice) ...[
-                    const SizedBox(height: 8),
-                    if (answer != null)
-                      Text(
-                        answer == RequestAnswer.accepted
-                            ? 'You’re now friends'
-                            : 'Declined',
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          color: muted,
-                        ),
-                      )
-                    else if (busy)
-                      const SizedBox.square(
-                        dimension: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    else
-                      CompactButtons(
-                        child: Wrap(
-                          spacing: 8,
-                          children: [
-                            FilledButton(
-                              onPressed: () =>
-                                  c.answer(n, kind.fromUserId, accept: true),
-                              child: const Text('Accept'),
-                            ),
-                            OutlinedButton(
-                              onPressed: () =>
-                                  c.answer(n, kind.fromUserId, accept: false),
-                              child: const Text('Decline'),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
+                ),
+                if (n.body.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    n.body,
+                    style: theme.textTheme.bodyMedium?.copyWith(color: t.muted),
+                  ),
                 ],
+                if (n.createdAtUtc != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    _ago(n.createdAtUtc!, DateTime.now().toUtc(), context),
+                    style: theme.textTheme.bodySmall?.copyWith(color: t.muted),
+                  ),
+                ],
+                if (kind is FriendRequestNotice) ...[
+                  const SizedBox(height: 10),
+                  if (answer != null)
+                    Text(
+                      answer == RequestAnswer.accepted
+                          ? 'You’re now friends'
+                          : 'Declined',
+                      style: theme.textTheme.labelLarge,
+                    )
+                  else if (busy)
+                    const SizedBox.square(
+                      dimension: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  else
+                    Row(
+                      children: [
+                        GlassButton(
+                          label: 'Accept',
+                          compact: true,
+                          onPressed: () =>
+                              c.answer(n, kind.fromUserId, accept: true),
+                        ),
+                        const SizedBox(width: 8),
+                        GlassButton(
+                          label: 'Decline',
+                          compact: true,
+                          secondary: true,
+                          onPressed: () =>
+                              c.answer(n, kind.fromUserId, accept: false),
+                        ),
+                      ],
+                    ),
+                ],
+              ],
+            ),
+          ),
+          if (!n.read)
+            Container(
+              margin: const EdgeInsets.only(left: 8, top: 6),
+              width: 9,
+              height: 9,
+              decoration: BoxDecoration(
+                color: t.accent,
+                shape: BoxShape.circle,
               ),
             ),
-          ],
-        ),
+        ],
+      ),
+    );
+    return Semantics(
+      button: true,
+      child: Pressable(
+        scale: 0.98,
+        onTap: () {
+          c.markRead(n);
+          if (kind is FriendAcceptedNotice) {
+            Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const FriendsView()));
+          }
+        },
+        child: content,
       ),
     );
   }

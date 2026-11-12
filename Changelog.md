@@ -1,3 +1,10 @@
+## [1.20.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.19.0...v1.20.0) (2026-11-12)
+
+
+### ✨ Features ✨
+
+* invite links send a friend request, with no expiry ([08f594e](https://github.com/AtomiCloud/alcohol.neon/commit/08f594e747e4a9c4c04b65ff1560fa04452e4897))
+
 ## [1.19.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.18.0...v1.19.0) (2026-11-12)
 
 

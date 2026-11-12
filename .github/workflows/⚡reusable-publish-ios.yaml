@@ -16,12 +16,10 @@ on:
 jobs:
   publish:
     name: TestFlight ${{ inputs.flavor }}
-    runs-on: macos-15
-    # Namespace runners (disabled):
-    # runs-on:
-    #   - nscloud-macos-sequoia-arm64-6x14-with-cache
-    #   - nscloud-cache-size-50gb
-    #   - nscloud-cache-tag-atomi-nix-darwin-cache
+    runs-on:
+      - nscloud-macos-sequoia-arm64-6x14-with-cache
+      - nscloud-cache-size-50gb
+      - nscloud-cache-tag-atomi-nix-darwin-cache
     timeout-minutes: 45
     env:
       FLAVOR: ${{ inputs.flavor }}
@@ -32,8 +30,6 @@ jobs:
       CERTIFICATE_PRIVATE_KEY: ${{ secrets.CERTIFICATE_PRIVATE_KEY }}
     steps:
       - uses: AtomiCloud/actions.setup-nix@v3
-        with:
-          namespacelabs: 'false'
 
       # App Store Connect requires the newest SDK; the runner's default Xcode is older.
       - name: Select newest Xcode

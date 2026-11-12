@@ -12,10 +12,12 @@ NfcTagResolutionRes _$NfcTagResolutionResFromJson(Map<String, dynamic> json) =>
       habitVersion: HabitVersionRes.fromJson(
         json['habitVersion'] as Map<String, dynamic>,
       ),
-      todayExecution: HabitExecutionRes.fromJson(
-        json['todayExecution'] as Map<String, dynamic>,
-      ),
       today: json['today'] as String?,
+      todayExecution: json['todayExecution'] == null
+          ? null
+          : HabitExecutionRes.fromJson(
+              json['todayExecution'] as Map<String, dynamic>,
+            ),
     );
 
 Map<String, dynamic> _$NfcTagResolutionResToJson(

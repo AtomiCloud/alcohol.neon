@@ -15,8 +15,8 @@ class NfcTagResolutionRes {
   const NfcTagResolutionRes({
     required this.tag,
     required this.habitVersion,
-    required this.todayExecution,
     this.today,
+    this.todayExecution,
   });
 
   factory NfcTagResolutionRes.fromJson(Map<String, Object?> json) =>
@@ -25,7 +25,7 @@ class NfcTagResolutionRes {
   final NfcTagRes tag;
   final HabitVersionRes habitVersion;
   final String? today;
-  final HabitExecutionRes todayExecution;
+  final HabitExecutionRes? todayExecution;
 
   Map<String, Object?> toJson() => _$NfcTagResolutionResToJson(this);
 }

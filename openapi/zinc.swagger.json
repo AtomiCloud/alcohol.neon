@@ -1646,17 +1646,17 @@
             "content": {
               "text/plain": {
                 "schema": {
-                  "$ref": "#/components/schemas/FriendRes"
+                  "$ref": "#/components/schemas/FriendRelationRes"
                 }
               },
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/FriendRes"
+                  "$ref": "#/components/schemas/FriendRelationRes"
                 }
               },
               "text/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/FriendRes"
+                  "$ref": "#/components/schemas/FriendRelationRes"
                 }
               }
             }
@@ -5548,7 +5548,12 @@
             "$ref": "#/components/schemas/ConfigurationPrincipalRes"
           },
           "charity": {
-            "$ref": "#/components/schemas/CharityPrincipalRes"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CharityPrincipalRes"
+              }
+            ],
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -5693,7 +5698,8 @@
           },
           "charityId": {
             "type": "string",
-            "format": "uuid"
+            "format": "uuid",
+            "nullable": true
           },
           "timezone": {
             "type": "string",
@@ -5835,16 +5841,11 @@
         "additionalProperties": false
       },
       "FriendInviteRes": {
-        "required": ["expiresAtUtc"],
         "type": "object",
         "properties": {
           "code": {
             "type": "string",
             "nullable": true
-          },
-          "expiresAtUtc": {
-            "type": "string",
-            "format": "date-time"
           }
         },
         "additionalProperties": false
@@ -6035,7 +6036,12 @@
             "type": "boolean"
           },
           "charity": {
-            "$ref": "#/components/schemas/HabitCharityRefRes"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HabitCharityRefRes"
+              }
+            ],
+            "nullable": true
           },
           "status": {
             "$ref": "#/components/schemas/HabitStatusRes"
@@ -6185,7 +6191,8 @@
           },
           "charityId": {
             "type": "string",
-            "format": "uuid"
+            "format": "uuid",
+            "nullable": true
           },
           "timezone": {
             "type": "string",
@@ -6330,7 +6337,7 @@
         "additionalProperties": false
       },
       "NfcTagResolutionRes": {
-        "required": ["habitVersion", "tag", "todayExecution"],
+        "required": ["habitVersion", "tag"],
         "type": "object",
         "properties": {
           "tag": {
@@ -6344,7 +6351,12 @@
             "nullable": true
           },
           "todayExecution": {
-            "$ref": "#/components/schemas/HabitExecutionRes"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HabitExecutionRes"
+              }
+            ],
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -6833,7 +6845,8 @@
           },
           "charityId": {
             "type": "string",
-            "format": "uuid"
+            "format": "uuid",
+            "nullable": true
           },
           "enabled": {
             "type": "boolean"

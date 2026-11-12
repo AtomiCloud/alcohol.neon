@@ -1,3 +1,10 @@
+## [1.24.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.23.1...v1.24.0) (2026-11-12)
+
+
+### ✨ Features ✨
+
+* glass habit editor, with New habit as a modal ([83dc189](https://github.com/AtomiCloud/alcohol.neon/commit/83dc1893425f5496b5526a9807bc12d64a29e168))
+
 ## [1.23.1](https://github.com/AtomiCloud/alcohol.neon/compare/v1.23.0...v1.23.1) (2026-11-12)
 
 

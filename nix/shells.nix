@@ -18,8 +18,13 @@ with env;
     # flutter + CocoaPods (darwin) + GNU rsync + pipx, plus a ruby carrying the xcodeproj
     # gem (codemagic's `xcode-project use-profiles` needs it; system ruby lacks it). iOS
     # builds go through scripts/flutter-ios.sh, which un-hijacks the nix C/C++ toolchain.
-    buildInputs = mobile ++ system ++ [ packages.ruby-xcodeproj ];
-    inherit shellHook;
+    # yq-go for lib-ios.sh instead of atomiutils (a 1.3 GB attic-only NAR whose cold
+    # download failed three times and took 1.27.0's Build IPA to 109 minutes), and no
+    # pre-commit shellHook. scripts/ci/check-ci-shells.sh keeps atomiutils out.
+    buildInputs = mobile ++ [
+      packages.yq-go
+      packages.ruby-xcodeproj
+    ];
   };
 
   cd-android = pkgs.mkShell {

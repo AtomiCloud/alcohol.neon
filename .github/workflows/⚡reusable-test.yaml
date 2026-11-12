@@ -10,6 +10,8 @@ jobs:
       - nscloud-cache-tag-atomi-nix-store-cache
     steps:
       - uses: AtomiCloud/actions.setup-nix@v3
+      - name: Keep atomiutils out of the CI and CD shells
+        run: ./scripts/ci/check-ci-shells.sh
       - name: Run tests
         run: nix develop .#test -c ./scripts/ci/test.sh
 

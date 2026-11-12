@@ -51,6 +51,8 @@ class WidgetService {
         'zinc_uid',
         'pending_id',
         'pending_at',
+        // The widget's "Couldn't save. Try again." marker (TodayWidget.kt).
+        'failed_id',
       ]) {
         await HomeWidget.saveWidgetData<Object>(key, null);
       }

@@ -77,6 +77,20 @@ object TodayWidgets {
     private fun pendingId(context: Context) =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("pending_id", null)
 
+    /** The habit whose last Complete from the widget didn't reach zinc, if any. */
+    private fun failedId(context: Context) =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("failed_id", null)
+
+    /**
+     * A habit's line under its name: "Saving…" while Complete waits for zinc,
+     * the notification's "Couldn't save. Try again." after it failed, else its proof and deadline.
+     */
+    internal fun habitStatus(habit: Habit, pendingId: String?, failedId: String?) = when (habit.id) {
+        pendingId -> "Saving…"
+        failedId -> NextUpNotification.SAVE_FAILED
+        else -> "${proofLabel(habit)} · by ${hm(habit.deadline)}"
+    }
+
     /** Redraws every placed widget of both sizes. */
     fun refreshAll(context: Context) {
         val mgr = AppWidgetManager.getInstance(context)
@@ -161,7 +175,7 @@ object TodayWidgets {
         )
         views.setTextViewText(
             R.id.proof,
-            if (pendingId(context) == next.id) "Saving…" else "${proofLabel(next)} · by ${hm(next.deadline)}",
+            habitStatus(next, pendingId(context), failedId(context)),
         )
         return views
     }
@@ -204,15 +218,13 @@ object TodayWidgets {
 
         val shown = rowsThatFit(heightDp, open.size)
         val pending = pendingId(context)
+        val failed = failedId(context)
         views.removeAllViews(R.id.rows)
         for (habit in open.take(shown)) {
             val row = RemoteViews(context.packageName, R.layout.widget_today_row)
             row.setTextViewText(R.id.row_name, habit.name)
             val saving = pending == habit.id
-            row.setTextViewText(
-                R.id.row_sub,
-                if (saving) "Saving…" else "${proofLabel(habit)} · by ${hm(habit.deadline)}",
-            )
+            row.setTextViewText(R.id.row_sub, habitStatus(habit, pending, failed))
             if (habit.nfc) {
                 // An NFC habit needs a scan in the app; tapping the icon opens it.
                 row.setImageViewResource(R.id.row_button, R.drawable.widget_ic_nfc)
@@ -222,7 +234,14 @@ object TodayWidgets {
                 row.setImageViewResource(
                     R.id.row_button, if (saving) R.drawable.widget_circle_saving else R.drawable.widget_circle,
                 )
-                row.setContentDescription(R.id.row_button, if (saving) "Saving ${habit.name}" else "Complete ${habit.name}")
+                row.setContentDescription(
+                    R.id.row_button,
+                    when {
+                        saving -> "Saving ${habit.name}"
+                        failed == habit.id -> "Couldn't save ${habit.name}. Complete it again"
+                        else -> "Complete ${habit.name}"
+                    },
+                )
                 row.setOnClickPendingIntent(R.id.row_button, completeIntent(context, habit.id))
             }
             views.addView(R.id.rows, row)
@@ -238,17 +257,20 @@ object TodayWidgets {
 
     /**
      * Confirm-first, like the notification's Complete: "Saving…" until zinc has
-     * the completion, then the habit moves to done; on failure it stays open.
+     * the completion, then the habit moves to done; on failure it stays open and
+     * says "Couldn't save. Try again." until the next Complete.
      */
     fun complete(context: Context, versionId: String, onDone: () -> Unit) {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        prefs.edit().putString("pending_id", versionId).apply()
+        prefs.edit().putString("pending_id", versionId).remove("failed_id").apply()
         refreshAll(context)
         NextUpNotification.setPhase(context, versionId, NextUpNotification.Phase.SAVING)
         io.execute {
             try {
                 val ok = NextUpNotification.completeOnServer(context, versionId)
-                prefs.edit().remove("pending_id").apply()
+                prefs.edit().remove("pending_id").apply {
+                    if (!ok) putString("failed_id", versionId)
+                }.apply()
                 if (ok) markDone(context, versionId)
                 NextUpNotification.setPhase(
                     context, versionId,

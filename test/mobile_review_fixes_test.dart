@@ -254,21 +254,26 @@ void main() {
             'A charity is only needed because there’s money at stake. Your '
             'first one is remembered for next time.';
         expect(find.text(hint), hasDefault ? findsNothing : findsOneWidget);
-        await tester.scrollUntilVisible(
-          find.text('Save changes'),
-          200,
-          scrollable: find.byType(Scrollable).first,
-        );
-        await tester.ensureVisible(find.text('Save changes'));
-        await tester.pumpAndSettle();
-        await tester.tap(find.text('Save changes'));
-        await tester.pumpAndSettle();
-        expect(
-          find.text('Choose a charity'),
-          findsNWidgets(2),
-          reason: 'the charity row and the save error',
-        );
-        expect(h.requests.where((r) => r.method == 'PUT'), isEmpty);
+        if (hasDefault) {
+          // The habit has no charity yet, so the default fills the row.
+          expect(find.text('Red Cross'), findsOneWidget);
+        } else {
+          await tester.scrollUntilVisible(
+            find.text('Save changes'),
+            200,
+            scrollable: find.byType(Scrollable).first,
+          );
+          await tester.ensureVisible(find.text('Save changes'));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('Save changes'));
+          await tester.pumpAndSettle();
+          expect(
+            find.text('Choose a charity'),
+            findsNWidgets(2),
+            reason: 'the charity row and the save error',
+          );
+          expect(h.requests.where((r) => r.method == 'PUT'), isEmpty);
+        }
 
         final charityRow = find.byIcon(Icons.volunteer_activism);
         await tester.scrollUntilVisible(

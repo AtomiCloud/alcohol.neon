@@ -106,8 +106,14 @@ class _HabitEditorViewState extends State<HabitEditorView> {
         _days
           ..clear()
           ..addAll(h.daysOfWeek ?? const []);
-        _charityId = h.charityId;
-        _loadCharityName(h.charityId);
+        // A habit with no charity (no stake) gets the default charity, like
+        // a new one, in case a stake is added.
+        if (h.charityId?.isNotEmpty ?? false) {
+          _charityId = h.charityId;
+          _loadCharityName(h.charityId);
+        } else {
+          _prefillDefaultCharity();
+        }
       case Err(:final problem):
         _error = problem;
     }

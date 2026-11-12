@@ -13,8 +13,10 @@ import '../../session/session_controller.dart';
 import '../../theme/app_theme.dart';
 import '../charity/charity_picker.dart';
 import '../dashboard/today_layout.dart';
+import '../friends/friends_view.dart';
 import '../nfc/tag_inspector_view.dart';
 import '../settings/settings_view.dart';
+import '../strava/strava_view.dart';
 import '../vacation/vacation_list_view.dart';
 
 /// M5 — the profile screen (mirrors argon's `profile.tsx` field-card layout, minus
@@ -310,6 +312,27 @@ class _ProfileViewState extends State<ProfileView> {
                 ),
               ],
             ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Card(
+          child: Column(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.group_outlined),
+                title: const Text('Friends'),
+                subtitle: const Text('Find friends, requests and invites'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _push(const FriendsView()),
+              ),
+              ListTile(
+                leading: const Icon(Icons.directions_run, color: stravaOrange),
+                title: const Text('Strava'),
+                subtitle: const Text('Complete habits from your activities'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _push(const StravaView()),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 8),

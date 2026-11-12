@@ -9,8 +9,10 @@ import '../../generated/zinc/models/update_habit_req.dart';
 import '../../session/session_controller.dart';
 import '../../theme/app_theme.dart';
 import '../charity/charity_picker.dart';
+import '../friends/friend_stake_tile.dart';
 import '../nfc/link_tag_flow.dart';
 import '../payment/consent_service.dart';
+import '../strava/strava_proof_tile.dart';
 import 'stake_sheet.dart';
 
 /// M3 — create / edit a habit. Field contract mirrors argon (verified against
@@ -425,6 +427,10 @@ class _HabitEditorViewState extends State<HabitEditorView> {
                       ),
                     ),
                   ),
+                  // Strava proof and friend stake need the habit id and save
+                  // on their own, so they're offered once the habit exists.
+                  StravaProofTile(habitId: widget.habitId!),
+                  FriendStakeTile(habitId: widget.habitId!),
                 ],
                 if (_error != null) ...[
                   const SizedBox(height: 12),

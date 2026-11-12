@@ -105,7 +105,8 @@ void main() {
     tester,
   ) async {
     final h = SessionHarness(
-      respond: (r) async => r.url.path.endsWith('/h1')
+      respond: (r) async =>
+          r.url.path.contains('/Habit/') && r.url.path.endsWith('/h1')
           ? jsonResponse({...habitVersion, 'timezone': null})
           : null,
     );

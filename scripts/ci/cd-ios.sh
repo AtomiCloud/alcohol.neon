@@ -21,6 +21,9 @@ DONOR=raichu
 # shellcheck source=scripts/ci/lib-ios.sh disable=SC1091
 source "$(dirname "$0")/lib-ios.sh"
 
+# Fail fast on the stamp helpers before the ~25-minute build.
+./scripts/ci/stamp-ios-test.sh
+
 flutter pub get
 
 (cd ios && pod install)

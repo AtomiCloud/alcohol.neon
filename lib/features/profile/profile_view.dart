@@ -141,11 +141,8 @@ class _ProfileViewState extends State<ProfileView> {
         // pops the navigator back to the signed-out shell and disposes this
         // screen. Deliberately not awaited so the confirmation never stalls
         // behind the network; the messenger is app-level and outlives this route.
-        final messenger = ScaffoldMessenger.of(context);
+        showGlassToast(context, 'Your account has been deleted.');
         auth.signOut();
-        messenger.showSnackBar(
-          const SnackBar(content: Text('Your account has been deleted.')),
-        );
       case Err(:final problem):
         setState(() {
           _deleting = false;
@@ -157,9 +154,7 @@ class _ProfileViewState extends State<ProfileView> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const AmbientBackdrop(
-        child: Scaffold(backgroundColor: Colors.transparent, body: AppLoader()),
-      );
+      return const GlassLoadingScreen();
     }
     return GlassPage(
       title: 'Profile',
@@ -170,10 +165,7 @@ class _ProfileViewState extends State<ProfileView> {
                 title: _error!.title,
                 body: _error!.detail,
                 error: true,
-                action: TextButton(
-                  onPressed: _load,
-                  child: const Text('Retry'),
-                ),
+                action: GlassTextButton(label: 'Retry', onPressed: _load),
               ),
             ]
           : _content(context),
@@ -375,13 +367,10 @@ class _ProfileViewState extends State<ProfileView> {
         ),
       const SizedBox(height: 8),
       Center(
-        child: TextButton(
-          style: TextButton.styleFrom(
-            foregroundColor: theme.colorScheme.error,
-            overlayColor: Colors.transparent,
-          ),
+        child: GlassTextButton(
+          label: _deleting ? 'Deleting…' : 'Delete account',
+          destructive: true,
           onPressed: _deleting ? null : _deleteAccount,
-          child: Text(_deleting ? 'Deleting…' : 'Delete account'),
         ),
       ),
     ];

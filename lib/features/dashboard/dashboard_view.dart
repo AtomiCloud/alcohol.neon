@@ -189,9 +189,7 @@ class _DashboardScaffoldState extends State<_DashboardScaffold>
     if (!mounted) return;
     final notice = _session.takeTimezoneNotice();
     if (notice == null) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(notice), duration: const Duration(seconds: 8)),
-    );
+    showGlassToast(context, notice, duration: const Duration(seconds: 8));
   }
 
   @override
@@ -311,7 +309,7 @@ class _TodayState extends State<_Today> {
           body:
               'Saved actions are kept. Totals may be out of date. '
               'Retry refresh — do not submit the action again.',
-          action: TextButton(onPressed: c.load, child: const Text('Retry')),
+          action: GlassTextButton(label: 'Retry', onPressed: c.load),
         ),
       if (c.actionError != null)
         GlassBanner(
@@ -675,38 +673,21 @@ class _NextUpCard extends StatelessWidget {
                 ),
               ],
               const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                height: 54,
-                child: FilledButton(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: t.accent,
-                    foregroundColor: t.onAccent,
-                    shape: const StadiumBorder(),
-                    minimumSize: const Size.fromHeight(54),
-                  ),
-                  onPressed: busy ? null : () => _complete(c, h),
-                  child: busy
-                      ? SizedBox.square(
-                          dimension: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: t.muted,
-                          ),
-                        )
-                      : const Text('Complete'),
-                ),
+              GlassButton(
+                label: 'Complete',
+                busy: busy,
+                onPressed: () => _complete(c, h),
               ),
               const SizedBox(height: 4),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  TextButton(
-                    style: TextButton.styleFrom(foregroundColor: t.muted),
+                  GlassTextButton(
+                    label: 'Skip',
+                    muted: true,
                     onPressed: busy || skipsLeft <= 0
                         ? null
                         : () => _skip(c, h),
-                    child: const Text('Skip'),
                   ),
                   Text(
                     '$skipsLeft left this month',
@@ -1207,62 +1188,49 @@ class _Pill extends StatelessWidget {
 }
 
 void _showSafetyNets(BuildContext context) {
-  final t = GlassTokens.of(context);
-  showModalBottomSheet<void>(
-    context: context,
-    showDragHandle: true,
-    backgroundColor: Colors.transparent,
-    elevation: 0,
-    builder: (ctx) => ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-        child: ColoredBox(
-          color: t.strongFill,
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Your safety nets',
-                    style: Theme.of(ctx).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  _infoRow(
-                    ctx,
-                    Icons.ac_unit_rounded,
-                    AppColors.freeze,
-                    'Freezes',
-                    'Automatic. If you miss a scheduled day, a freeze is spent for '
-                        'you — your streak survives and you’re not charged. You earn '
-                        'them over time, and the cap grows as your streak grows.',
-                  ),
-                  _infoRow(
-                    ctx,
-                    Icons.fast_forward_rounded,
-                    null,
-                    'Skips',
-                    'You choose these. Tap Skip, or swipe a habit left, when you '
-                        'know you won’t do it today — it won’t break your streak or '
-                        'charge you. Limited to a monthly allowance.',
-                  ),
-                  _infoRow(
-                    ctx,
-                    Icons.beach_access_rounded,
-                    AppColors.vacation,
-                    'Vacation',
-                    'Pause all habits for a date range, for longer breaks. No misses '
-                        'and no charges while a vacation is active. Find it in Profile.',
-                  ),
-                ],
-              ),
+  showGlassSheet<void>(
+    context,
+    (ctx) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Your safety nets',
+              style: Theme.of(
+                ctx,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
             ),
-          ),
+            const SizedBox(height: 16),
+            _infoRow(
+              ctx,
+              Icons.ac_unit_rounded,
+              AppColors.freeze,
+              'Freezes',
+              'Automatic. If you miss a scheduled day, a freeze is spent for '
+                  'you — your streak survives and you’re not charged. You earn '
+                  'them over time, and the cap grows as your streak grows.',
+            ),
+            _infoRow(
+              ctx,
+              Icons.fast_forward_rounded,
+              null,
+              'Skips',
+              'You choose these. Tap Skip, or swipe a habit left, when you '
+                  'know you won’t do it today — it won’t break your streak or '
+                  'charge you. Limited to a monthly allowance.',
+            ),
+            _infoRow(
+              ctx,
+              Icons.beach_access_rounded,
+              AppColors.vacation,
+              'Vacation',
+              'Pause all habits for a date range, for longer breaks. No misses '
+                  'and no charges while a vacation is active. Find it in Profile.',
+            ),
+          ],
         ),
       ),
     ),
@@ -1344,45 +1312,18 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final t = GlassTokens.of(context);
     final followsPhone = context.watch<SessionController>().followPhoneTimezone;
     return Padding(
       padding: const EdgeInsets.only(top: 8),
-      child: Glass(
-        radius: const BorderRadius.all(Radius.circular(28)),
-        padding: const EdgeInsets.fromLTRB(20, 32, 20, 20),
-        child: Column(
-          children: [
-            Icon(Icons.task_alt_rounded, size: 44, color: t.accent),
-            const SizedBox(height: 12),
-            Text(
-              'Make your first habit',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              followsPhone
-                  ? 'Choose what to do and on which days. Your timezone '
-                        'already follows your phone.'
-                  : 'Choose what to do and on which days.',
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(color: t.muted),
-            ),
-            const SizedBox(height: 20),
-            FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: t.accent,
-                foregroundColor: t.onAccent,
-                shape: const StadiumBorder(),
-              ),
-              onPressed: onCreate,
-              child: const Text('Create a habit'),
-            ),
-          ],
-        ),
+      child: GlassMessage(
+        icon: Icons.task_alt_rounded,
+        tint: GlassTokens.of(context).accent,
+        title: 'Make your first habit',
+        body: followsPhone
+            ? 'Choose what to do and on which days. Your timezone '
+                  'already follows your phone.'
+            : 'Choose what to do and on which days.',
+        actions: [GlassButton(label: 'Create a habit', onPressed: onCreate)],
       ),
     );
   }
@@ -1395,16 +1336,17 @@ class _ErrorRetry extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            FilledButton(onPressed: onRetry, child: const Text('Retry')),
-          ],
+    return SafeArea(
+      child: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: GlassMessage(
+            icon: Icons.cloud_off_rounded,
+            tint: Theme.of(context).colorScheme.error,
+            title: 'Could not load Today',
+            body: message,
+            actions: [GlassButton(label: 'Retry', onPressed: onRetry)],
+          ),
         ),
       ),
     );

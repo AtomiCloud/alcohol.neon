@@ -192,7 +192,7 @@ class _StravaViewState extends State<StravaView> with WidgetsBindingObserver {
             icon: Icons.cloud_off_rounded,
             title: _error?.displayMessage ?? 'Could not load Strava',
             error: true,
-            action: TextButton(onPressed: _load, child: const Text('Retry')),
+            action: GlassTextButton(label: 'Retry', onPressed: _load),
           ),
         ],
         _Phase.ready => _content(context),

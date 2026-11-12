@@ -431,10 +431,10 @@ class _HabitEditorViewState extends State<HabitEditorView> {
                 label: 'Scan tag',
                 onPressed: () => Navigator.pop(ctx, true),
               ),
-              TextButton(
-                style: TextButton.styleFrom(foregroundColor: t.muted),
+              GlassTextButton(
+                label: 'Not now',
+                muted: true,
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Not now'),
               ),
             ],
           ),

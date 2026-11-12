@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../../config/app_config.dart';
 import '../../core/problem.dart';
 import '../../session/session_controller.dart';
+import '../../theme/glass.dart';
+import '../../widgets/glass_modal.dart';
 import 'nfc_service.dart';
 
 /// Links a physical NFC tag to [habitId] (plan Flow 1):
@@ -13,7 +15,9 @@ import 'nfc_service.dart';
 ///   → GET resolve → already linked to another of my habits? confirm re-link
 ///   → PUT link (409 = someone else's tag).
 ///
-/// All outcomes land as a SnackBar; the tag itself is only ever written once.
+/// The flow is a glass sheet while it scans, a glass confirm before it
+/// overwrites or re-links, and a glass toast for every outcome (it has no
+/// page of its own); the tag itself is only ever written once.
 /// Returns whether the tag now completes [habitId].
 Future<bool> runLinkTagFlow(
   BuildContext context, {
@@ -22,11 +26,8 @@ Future<bool> runLinkTagFlow(
 }) async {
   final session = context.read<SessionController>();
   final uid = session.userId;
-  final messenger = ScaffoldMessenger.of(context);
   if (uid == null) {
-    messenger.showSnackBar(
-      const SnackBar(content: Text('Sign in again to link a tag.')),
-    );
+    showGlassToast(context, 'Sign in again to link a tag.');
     return false;
   }
 
@@ -42,9 +43,7 @@ Future<bool> runLinkTagFlow(
     );
   }
 
-  void toast(String message) {
-    messenger.showSnackBar(SnackBar(content: Text(message)));
-  }
+  void toast(String message) => showGlassToast(context, message);
 
   _showScanSheet(context, habitName: habitName);
   var result = await scanOnce(overwriteForeign: false);
@@ -53,10 +52,10 @@ Future<bool> runLinkTagFlow(
 
   // Foreign but writable → ask, then a second tap overwrites.
   if (result case Ok(value: NfcScanResult(kind: NfcTagKind.foreignWritable))) {
-    final overwrite = await _confirm(
+    final overwrite = await showGlassConfirm(
       context,
       title: 'Tag has other data',
-      body:
+      message:
           'This tag already contains something else. Overwrite it? '
           'This erases the old content permanently.',
       confirmLabel: 'Overwrite',
@@ -109,10 +108,11 @@ Future<bool> runLinkTagFlow(
           toast('This tag already completes "$habitName".');
           return true;
         }
-        final relink = await _confirm(
+        final relink = await showGlassConfirm(
           context,
           title: 'Tag already linked',
-          body:
+          destructive: false,
+          message:
               'This tag currently completes "${value.habitVersion.task ?? 'another habit'}". '
               'Re-link it to "$habitName" instead?',
           confirmLabel: 'Re-link',
@@ -146,36 +146,55 @@ Future<bool> runLinkTagFlow(
 /// tag" instructions while the session polls. On iOS this sits behind the
 /// system sheet, which is fine.
 void _showScanSheet(BuildContext context, {required String habitName}) {
-  showModalBottomSheet<void>(
-    context: context,
-    isDismissible: false,
-    enableDrag: false,
-    showDragHandle: false,
+  showGlassSheet<void>(
+    context,
+    dismissible: false,
     routeSettings: const RouteSettings(name: _scanSheetRoute),
-    builder: (_) => SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.nfc, size: 48),
-            const SizedBox(height: 12),
-            Text(
-              'Link a tag to "$habitName"',
-              style: Theme.of(context).textTheme.titleMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Hold your phone near the NFC tag…',
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            const CircularProgressIndicator(),
-          ],
+    (ctx) {
+      final theme = Theme.of(ctx);
+      final t = GlassTokens.of(ctx);
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: t.accent.withValues(alpha: 0.14),
+                ),
+                child: Icon(Icons.nfc_rounded, size: 36, color: t.accent),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Link a tag to "$habitName"',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Hold your phone near the NFC tag…',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(color: t.muted),
+              ),
+              const SizedBox(height: 20),
+              SizedBox.square(
+                dimension: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: t.accent,
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
-    ),
+      );
+    },
   );
 }
 
@@ -185,30 +204,4 @@ void _dismissScanSheet(BuildContext context) {
   Navigator.of(
     context,
   ).popUntil((route) => route.settings.name != _scanSheetRoute);
-}
-
-Future<bool> _confirm(
-  BuildContext context, {
-  required String title,
-  required String body,
-  required String confirmLabel,
-}) async {
-  final answer = await showDialog<bool>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      title: Text(title),
-      content: Text(body),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(ctx).pop(false),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(ctx).pop(true),
-          child: Text(confirmLabel),
-        ),
-      ],
-    ),
-  );
-  return answer ?? false;
 }

@@ -5,6 +5,10 @@ import '../../config/app_config.dart';
 import '../../core/problem.dart';
 import '../../data/nfc_tag_repository.dart';
 import '../../session/session_controller.dart';
+import '../../theme/glass.dart';
+import '../../widgets/glass_list.dart';
+import '../../widgets/glass_modal.dart';
+import '../../widgets/glass_page.dart';
 import 'nfc_service.dart';
 import 'tap_complete_view.dart';
 
@@ -26,6 +30,7 @@ class _TagInspectorViewState extends State<TagInspectorView> {
   String? _tagId;
   NfcTagResolutionRes? _resolution;
   Problem? _problem;
+  Problem? _actionError;
   bool _acting = false;
 
   Future<void> _scan() async {
@@ -34,6 +39,7 @@ class _TagInspectorViewState extends State<TagInspectorView> {
       _tagId = null;
       _resolution = null;
       _problem = null;
+      _actionError = null;
     });
 
     final session = context.read<SessionController>();
@@ -105,21 +111,30 @@ class _TagInspectorViewState extends State<TagInspectorView> {
     final uid = session.userId;
     final tagId = _tagId;
     if (uid == null || tagId == null || _acting) return;
+    final ok = await showGlassConfirm(
+      context,
+      title: 'Unlink this tag?',
+      message:
+          'Tapping it will no longer complete '
+          '"${_resolution?.habitVersion.task ?? 'this habit'}". '
+          'You can link it to any habit afterwards.',
+      confirmLabel: 'Unlink',
+    );
+    if (!ok || !mounted) return;
 
-    setState(() => _acting = true);
+    setState(() {
+      _acting = true;
+      _actionError = null;
+    });
     final res = await session.nfcTags.unlink(uid, tagId);
     if (!mounted) return;
     setState(() => _acting = false);
     switch (res) {
       case Ok():
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Tag unlinked — it can be reused.')),
-        );
+        showGlassToast(context, 'Tag unlinked — it can be reused.');
         setState(() => _phase = _Phase.notYours);
       case Err(:final problem):
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(problem.title)));
+        setState(() => _actionError = problem);
     }
   }
 
@@ -150,38 +165,54 @@ class _TagInspectorViewState extends State<TagInspectorView> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Scaffold(
-      appBar: AppBar(title: const Text('NFC tags')),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          Text(
-            'Scan a tag to see which habit it completes. '
-            'Scanning here never completes the habit.',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 16),
-          FilledButton.icon(
-            onPressed: _phase == _Phase.scanning ? null : _scan,
-            icon: const Icon(Icons.nfc),
-            label: Text(_phase == _Phase.scanning ? 'Scanning…' : 'Scan a tag'),
-          ),
-          const SizedBox(height: 24),
-          ..._result(theme),
-        ],
+    final scanning = _phase == _Phase.scanning;
+    // One emerald action: Scan, unless the tag's habit can be completed now.
+    final canComplete =
+        _phase == _Phase.yours && _resolution?.todayExecution == null;
+    return GlassPage(
+      title: 'NFC tags',
+      dock: GlassButton(
+        label: scanning
+            ? 'Scanning…'
+            : _phase == _Phase.idle
+            ? 'Scan a tag'
+            : 'Scan another tag',
+        busy: scanning,
+        secondary: canComplete,
+        onPressed: scanning ? null : _scan,
       ),
+      children: [
+        if (_actionError case final e?)
+          GlassBanner(
+            icon: Icons.error_outline_rounded,
+            title: e.title,
+            body: e.detail,
+            error: true,
+          ),
+        ..._result(context),
+      ],
     );
   }
 
-  List<Widget> _result(ThemeData theme) {
+  List<Widget> _result(BuildContext context) {
+    final t = GlassTokens.of(context);
     switch (_phase) {
       case _Phase.idle:
-        return const [];
       case _Phase.scanning:
-        return const [Center(child: CircularProgressIndicator())];
+        return [
+          const SizedBox(height: 16),
+          GlassMessage(
+            icon: Icons.nfc_rounded,
+            tint: t.accent,
+            // The Scan button shows the spinner while it scans.
+            title: _phase == _Phase.scanning
+                ? 'Hold your phone near the tag'
+                : 'What does this tag do?',
+            body:
+                'Scan a tag to see which habit it completes. '
+                'Scanning here never completes the habit.',
+          ),
+        ];
       case _Phase.yours:
         final r = _resolution!;
         final today = r.todayExecution;
@@ -195,115 +226,84 @@ class _TagInspectorViewState extends State<TagInspectorView> {
                 _ => 'Today: ${today.status}',
               };
         return [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '🏷 This tag completes',
-                    style: theme.textTheme.labelMedium,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    r.habitVersion.task ?? 'Habit',
-                    style: theme.textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(subtitle, style: theme.textTheme.bodyMedium),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      if (today == null)
-                        FilledButton(
-                          onPressed: _complete,
-                          child: const Text('Complete now'),
-                        ),
-                      const Spacer(),
-                      TextButton(
-                        onPressed: _acting ? null : _unlink,
-                        child: const Text('Unlink'),
-                      ),
-                    ],
-                  ),
-                ],
+          GlassSection(
+            title: 'This tag completes',
+            footer:
+                'To point this tag at a different habit, open that habit '
+                'and choose "Link NFC tag".',
+            children: [
+              GlassRow(
+                leading: IconTile(Icons.nfc_rounded, t.accent),
+                title: r.habitVersion.task ?? 'Habit',
+                subtitle: subtitle,
               ),
-            ),
+            ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            'To point this tag at a different habit, open that habit and '
-            'choose "Link NFC tag".',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+          GlassSection(
+            dividerIndent: 16,
+            children: [
+              if (today == null)
+                GlassRow(
+                  title: 'Complete now',
+                  accent: true,
+                  centered: true,
+                  onTap: _complete,
+                ),
+              GlassRow(
+                title: 'Unlink tag',
+                destructive: true,
+                centered: true,
+                trailing: _acting
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : null,
+                onTap: _acting ? null : _unlink,
+              ),
+            ],
           ),
         ];
       case _Phase.notYours:
-        return [
-          _info(
-            theme,
-            Icons.help_outline,
-            'Not linked to your habits',
-            'This tag is either unclaimed or belongs to another account. '
+        return const [
+          GlassBanner(
+            icon: Icons.help_outline_rounded,
+            title: 'Not linked to your habits',
+            body:
+                'This tag is either unclaimed or belongs to another account. '
                 'To use it, open a habit and choose "Link NFC tag".',
           ),
         ];
       case _Phase.blank:
-        return [
-          _info(
-            theme,
-            Icons.new_label_outlined,
-            'Unlinked tag',
-            'This tag is empty. Open a habit and choose "Link NFC tag" to '
+        return const [
+          GlassBanner(
+            icon: Icons.new_label_outlined,
+            title: 'Unlinked tag',
+            body:
+                'This tag is empty. Open a habit and choose "Link NFC tag" to '
                 'set it up.',
           ),
         ];
       case _Phase.unusable:
-        return [
-          _info(
-            theme,
-            Icons.block,
-            "Can't use this tag",
-            "It's locked by another app or not NFC-writable. Use a blank "
+        return const [
+          GlassBanner(
+            icon: Icons.block_rounded,
+            title: "Can't use this tag",
+            body:
+                "It's locked by another app or not NFC-writable. Use a blank "
                 'NTAG sticker instead.',
+            error: true,
           ),
         ];
       case _Phase.error:
         return [
-          _info(
-            theme,
-            Icons.error_outline,
-            _problem?.title ?? 'Something went wrong',
-            _problem?.detail ?? 'Try scanning again.',
+          GlassBanner(
+            icon: Icons.error_outline_rounded,
+            title: _problem?.title ?? 'Something went wrong',
+            body: _problem?.detail ?? 'Try scanning again.',
+            error: true,
           ),
         ];
     }
-  }
-
-  Widget _info(ThemeData theme, IconData icon, String title, String body) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: theme.colorScheme.onSurfaceVariant),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: theme.textTheme.titleSmall),
-                  const SizedBox(height: 4),
-                  Text(body, style: theme.textTheme.bodySmall),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

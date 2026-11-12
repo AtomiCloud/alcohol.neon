@@ -6,6 +6,10 @@ import '../../config/app_config.dart';
 import '../../config/dev_overrides.dart';
 import '../../config/landscape.dart';
 import '../../services/notification_service.dart';
+import '../../theme/glass.dart';
+import '../../widgets/glass_list.dart';
+import '../../widgets/glass_modal.dart';
+import '../../widgets/glass_page.dart';
 
 /// Prompts for the dev password ("iitm") then opens [DevConfigView]. Pass
 /// [requirePassword] = false to skip the prompt (the pre-login logo path).
@@ -23,32 +27,109 @@ Future<void> openDevConfig(
   ).push(MaterialPageRoute(builder: (_) => const DevConfigView()));
 }
 
-Future<bool?> _promptPassword(BuildContext context) {
-  final ctrl = TextEditingController();
-  bool check() => ctrl.text == 'iitm';
-  return showDialog<bool>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      title: const Text('Developer access'),
-      content: TextField(
-        controller: ctrl,
-        obscureText: true,
-        autofocus: true,
-        decoration: const InputDecoration(labelText: 'Password'),
-        onSubmitted: (_) => Navigator.of(ctx).pop(check()),
+Future<bool?> _promptPassword(BuildContext context) =>
+    showGlassSheet<bool>(context, (_) => const _PasswordSheet());
+
+/// Pops true for the right password, false for a wrong one, and null when
+/// dismissed.
+class _PasswordSheet extends StatefulWidget {
+  const _PasswordSheet();
+
+  @override
+  State<_PasswordSheet> createState() => _PasswordSheetState();
+}
+
+class _PasswordSheetState extends State<_PasswordSheet> {
+  final _ctrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _submit() => Navigator.of(context).pop(_ctrl.text == 'iitm');
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        20,
+        0,
+        20,
+        16 + MediaQuery.viewInsetsOf(context).bottom,
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(ctx).pop(false),
-          child: const Text('Cancel'),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Developer access',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 14),
+            _GlassField(
+              controller: _ctrl,
+              hint: 'Password',
+              obscure: true,
+              autofocus: true,
+              onSubmitted: (_) => _submit(),
+            ),
+            const SizedBox(height: 16),
+            GlassButton(label: 'Enter', onPressed: _submit),
+          ],
         ),
-        FilledButton(
-          onPressed: () => Navigator.of(ctx).pop(check()),
-          child: const Text('Enter'),
+      ),
+    );
+  }
+}
+
+/// A borderless text field on a rounded glass fill.
+class _GlassField extends StatelessWidget {
+  final TextEditingController controller;
+  final String hint;
+  final bool obscure;
+  final bool autofocus;
+  final ValueChanged<String>? onSubmitted;
+  const _GlassField({
+    required this.controller,
+    required this.hint,
+    this.obscure = false,
+    this.autofocus = false,
+    this.onSubmitted,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GlassTokens.of(context);
+    return Glass(
+      radius: BorderRadius.circular(14),
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      child: TextField(
+        controller: controller,
+        obscureText: obscure,
+        autofocus: autofocus,
+        autocorrect: false,
+        enableSuggestions: false,
+        onSubmitted: onSubmitted,
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: TextStyle(color: t.muted),
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          filled: false,
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(vertical: 14),
         ),
-      ],
-    ),
-  );
+      ),
+    );
+  }
 }
 
 /// Hidden developer screen: view the active config and override the landscape or
@@ -66,6 +147,7 @@ class _DevConfigViewState extends State<DevConfigView> {
   // null = "Auto (from bundle id)".
   Landscape? _landscape;
   bool _loaded = false;
+  String? _restartNotice;
 
   // Field key (matches the YAML keys) -> human label. Empty controller means
   // "no override — use the landscape default".
@@ -145,6 +227,15 @@ class _DevConfigViewState extends State<DevConfigView> {
   }
 
   Future<void> _reset() async {
+    final ok = await showGlassConfirm(
+      context,
+      title: 'Reset overrides?',
+      message:
+          'Every override is cleared, and the app goes back to the config '
+          'from its bundle id after a restart.',
+      confirmLabel: 'Reset',
+    );
+    if (!ok) return;
     await DevOverrides.clear();
     for (final c in _controllers.values) {
       c.clear();
@@ -157,126 +248,191 @@ class _DevConfigViewState extends State<DevConfigView> {
   Future<void> _sendTestNotification() async {
     await NotificationService.instance.showNow();
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Test notification sent')));
+    showGlassToast(context, 'Test notification sent');
   }
 
-  void _showRestart(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        duration: const Duration(seconds: 8),
-        action: SnackBarAction(
-          label: 'Close app',
-          onPressed: () => SystemNavigator.pop(),
+  /// Saved overrides only apply on the next start, so the page keeps saying
+  /// so, with a way to close the app.
+  void _showRestart(String msg) => setState(() => _restartNotice = msg);
+
+  Future<void> _pickLandscape() async {
+    final picked = await showGlassSheet<(Landscape?,)>(
+      context,
+      (ctx) => SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(4, 0, 4, 12),
+                child: Text(
+                  'Landscape',
+                  style: Theme.of(
+                    ctx,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                ),
+              ),
+              GlassSection(
+                title: null,
+                dividerIndent: 16,
+                children: [
+                  for (final l in <Landscape?>[null, ...Landscape.values])
+                    GlassRow(
+                      title: l?.name ?? 'Auto (bundle id)',
+                      chevron: false,
+                      trailing: l == _landscape
+                          ? Icon(
+                              Icons.check_rounded,
+                              color: GlassTokens.of(ctx).accent,
+                            )
+                          : null,
+                      onTap: () => Navigator.of(ctx).pop((l,)),
+                    ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
+    if (picked != null && mounted) setState(() => _landscape = picked.$1);
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    if (!_loaded) {
-      return const Scaffold(body: AppLoader());
-    }
+    if (!_loaded) return const GlassLoadingScreen();
     final c = AppConfig.current;
-    return Scaffold(
-      appBar: AppBar(title: const Text('Developer · Config')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Text('ACTIVE', style: theme.textTheme.labelSmall),
-          const SizedBox(height: 8),
-          _kv('Landscape', c.landscape.name),
-          _kv('Logto endpoint', c.logtoEndpoint),
-          _kv('Logto app id', c.logtoAppId),
-          _kv('Zinc base URL', c.zincBaseUrl.toString()),
-          _kv(
-            'Zinc resource',
-            c.zincResource.isEmpty ? '(none)' : c.zincResource,
-          ),
-          _kv('Airwallex env', c.airwallexEnv.name),
-          _kv('Redirect URI', c.redirectUri),
-          _kv('Scopes', c.scopes.join(' ')),
-          const Divider(height: 32),
-          Text(
-            'OVERRIDES — restart to apply',
-            style: theme.textTheme.labelSmall,
-          ),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<Landscape?>(
-            initialValue: _landscape,
-            decoration: const InputDecoration(
-              labelText: 'Landscape',
-              helperText: 'Switch the whole config to another landscape',
-              border: OutlineInputBorder(),
+    return GlassPage(
+      title: 'Developer',
+      dock: GlassButton(label: 'Save', onPressed: _save),
+      children: [
+        if (_restartNotice case final notice?)
+          GlassBanner(
+            icon: Icons.restart_alt_rounded,
+            title: notice,
+            action: GlassTextButton(
+              label: 'Close app',
+              onPressed: () => SystemNavigator.pop(),
             ),
-            items: [
-              const DropdownMenuItem(
-                value: null,
-                child: Text('Auto (bundle id)'),
-              ),
-              for (final l in Landscape.values)
-                DropdownMenuItem(value: l, child: Text(l.name)),
-            ],
-            onChanged: (v) => setState(() => _landscape = v),
           ),
-          const SizedBox(height: 16),
-          for (final e in _fieldLabels.entries) ...[
-            TextField(
-              controller: _controllers[e.key],
-              autocorrect: false,
-              enableSuggestions: false,
-              decoration: InputDecoration(
-                labelText: e.value,
-                hintText: _activeValue(e.key),
-                helperText: 'Blank = use the landscape default',
-                border: const OutlineInputBorder(),
-                isDense: true,
-              ),
+        GlassSection(
+          title: 'Active',
+          dividerIndent: 16,
+          children: [
+            _Value('Landscape', c.landscape.name),
+            _Value('Logto endpoint', c.logtoEndpoint),
+            _Value('Logto app id', c.logtoAppId),
+            _Value('Zinc base URL', c.zincBaseUrl.toString()),
+            _Value(
+              'Zinc resource',
+              c.zincResource.isEmpty ? '(none)' : c.zincResource,
             ),
-            const SizedBox(height: 12),
+            _Value('Airwallex env', c.airwallexEnv.name),
+            _Value('Redirect URI', c.redirectUri),
+            _Value('Scopes', c.scopes.join(' ')),
           ],
-          const SizedBox(height: 8),
-          FilledButton.icon(
-            onPressed: _save,
-            icon: const Icon(Icons.save),
-            label: const Text('Save'),
+        ),
+        GlassSection(
+          title: 'Overrides',
+          footer:
+              'Restart the app to apply. A blank field uses the landscape '
+              'default, shown greyed out.',
+          dividerIndent: 16,
+          children: [
+            GlassRow(
+              title: 'Landscape',
+              value: _landscape?.name ?? 'Auto (bundle id)',
+              chevron: true,
+              onTap: _pickLandscape,
+            ),
+            for (final e in _fieldLabels.entries)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      e.value,
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: GlassTokens.of(context).muted,
+                      ),
+                    ),
+                    TextField(
+                      controller: _controllers[e.key],
+                      autocorrect: false,
+                      enableSuggestions: false,
+                      decoration: InputDecoration(
+                        hintText: _activeValue(e.key),
+                        hintStyle: TextStyle(
+                          color: GlassTokens.of(context).muted,
+                        ),
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        filled: false,
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 10,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+        GlassSection(
+          title: 'Tools',
+          children: [
+            GlassRow(
+              leading: const Icon(Icons.notifications_active_outlined),
+              title: 'Send test notification',
+              onTap: _sendTestNotification,
+            ),
+          ],
+        ),
+        GlassSection(
+          children: [
+            GlassRow(
+              title: 'Reset overrides',
+              destructive: true,
+              centered: true,
+              onTap: _reset,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// A read-only config value: a muted label over selectable text.
+class _Value extends StatelessWidget {
+  final String label;
+  final String value;
+  const _Value(this.label, this.value);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            label,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: GlassTokens.of(context).muted,
+            ),
           ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: _reset,
-            icon: const Icon(Icons.restore),
-            label: const Text('Reset overrides'),
-          ),
-          const Divider(height: 32),
-          Text('TOOLS', style: theme.textTheme.labelSmall),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: _sendTestNotification,
-            icon: const Icon(Icons.notifications_active_outlined),
-            label: const Text('Send test notification'),
-          ),
+          const SizedBox(height: 2),
+          SelectableText(value, style: theme.textTheme.bodyMedium),
         ],
       ),
     );
   }
-
-  Widget _kv(String k, String v) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 3),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 120,
-          child: Text(k, style: Theme.of(context).textTheme.bodySmall),
-        ),
-        Expanded(child: SelectableText(v, style: theme.textTheme.bodySmall)),
-      ],
-    ),
-  );
-
-  ThemeData get theme => Theme.of(context);
 }

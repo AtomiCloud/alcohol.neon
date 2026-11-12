@@ -46,13 +46,7 @@ class _InboxScaffold extends StatelessWidget {
       onRefresh: ready ? c.load : null,
       actions: [
         if (ready && c.hasUnread)
-          TextButton(
-            onPressed: c.markAllRead,
-            style: TextButton.styleFrom(
-              foregroundColor: GlassTokens.of(context).accent,
-            ),
-            child: const Text('Mark all read'),
-          ),
+          GlassTextButton(label: 'Mark all read', onPressed: c.markAllRead),
       ],
       children: switch (c.phase) {
         InboxPhase.loading => const [SizedBox(height: 320, child: AppLoader())],
@@ -61,7 +55,7 @@ class _InboxScaffold extends StatelessWidget {
             icon: Icons.cloud_off_rounded,
             title: c.error?.displayMessage ?? 'Could not load your inbox',
             error: true,
-            action: TextButton(onPressed: c.load, child: const Text('Retry')),
+            action: GlassTextButton(label: 'Retry', onPressed: c.load),
           ),
         ],
         InboxPhase.ready => _list(context, c),
@@ -112,10 +106,7 @@ class _InboxScaffold extends StatelessWidget {
                     padding: EdgeInsets.all(12),
                     child: CircularProgressIndicator(),
                   )
-                : TextButton(
-                    onPressed: c.loadMore,
-                    child: const Text('Load more'),
-                  ),
+                : GlassTextButton(label: 'Load more', onPressed: c.loadMore),
           ),
         ),
     ];

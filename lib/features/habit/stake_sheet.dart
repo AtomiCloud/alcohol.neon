@@ -123,13 +123,10 @@ class _StakeSheetState extends State<_StakeSheet> {
             Row(
               children: [
                 Expanded(
-                  child: TextButton(
-                    style: TextButton.styleFrom(
-                      foregroundColor: GlassTokens.of(context).muted,
-                      minimumSize: const Size.fromHeight(50),
-                    ),
+                  child: GlassTextButton(
+                    label: 'Cancel',
+                    muted: true,
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancel'),
                   ),
                 ),
                 const SizedBox(width: 12),

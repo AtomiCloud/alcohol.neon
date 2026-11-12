@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
+import '../../theme/glass.dart';
+import '../../widgets/glass_list.dart';
+import '../../widgets/glass_page.dart';
+
 /// Offline IANA choices when platform discovery is unavailable.
 List<String> bundledTimezones() {
   tzdata.initializeTimeZones();
@@ -12,7 +16,8 @@ const timezoneDiscoveryNotice =
     'Device timezone discovery is unavailable. Choose your region from the '
     'bundled timezone list, or retry discovery. Your selection is kept.';
 
-/// Searchable IANA timezone list. Returns the chosen identifier (e.g.
+/// Searchable IANA timezone list, grouped by region (Asia, Europe, …) with
+/// the city as each row. Returns the chosen identifier (e.g.
 /// `Asia/Singapore`) via `Navigator.pop`.
 class TimezonePicker extends StatefulWidget {
   final List<String> timezones;
@@ -26,54 +31,68 @@ class TimezonePicker extends StatefulWidget {
 class _TimezonePickerState extends State<TimezonePicker> {
   String _query = '';
 
-  List<String> get _filtered {
-    if (_query.trim().isEmpty) return widget.timezones;
-    final q = _query.toLowerCase();
-    return widget.timezones.where((t) => t.toLowerCase().contains(q)).toList();
+  /// Matching zones by region, in the list's order. A zone without a region,
+  /// such as `UTC`, goes under Other.
+  Map<String, List<String>> get _groups {
+    final q = _query.trim().toLowerCase().replaceAll(' ', '_');
+    final groups = <String, List<String>>{};
+    for (final id in widget.timezones) {
+      if (q.isNotEmpty && !id.toLowerCase().contains(q)) continue;
+      final slash = id.indexOf('/');
+      final region = slash < 0 ? 'Other' : id.substring(0, slash);
+      groups.putIfAbsent(region, () => []).add(id);
+    }
+    return groups;
   }
 
   @override
   Widget build(BuildContext context) {
-    final items = _filtered;
-    return Scaffold(
-      appBar: AppBar(title: const Text('Choose your timezone')),
-      body: Column(
-        children: [
+    final groups = _groups;
+    final t = GlassTokens.of(context);
+    return GlassPage(
+      title: 'Timezone',
+      children: [
+        const SizedBox(height: 4),
+        GlassSearchField(
+          hint: 'Search cities',
+          autofocus: true,
+          onChanged: (v) => setState(() => _query = v),
+        ),
+        if (groups.isEmpty)
           Padding(
-            padding: const EdgeInsets.all(12),
-            child: TextField(
-              autofocus: true,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.search),
-                hintText: 'Search timezones',
-                border: OutlineInputBorder(),
-              ),
-              onChanged: (v) => setState(() => _query = v),
+            padding: const EdgeInsets.only(top: 48),
+            child: Text(
+              'No timezones found',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: t.muted),
             ),
           ),
-          Expanded(
-            child: items.isEmpty
-                ? const Center(child: Text('No timezones found'))
-                : ListView.builder(
-                    itemCount: items.length,
-                    itemBuilder: (context, i) {
-                      final tz = items[i];
-                      final selected = tz == widget.selected;
-                      return ListTile(
-                        title: Text(tz.replaceAll('_', ' ')),
-                        trailing: selected
-                            ? Icon(
-                                Icons.check,
-                                color: Theme.of(context).colorScheme.primary,
-                              )
-                            : null,
-                        onTap: () => Navigator.pop(context, tz),
-                      );
-                    },
-                  ),
+        for (final MapEntry(key: region, value: ids) in groups.entries)
+          GlassSection(
+            title: region.replaceAll('_', ' '),
+            dividerIndent: 16,
+            children: [for (final id in ids) _row(context, id)],
           ),
-        ],
-      ),
+      ],
+    );
+  }
+
+  Widget _row(BuildContext context, String id) {
+    final parts = id.split('/');
+    final city = parts.last.replaceAll('_', ' ');
+    final area = parts.length > 2
+        ? parts.sublist(1, parts.length - 1).join(', ').replaceAll('_', ' ')
+        : null;
+    final selected = id == widget.selected;
+    return GlassRow(
+      key: ValueKey(id),
+      title: city,
+      subtitle: area,
+      chevron: false,
+      trailing: selected
+          ? Icon(Icons.check_rounded, color: GlassTokens.of(context).accent)
+          : null,
+      onTap: () => Navigator.pop(context, id),
     );
   }
 }

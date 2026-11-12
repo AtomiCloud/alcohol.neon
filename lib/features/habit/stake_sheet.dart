@@ -86,7 +86,7 @@ class _StakeSheetState extends State<_StakeSheet> {
               alignment: WrapAlignment.center,
               children: [
                 for (final v in const [1, 5, 10, 20])
-                  _Chip(
+                  GlassPill(
                     label: '\$$v',
                     on: _cents == v * 100,
                     onTap: () => setState(() => _cents = v * 100),
@@ -167,32 +167,3 @@ class _StakeSheetState extends State<_StakeSheet> {
 }
 
 /// A quick-pick amount, filled when it's the current stake.
-class _Chip extends StatelessWidget {
-  final String label;
-  final bool on;
-  final VoidCallback onTap;
-  const _Chip({required this.label, required this.on, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final t = GlassTokens.of(context);
-    return Pressable(
-      onTap: onTap,
-      scale: 0.94,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: ShapeDecoration(
-          shape: StadiumBorder(side: BorderSide(color: t.separator)),
-          color: on ? t.accent : t.fill,
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            color: on ? t.onAccent : null,
-          ),
-        ),
-      ),
-    );
-  }
-}

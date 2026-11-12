@@ -9,7 +9,7 @@ import '../../data/friend_repository.dart';
 import '../../data/friend_stake_repository.dart';
 import '../../session/session_controller.dart';
 import 'friends_view.dart';
-import '../../widgets/compact_buttons.dart';
+import '../../theme/glass.dart';
 
 /// Habit editor card: "Tell my friends if I miss". Saves on its own (not
 /// with "Save changes"). Hidden when zinc has no FriendStake route (404).
@@ -215,22 +215,50 @@ class _WatcherSheetState extends State<_WatcherSheet> {
           ).push(MaterialPageRoute(builder: (_) => const FriendsView()));
         },
       ),
-      Ok(:final value) => ListView(
-        shrinkWrap: true,
-        children: [
-          for (final f in value)
-            CheckboxListTile(
-              value: _picked.contains(f.userId),
-              title: Text(f.username),
-              onChanged: !_picked.contains(f.userId) && _picked.length >= max
-                  ? null
-                  : (on) => setState(
-                      () => on == true
-                          ? _picked.add(f.userId)
-                          : _picked.remove(f.userId),
-                    ),
+      Ok(:final value) => Glass(
+        child: ListView.separated(
+          shrinkWrap: true,
+          padding: EdgeInsets.zero,
+          itemCount: value.length,
+          separatorBuilder: (_, _) => Padding(
+            padding: const EdgeInsets.only(left: 66),
+            child: Divider(
+              height: 0.5,
+              color: GlassTokens.of(context).separator,
             ),
-        ],
+          ),
+          itemBuilder: (context, i) {
+            final f = value[i];
+            final on = _picked.contains(f.userId);
+            final full = !on && _picked.length >= max;
+            return Semantics(
+              checked: on,
+              child: Opacity(
+                opacity: full ? 0.45 : 1,
+                child: GlassRow(
+                  leading: FriendAvatar(f.username),
+                  title: f.username,
+                  chevron: false,
+                  trailing: Icon(
+                    on
+                        ? Icons.check_circle_rounded
+                        : Icons.radio_button_unchecked_rounded,
+                    color: on
+                        ? GlassTokens.of(context).accent
+                        : GlassTokens.of(context).muted,
+                  ),
+                  onTap: full
+                      ? null
+                      : () => setState(
+                          () => on
+                              ? _picked.remove(f.userId)
+                              : _picked.add(f.userId),
+                        ),
+                ),
+              ),
+            );
+          },
+        ),
       ),
     };
     return SafeArea(
@@ -259,23 +287,27 @@ class _WatcherSheetState extends State<_WatcherSheet> {
               const SizedBox(height: 8),
               Flexible(child: list),
               const SizedBox(height: 12),
-              CompactButtons(
-                child: Row(
-                  children: [
-                    if (widget.initial.isNotEmpty)
-                      TextButton(
+              Row(
+                children: [
+                  if (widget.initial.isNotEmpty) ...[
+                    Expanded(
+                      child: GlassButton(
+                        label: 'Turn off',
+                        secondary: true,
                         onPressed: () => Navigator.of(context).pop(<String>[]),
-                        child: const Text('Turn off'),
                       ),
-                    const Spacer(),
-                    FilledButton(
+                    ),
+                    const SizedBox(width: 10),
+                  ],
+                  Expanded(
+                    child: GlassButton(
+                      label: 'Save',
                       onPressed: _friends is Ok
                           ? () => Navigator.of(context).pop(_picked.toList())
                           : null,
-                      child: const Text('Save'),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ],
           ),

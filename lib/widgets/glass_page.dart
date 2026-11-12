@@ -30,6 +30,9 @@ class GlassPage extends StatelessWidget {
   final Widget? floatingActionButton;
   final List<Widget> actions;
 
+  /// Pull to refresh, when the page shows server data.
+  final Future<void> Function()? onRefresh;
+
   const GlassPage({
     super.key,
     required this.title,
@@ -38,6 +41,7 @@ class GlassPage extends StatelessWidget {
     this.dock,
     this.floatingActionButton,
     this.actions = const [],
+    this.onRefresh,
   });
 
   @override
@@ -48,34 +52,44 @@ class GlassPage extends StatelessWidget {
         backgroundColor: Colors.transparent,
         floatingActionButton: floatingActionButton,
         bottomNavigationBar: dock == null ? null : _Dock(child: dock!),
-        body: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(
-            parent: BouncingScrollPhysics(),
+        body: _refreshable(
+          CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+            slivers: [
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: _GlassHeader(
+                  title: title,
+                  top: MediaQuery.paddingOf(context).top,
+                  cupertino: isCupertino(context),
+                  modal: modal,
+                  actions: actions,
+                ),
+              ),
+              SliverPadding(
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  4,
+                  16,
+                  32 + (dock == null ? bottom : 0),
+                ),
+                sliver: SliverList.list(children: children),
+              ),
+            ],
           ),
-          slivers: [
-            SliverPersistentHeader(
-              pinned: true,
-              delegate: _GlassHeader(
-                title: title,
-                top: MediaQuery.paddingOf(context).top,
-                cupertino: isCupertino(context),
-                modal: modal,
-                actions: actions,
-              ),
-            ),
-            SliverPadding(
-              padding: EdgeInsets.fromLTRB(
-                16,
-                4,
-                16,
-                32 + (dock == null ? bottom : 0),
-              ),
-              sliver: SliverList.list(children: children),
-            ),
-          ],
         ),
       ),
     );
+  }
+}
+
+extension on GlassPage {
+  Widget _refreshable(Widget scroll) {
+    final refresh = onRefresh;
+    if (refresh == null) return scroll;
+    return RefreshIndicator(onRefresh: refresh, child: scroll);
   }
 }
 
@@ -237,21 +251,11 @@ class _Leading extends StatelessWidget {
         ),
       );
     }
-    return Pressable(
+    return GlassIconButton(
+      icon: Icons.chevron_left_rounded,
+      label: 'Back',
+      size: 26,
       onTap: close,
-      scale: 0.92,
-      child: Semantics(
-        button: true,
-        label: 'Back',
-        child: Glass(
-          blur: true,
-          radius: const BorderRadius.all(Radius.circular(18)),
-          child: const SizedBox.square(
-            dimension: 36,
-            child: Icon(Icons.chevron_left_rounded, size: 26),
-          ),
-        ),
-      ),
     );
   }
 }
@@ -285,4 +289,34 @@ class _Dock extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A frosted round button for a top bar, like Today's profile button.
+class GlassIconButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final double size;
+  const GlassIconButton({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.size = 22,
+  });
+
+  @override
+  Widget build(BuildContext context) => Pressable(
+    onTap: onTap,
+    scale: 0.92,
+    child: Semantics(
+      button: true,
+      label: label,
+      child: Glass(
+        blur: true,
+        radius: const BorderRadius.all(Radius.circular(18)),
+        child: SizedBox.square(dimension: 36, child: Icon(icon, size: size)),
+      ),
+    ),
+  );
 }

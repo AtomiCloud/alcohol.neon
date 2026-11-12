@@ -246,6 +246,7 @@ class _SettingsViewState extends State<SettingsView> {
         builder: (_) => CharityPicker(
           repository: session.charities,
           causeRepository: session.causes,
+          selectedId: _config?.principal.defaultCharityId,
         ),
       ),
     );

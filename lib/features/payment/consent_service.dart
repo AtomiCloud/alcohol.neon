@@ -5,6 +5,9 @@ import 'package:flutter/material.dart';
 import '../../config/app_config.dart';
 import '../../core/problem.dart';
 import '../../session/session_controller.dart';
+import '../../theme/glass.dart';
+import '../../widgets/glass_list.dart';
+import '../../widgets/glass_modal.dart';
 import 'payment_consent_collector.dart';
 
 /// Orchestrates the end-to-end payment-consent collection (plan M6):
@@ -12,7 +15,7 @@ import 'payment_consent_collector.dart';
 /// 1. Short-circuit if the session already has consent.
 /// 2. Provision the Airwallex customer (`PUT /Payment/{userId}/customers`) to get
 ///    a `customerId` + `clientSecret` (falling back to `GET .../client-secret`).
-/// 3. Show a pre-launch confirm dialog (mirrors argon's `ConsentConfirmModal`).
+/// 3. Explain the card in a glass sheet (argon's `ConsentConfirmModal`).
 /// 4. Present the native card sheet via the [PaymentConsentCollector].
 /// 5. On a successful sheet, **poll** `GET /Payment/{userId}/consent` on argon's
 ///    exact schedule (5×1000ms, then `min(interval*2, 30000)`, total cap 120000ms,
@@ -117,30 +120,10 @@ class ConsentService {
     return _pollWithOverlay(context, userId);
   }
 
-  Future<bool?> _showConfirmDialog(BuildContext context) {
-    return showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Set up payment method?'),
-        content: const Text(
-          "You'll add a payment method with our payment partner Airwallex. "
-          'This lets you stake on your habits — your charity is only charged if '
-          'you miss a day. Your card details are handled securely by Airwallex.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Not now'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Continue'),
-          ),
-        ],
-      ),
-    );
-  }
+  /// What adding a card means, in a glass sheet: when it's charged, who
+  /// holds it, how to remove it. Continue returns true.
+  Future<bool?> _showConfirmDialog(BuildContext context) =>
+      showGlassSheet<bool>(context, (ctx) => const ConsentExplainer());
 
   /// Shows a non-dismissible overlay, runs [_poll], then tears the overlay down.
   Future<Result<void>> _pollWithOverlay(
@@ -234,27 +217,162 @@ class _PollOverlayRoute extends ModalRoute<void> {
     Animation<double> secondaryAnimation,
   ) {
     // PopScope blocks the system back gesture/button.
-    return PopScope(
-      canPop: false,
-      child: Center(
-        child: Card(
-          margin: const EdgeInsets.symmetric(horizontal: 32),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
+    return const PopScope(canPop: false, child: ConsentConfirming());
+  }
+}
+
+/// The sheet before Airwallex's card form.
+class ConsentExplainer extends StatelessWidget {
+  const ConsentExplainer({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final t = GlassTokens.of(context);
+    Widget point(IconData icon, String title, String body, {Color? color}) =>
+        Padding(
+          padding: const EdgeInsets.only(top: 14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, size: 22, color: color ?? t.muted),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      body,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: t.muted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+    return SafeArea(
+      top: false,
+      minimum: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: t.track,
+                  shape: BoxShape.circle,
+                ),
+                child: const SizedBox.square(
+                  dimension: 48,
+                  child: Icon(Icons.credit_card_rounded, size: 24),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Add a card to stake',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'A money stake needs a card on file. You add it with our '
+              'payment partner Airwallex.',
+              style: theme.textTheme.bodyMedium?.copyWith(color: t.muted),
+            ),
+            point(
+              Icons.payments_outlined,
+              'Charged only when you miss',
+              'Your stake goes to your charity for each missed day. Nothing '
+                  'is charged now.',
+              color: t.accent,
+            ),
+            point(
+              Icons.shield_outlined,
+              'Kept by Airwallex',
+              'Airwallex holds your card details securely. LazyTax never '
+                  'sees them.',
+            ),
+            point(
+              Icons.delete_outline_rounded,
+              'Remove it any time',
+              'In Settings. Staked habits stop charging until you add a '
+                  'card again.',
+            ),
+            const SizedBox(height: 24),
+            GlassButton(
+              label: 'Continue',
+              onPressed: () => Navigator.pop(context, true),
+            ),
+            const SizedBox(height: 4),
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              style: TextButton.styleFrom(foregroundColor: t.muted),
+              child: const Text('Not now'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The glass card shown while zinc confirms the new card.
+class ConsentConfirming extends StatelessWidget {
+  const ConsentConfirming({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final t = GlassTokens.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Glass(
+          blur: true,
+          strong: true,
+          padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+          child: Material(
+            type: MaterialType.transparency,
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              children: const [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
-                Text(
-                  'Confirming your payment method…',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontWeight: FontWeight.w600),
+              children: [
+                SizedBox.square(
+                  dimension: 36,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 3,
+                    color: t.accent,
+                  ),
                 ),
-                SizedBox(height: 8),
+                const SizedBox(height: 18),
                 Text(
-                  "Please don't leave this screen.",
+                  'Confirming your card…',
                   textAlign: TextAlign.center,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Please stay on this screen. This can take up to two '
+                  'minutes.',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium?.copyWith(color: t.muted),
                 ),
               ],
             ),

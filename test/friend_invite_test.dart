@@ -59,7 +59,7 @@ void main() {
     expect(find.textContaining('7 days'), findsNothing);
     expect(find.textContaining('friend request'), findsOneWidget);
 
-    await tester.tap(find.text('Enter a code'));
+    await tester.tap(find.text('Have a code? Enter it'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).last, 'AB23cdefgh');
     await tester.tap(find.text('Add friend'));

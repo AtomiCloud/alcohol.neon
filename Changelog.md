@@ -1,3 +1,16 @@
+## [1.18.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.17.0...v1.18.0) (2026-11-12)
+
+
+### ✨ Features ✨
+
+* Android glass widgets for Next up and Today ([80394c9](https://github.com/AtomiCloud/alcohol.neon/commit/80394c996befc387218d886bfffa3235a5426863)), closes [#56](https://github.com/AtomiCloud/alcohol.neon/issues/56)
+* Strava proof, friends, inbox and friend stake UI ([fd960a8](https://github.com/AtomiCloud/alcohol.neon/commit/fd960a8d8b4b056c59cf0e7be3e8cd12fb48fb91))
+
+
+### 🚀 Performance Improvement 🚀
+
+* show Today from the last launch and load it in parallel ([f24f04f](https://github.com/AtomiCloud/alcohol.neon/commit/f24f04fa38fb8dd4507530c114a8e9e3646cc58f))
+
 ## [1.17.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.16.0...v1.17.0) (2026-11-11)
 
 

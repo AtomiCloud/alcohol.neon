@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_next_up_label">Next up</string>
+    <string name="widget_next_up_description">Your next habit and the time left to do it</string>
+    <string name="widget_today_label">Today</string>
+    <string name="widget_today_description">Today\'s progress and open habits, with Complete</string>
+</resources>

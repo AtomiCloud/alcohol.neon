@@ -79,6 +79,34 @@
             android:name=".CompleteHabitReceiver"
             android:exported="false" />
 
+        <!-- Home Screen widgets (TodayWidget.kt): 2x2 "Next up" and 4x2 "Today". -->
+        <receiver
+            android:name=".NextUpWidget"
+            android:exported="false"
+            android:label="@string/widget_next_up_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_next_up_info" />
+        </receiver>
+        <receiver
+            android:name=".TodayWidget"
+            android:exported="false"
+            android:label="@string/widget_today_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_today_info" />
+        </receiver>
+        <!-- The widgets' Complete buttons and deadline refresh. -->
+        <receiver
+            android:name=".WidgetActionReceiver"
+            android:exported="false" />
+
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

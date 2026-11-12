@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../widgets/glass_modal.dart';
+
+import '../../widgets/glass_list.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/problem.dart';
@@ -67,11 +70,9 @@ class _FriendStakeTileState extends State<FriendStakeTile> {
   Future<void> _edit() async {
     final uid = _session.userId;
     if (uid == null) return;
-    final picked = await showModalBottomSheet<List<String>>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (_) => _WatcherSheet(
+    final picked = await showGlassSheet<List<String>>(
+      context,
+      (_) => _WatcherSheet(
         load: () => _friends.friends(uid),
         initial: {for (final w in _watchers) w.userId},
       ),
@@ -103,7 +104,7 @@ class _FriendStakeTileState extends State<FriendStakeTile> {
       case _Phase.hidden:
         return const SizedBox.shrink();
       case _Phase.loading:
-        return const Card(
+        return const GlassCard(
           child: ListTile(
             leading: icon,
             title: title,
@@ -111,7 +112,7 @@ class _FriendStakeTileState extends State<FriendStakeTile> {
           ),
         );
       case _Phase.error:
-        return Card(
+        return GlassCard(
           child: ListTile(
             leading: icon,
             title: title,
@@ -123,7 +124,7 @@ class _FriendStakeTileState extends State<FriendStakeTile> {
         break;
     }
     final names = _watchers.map((w) => w.username).join(', ');
-    return Card(
+    return GlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

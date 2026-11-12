@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../widgets/glass_modal.dart';
+
+import '../../widgets/glass_list.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/problem.dart';
@@ -129,11 +132,9 @@ class _StravaProofTileState extends State<StravaProofTile> {
 
   Future<void> _pick() async {
     final options = sportTypesFromSchema(_manifest?.settingsSchema);
-    final picked = await showModalBottomSheet<List<String>>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (_) => _SportTypeSheet(options: options, initial: _bound),
+    final picked = await showGlassSheet<List<String>>(
+      context,
+      (_) => _SportTypeSheet(options: options, initial: _bound),
     );
     if (picked == null || !mounted) return;
     await _save(picked);
@@ -197,7 +198,7 @@ class _StravaProofTileState extends State<StravaProofTile> {
       case _Phase.hidden:
         return const SizedBox.shrink();
       case _Phase.loading:
-        return const Card(
+        return const GlassCard(
           child: ListTile(
             leading: Icon(Icons.directions_run, color: stravaOrange),
             title: Text('Complete with Strava'),
@@ -205,7 +206,7 @@ class _StravaProofTileState extends State<StravaProofTile> {
           ),
         );
       case _Phase.error:
-        return Card(
+        return GlassCard(
           child: ListTile(
             leading: const Icon(Icons.directions_run, color: stravaOrange),
             title: const Text('Complete with Strava'),
@@ -245,7 +246,7 @@ class _StravaProofTileState extends State<StravaProofTile> {
       onTap = _saving ? null : _pick;
     }
 
-    return Card(
+    return GlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

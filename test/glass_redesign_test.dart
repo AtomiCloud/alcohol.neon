@@ -123,6 +123,40 @@ void main() {
         );
       });
 
+      testWidgets('${platform.name}: back still works once the title has '
+          'folded into the bar', (tester) async {
+        await pumpApp(
+          tester,
+          Builder(
+            builder: (context) => Scaffold(
+              body: TextButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => GlassPage(
+                      title: 'Settings',
+                      children: [
+                        for (var i = 0; i < 30; i++) GlassRow(title: 'Row $i'),
+                      ],
+                    ),
+                  ),
+                ),
+                child: const Text('open'),
+              ),
+            ),
+          ),
+          platform: platform,
+        );
+        await tester.tap(find.text('open'));
+        await tester.pumpAndSettle();
+        await tester.drag(find.text('Row 3'), const Offset(0, -500));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          ios ? find.bySemanticsLabel('Back') : find.byTooltip('Back'),
+        );
+        await tester.pumpAndSettle();
+        expect(find.byType(GlassPage), findsNothing);
+      });
+
       testWidgets('${platform.name}: a modal opens as a '
           '${ios ? 'page sheet with Cancel' : 'full-screen page with close'}', (
         tester,

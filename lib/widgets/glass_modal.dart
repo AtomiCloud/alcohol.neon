@@ -112,3 +112,20 @@ void showGlassToast(
     ),
   );
 }
+
+/// A bottom sheet in the glass style, such as the stake keypad: a frosted
+/// surface with a grabber, attached to the bottom edge.
+Future<T?> showGlassSheet<T>(BuildContext context, WidgetBuilder builder) {
+  final dark = Theme.of(context).brightness == Brightness.dark;
+  return showModalBottomSheet<T>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    elevation: 0,
+    backgroundColor: dark ? const Color(0xF51C1C1E) : const Color(0xF7F2F2F7),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+    ),
+    builder: builder,
+  );
+}

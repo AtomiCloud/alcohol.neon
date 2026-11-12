@@ -275,12 +275,16 @@ class GlassButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool busy;
   final bool compact;
+
+  /// A quieter grey button for the second choice, such as Not now.
+  final bool secondary;
   const GlassButton({
     super.key,
     required this.label,
     this.onPressed,
     this.busy = false,
     this.compact = false,
+    this.secondary = false,
   });
 
   @override
@@ -288,7 +292,11 @@ class GlassButton extends StatelessWidget {
     final theme = Theme.of(context);
     final t = GlassTokens.of(context);
     final enabled = onPressed != null && !busy;
-    final fg = enabled || busy ? t.onAccent : t.muted;
+    final fg = !(enabled || busy)
+        ? t.muted
+        : secondary
+        ? theme.colorScheme.onSurface
+        : t.onAccent;
     return Semantics(
       button: true,
       enabled: enabled,
@@ -304,7 +312,7 @@ class GlassButton extends StatelessWidget {
           alignment: Alignment.center,
           decoration: ShapeDecoration(
             shape: const StadiumBorder(),
-            color: enabled || busy ? t.accent : t.track,
+            color: (enabled || busy) && !secondary ? t.accent : t.track,
           ),
           child: busy
               ? SizedBox.square(
@@ -380,6 +388,106 @@ class GlassBanner extends StatelessWidget {
             ),
             ?action,
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A glass search bar under a page title: a rounded rectangle on iOS and a
+/// Material 3 pill on Android.
+class GlassSearchField extends StatelessWidget {
+  final String hint;
+  final ValueChanged<String> onChanged;
+  final bool autofocus;
+  const GlassSearchField({
+    super.key,
+    required this.hint,
+    required this.onChanged,
+    this.autofocus = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GlassTokens.of(context);
+    return Glass(
+      radius: BorderRadius.circular(isCupertino(context) ? 14 : 28),
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      child: Row(
+        children: [
+          Icon(Icons.search_rounded, size: 20, color: t.muted),
+          const SizedBox(width: 10),
+          Expanded(
+            child: TextField(
+              autofocus: autofocus,
+              onChanged: onChanged,
+              textInputAction: TextInputAction.search,
+              decoration: InputDecoration(
+                hintText: hint,
+                hintStyle: TextStyle(color: t.muted),
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                filled: false,
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A small glass pill, such as a stake amount or a search filter. [on]
+/// fills it emerald; [icon] sits after the label.
+class GlassPill extends StatelessWidget {
+  final String label;
+  final bool on;
+  final IconData? icon;
+  final VoidCallback onTap;
+  const GlassPill({
+    super.key,
+    required this.label,
+    required this.onTap,
+    this.on = false,
+    this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GlassTokens.of(context);
+    final fg = on ? t.onAccent : Theme.of(context).colorScheme.onSurface;
+    return Semantics(
+      button: true,
+      selected: on,
+      child: Pressable(
+        onTap: onTap,
+        scale: 0.94,
+        child: Container(
+          padding: EdgeInsets.fromLTRB(16, 8, icon == null ? 16 : 10, 8),
+          decoration: ShapeDecoration(
+            shape: StadiumBorder(side: BorderSide(color: t.separator)),
+            color: on ? t.accent : t.fill,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontWeight: FontWeight.w600, color: fg),
+                ),
+              ),
+              if (icon != null) ...[
+                const SizedBox(width: 4),
+                Icon(icon, size: 18, color: on ? fg : t.muted),
+              ],
+            ],
+          ),
         ),
       ),
     );

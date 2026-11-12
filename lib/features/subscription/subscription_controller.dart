@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/problem.dart';
 import '../../data/subscription_repository.dart';
+import '../../generated/zinc/models/plan_res.dart';
 import '../../generated/zinc/models/subscription_cta_res.dart';
 import '../../services/storefront_service.dart';
 
@@ -37,6 +38,7 @@ class SubscriptionController extends ChangeNotifier {
   Problem? _error;
   SubscriptionCtaRes? _cta;
   StorefrontInfo? _storefrontInfo;
+  List<PlanRes> _plans = const [];
   bool _opening = false;
   Problem? _openError;
   bool _disposed = false;
@@ -44,6 +46,24 @@ class SubscriptionController extends ChangeNotifier {
   bool get loading => _loading;
   Problem? get error => _error;
   String? get tier => _cta?.tier;
+
+  /// The limits of the user's plan, when zinc listed it.
+  PlanRes? get plan => _planAt(0);
+
+  /// The next plan up from the user's, for "Pro adds". Null on the top plan
+  /// or when plans didn't load.
+  PlanRes? get nextPlan => _planAt(1);
+
+  PlanRes? _planAt(int offset) {
+    final sorted = [..._plans]
+      ..sort((a, b) => a.priceCents.compareTo(b.priceCents));
+    final i = sorted.indexWhere(
+      (p) => p.key?.toLowerCase() == (tier ?? '').toLowerCase(),
+    );
+    if (i < 0 || i + offset >= sorted.length) return null;
+    return sorted[i + offset];
+  }
+
   bool get opening => _opening;
   Problem? get openError => _openError;
 
@@ -74,6 +94,8 @@ class SubscriptionController extends ChangeNotifier {
     _error = null;
     _notify();
 
+    // Plan limits are extra detail: a failure just hides the lists.
+    final plans = _plans.isEmpty ? _repo.plans() : null;
     final info = await _storefront.resolve();
     _storefrontInfo = info;
     final res = await _repo.cta(
@@ -81,6 +103,7 @@ class SubscriptionController extends ChangeNotifier {
       platform: info.platform,
       storefront: info.countryCode,
     );
+    if (await plans case Ok(:final value)) _plans = value;
     switch (res) {
       case Ok(:final value):
         _cta = value;

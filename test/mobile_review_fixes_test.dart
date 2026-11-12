@@ -521,7 +521,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'Tokyo');
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Asia/Tokyo'));
+    await tester.tap(find.byKey(const ValueKey('Asia/Tokyo')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Change'));
     await tester.pumpAndSettle();
@@ -551,7 +551,7 @@ void main() {
       expect(picker.selected, 'Asia/Singapore');
       await tester.enterText(find.byType(TextField), 'Tokyo');
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Asia/Tokyo'));
+      await tester.tap(find.byKey(const ValueKey('Asia/Tokyo')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Change'));
       await tester.pumpAndSettle();

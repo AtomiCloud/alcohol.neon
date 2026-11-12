@@ -114,18 +114,52 @@ void showGlassToast(
 }
 
 /// A bottom sheet in the glass style, such as the stake keypad: a frosted
-/// surface with a grabber, attached to the bottom edge.
+/// surface with a grabber, attached to the bottom edge. The surface follows
+/// the theme while open, so a switch to dark or light mode repaints it.
 Future<T?> showGlassSheet<T>(BuildContext context, WidgetBuilder builder) {
-  final dark = Theme.of(context).brightness == Brightness.dark;
   return showModalBottomSheet<T>(
     context: context,
     isScrollControlled: true,
-    showDragHandle: true,
     elevation: 0,
-    backgroundColor: dark ? const Color(0xF51C1C1E) : const Color(0xF7F2F2F7),
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-    ),
-    builder: builder,
+    backgroundColor: Colors.transparent,
+    builder: (ctx) => _SheetSurface(child: builder(ctx)),
   );
+}
+
+class _SheetSurface extends StatelessWidget {
+  final Widget child;
+  const _SheetSurface({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final dark = theme.brightness == Brightness.dark;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: dark ? const Color(0xF51C1C1E) : const Color(0xF7F2F2F7),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // The same grabber as Material's drag handle.
+          Center(
+            child: Container(
+              margin: const EdgeInsets.symmetric(vertical: 22),
+              width: 32,
+              height: 4,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.onSurfaceVariant.withValues(
+                  alpha: 0.4,
+                ),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          Flexible(child: child),
+        ],
+      ),
+    );
+  }
 }

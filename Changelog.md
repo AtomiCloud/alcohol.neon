@@ -1,3 +1,10 @@
+## [1.27.0](https://github.com/ProtoDurian/alcohol.neon/compare/v1.26.1...v1.27.0) (2026-11-12)
+
+
+### ✨ Features ✨
+
+* move NFC, sign-in, launch errors and the dev menu onto glass ([e717add](https://github.com/ProtoDurian/alcohol.neon/commit/e717addeba5204e579e346e285a67b7e82b1ae5d))
+
 ## [1.26.1](https://github.com/ProtoDurian/alcohol.neon/compare/v1.26.0...v1.26.1) (2026-11-12)
 
 

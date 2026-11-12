@@ -72,6 +72,8 @@ class HarnessAuth extends ChangeNotifier implements AuthService {
   @override
   AuthStatus status = AuthStatus.authenticated;
   @override
+  AppConfig get config => AppConfig.current;
+  @override
   Future<UserClaims?> claims() async => UserClaims(sub: uid);
   @override
   Future<String?> zincAccessToken() => token?.call() ?? Future.value('token');

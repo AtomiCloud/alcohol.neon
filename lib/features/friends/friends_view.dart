@@ -6,13 +6,17 @@ import 'package:share_plus/share_plus.dart';
 import '../../core/problem.dart';
 import '../../data/friend_repository.dart';
 import '../../session/session_controller.dart';
+import '../../theme/glass.dart';
 import '../../widgets/app_loader.dart';
+import '../../widgets/glass_list.dart';
+import '../../widgets/glass_modal.dart';
+import '../../widgets/glass_page.dart';
 import 'friend_relation.dart';
 import 'friends_controller.dart';
-import '../../widgets/compact_buttons.dart';
 
 /// Profile → Friends: search by username, answer requests, invite with a
-/// link or code, and manage the friend list.
+/// link or code, and manage the friend list. Requests come first because
+/// they need an answer; typing in the search bar shows only the results.
 class FriendsView extends StatelessWidget {
   /// From an invite link: accepted as soon as the screen opens.
   final String? inviteCode;
@@ -33,7 +37,7 @@ class FriendsView extends StatelessWidget {
   }
 }
 
-/// The snackbar text after accepting an invite code.
+/// The toast after accepting an invite code.
 String inviteResultMessage(Result<String> res) => switch (res) {
   Ok(value: 'friend') => 'You’re now friends.',
   Ok() => 'Friend request sent. You’ll be friends once they accept.',
@@ -61,185 +65,168 @@ class _FriendsScaffoldState extends State<_FriendsScaffold> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final res = await context.read<FriendsController>().acceptInvite(code);
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(inviteResultMessage(res))));
+      showGlassToast(context, inviteResultMessage(res));
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final c = context.watch<FriendsController>();
-    return Scaffold(
-      appBar: AppBar(title: const Text('Friends')),
-      body: switch (c.phase) {
-        FriendsPhase.loading => const AppLoader(),
-        FriendsPhase.error => _ErrorRetry(
-          message: c.error?.displayMessage ?? 'Could not load friends',
-          onRetry: c.load,
-        ),
-        FriendsPhase.ready => _Content(c: c),
+    return GlassPage(
+      title: 'Friends',
+      onRefresh: c.phase == FriendsPhase.ready ? c.load : null,
+      children: switch (c.phase) {
+        FriendsPhase.loading => const [
+          SizedBox(height: 320, child: AppLoader()),
+        ],
+        FriendsPhase.error => [
+          GlassBanner(
+            icon: Icons.cloud_off_rounded,
+            title: c.error?.displayMessage ?? 'Could not load friends',
+            error: true,
+            action: TextButton(onPressed: c.load, child: const Text('Retry')),
+          ),
+        ],
+        FriendsPhase.ready => _content(context, c),
       },
     );
   }
+
+  List<Widget> _content(BuildContext context, FriendsController c) {
+    final incoming = c.requests.incoming;
+    final outgoing = c.requests.outgoing;
+    return [
+      const SizedBox(height: 4),
+      GlassSearchField(hint: 'Find people by username', onChanged: c.search),
+      if (c.actionError case final error?)
+        GlassBanner(
+          icon: Icons.error_outline_rounded,
+          title: error.displayMessage,
+          error: true,
+          action: IconButton(
+            tooltip: 'Dismiss',
+            icon: const Icon(Icons.close_rounded),
+            onPressed: c.clearActionError,
+          ),
+        ),
+      if (c.query.isNotEmpty)
+        _SearchResults(c: c)
+      else ...[
+        if (incoming.isNotEmpty)
+          GlassSection(
+            title: 'Requests',
+            dividerIndent: 66,
+            children: [
+              for (final r in incoming)
+                _Person(
+                  username: r.username,
+                  subtitle: 'Wants to be friends',
+                  busy: c.isBusy(r.userId),
+                  actions: [
+                    GlassButton(
+                      label: 'Accept',
+                      compact: true,
+                      onPressed: () => c.accept(r.userId),
+                    ),
+                    const SizedBox(width: 6),
+                    GlassButton(
+                      label: 'Decline',
+                      compact: true,
+                      secondary: true,
+                      onPressed: () => c.deleteRequest(r.userId),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+        const GlassHeading('Invite'),
+        _InviteCard(c: c),
+        if (c.friends.isEmpty) ...[
+          const SizedBox(height: 16),
+          const _NoFriends(),
+        ] else
+          GlassSection(
+            title: 'Friends (${c.friends.length})',
+            dividerIndent: 66,
+            children: [
+              for (final f in c.friends)
+                _Person(
+                  username: f.username,
+                  subtitle: f.sinceUtc == null
+                      ? null
+                      : 'Friends since '
+                            '${MaterialLocalizations.of(context).formatMediumDate(f.sinceUtc!.toLocal())}',
+                  busy: c.isBusy(f.userId),
+                  actions: [_MoreButton(friend: f, c: c)],
+                ),
+            ],
+          ),
+        if (outgoing.isNotEmpty)
+          GlassSection(
+            title: 'Sent',
+            dividerIndent: 66,
+            children: [
+              for (final r in outgoing)
+                _Person(
+                  username: r.username,
+                  subtitle: 'Request sent',
+                  busy: c.isBusy(r.userId),
+                  actions: [
+                    GlassButton(
+                      label: 'Cancel',
+                      compact: true,
+                      secondary: true,
+                      onPressed: () => c.deleteRequest(r.userId),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+      ],
+    ];
+  }
 }
 
-class _Content extends StatelessWidget {
+/// A friend's menu: an action sheet on iOS, a popup menu on Android. Either
+/// way, removing asks first.
+class _MoreButton extends StatelessWidget {
+  final FriendRes friend;
   final FriendsController c;
-  const _Content({required this.c});
+  const _MoreButton({required this.friend, required this.c});
+
+  Future<void> _remove(BuildContext context) async {
+    final ok = await showGlassConfirm(
+      context,
+      title: 'Remove ${friend.username}?',
+      message:
+          'You stop being friends. They won’t be told when you miss a habit '
+          'any more.',
+      confirmLabel: 'Remove friend',
+    );
+    if (ok) await c.remove(friend.userId);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final incoming = c.requests.incoming;
-    final outgoing = c.requests.outgoing;
-    return RefreshIndicator(
-      onRefresh: c.load,
-      child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          TextField(
-            textInputAction: TextInputAction.search,
-            autocorrect: false,
-            decoration: const InputDecoration(
-              labelText: 'Find people',
-              hintText: 'Search by username',
-              prefixIcon: Icon(Icons.search),
-              border: OutlineInputBorder(),
-            ),
-            onChanged: c.search,
-          ),
-          if (c.query.isNotEmpty) _SearchResults(c: c),
-          if (c.actionError != null) ...[
-            const SizedBox(height: 12),
-            Card(
-              color: theme.colorScheme.errorContainer,
-              child: ListTile(
-                leading: Icon(
-                  Icons.error_outline,
-                  color: theme.colorScheme.onErrorContainer,
-                ),
-                title: Text(
-                  c.actionError!.displayMessage,
-                  style: TextStyle(color: theme.colorScheme.onErrorContainer),
-                ),
-                trailing: IconButton(
-                  icon: const Icon(Icons.close),
-                  color: theme.colorScheme.onErrorContainer,
-                  onPressed: c.clearActionError,
-                ),
-              ),
-            ),
-          ],
-          const SizedBox(height: 16),
-          _InviteCard(c: c),
-          if (incoming.isNotEmpty) ...[
-            const _Header('Requests'),
-            Card(
-              child: Column(
-                children: [
-                  for (final r in incoming)
-                    _PersonTile(
-                      username: r.username,
-                      subtitle: 'Wants to be friends',
-                      busy: c.isBusy(r.userId),
-                      actions: [
-                        TextButton(
-                          onPressed: () => c.deleteRequest(r.userId),
-                          child: const Text('Decline'),
-                        ),
-                        FilledButton(
-                          onPressed: () => c.accept(r.userId),
-                          child: const Text('Accept'),
-                        ),
-                      ],
-                    ),
-                ],
-              ),
-            ),
-          ],
-          if (outgoing.isNotEmpty) ...[
-            const _Header('Sent'),
-            Card(
-              child: Column(
-                children: [
-                  for (final r in outgoing)
-                    _PersonTile(
-                      username: r.username,
-                      subtitle: 'Request sent',
-                      busy: c.isBusy(r.userId),
-                      actions: [
-                        TextButton(
-                          onPressed: () => c.deleteRequest(r.userId),
-                          child: const Text('Cancel'),
-                        ),
-                      ],
-                    ),
-                ],
-              ),
-            ),
-          ],
-          _Header('Friends (${c.friends.length})'),
-          if (c.friends.isEmpty)
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.group_outlined),
-                title: const Text('No friends yet'),
-                subtitle: const Text(
-                  'Search for someone’s username or send them an invite.',
-                ),
-              ),
-            )
-          else
-            Card(
-              child: Column(
-                children: [
-                  for (final f in c.friends)
-                    _PersonTile(
-                      username: f.username,
-                      subtitle: f.sinceUtc == null
-                          ? null
-                          : 'Friends since '
-                                '${MaterialLocalizations.of(context).formatMediumDate(f.sinceUtc!.toLocal())}',
-                      busy: c.isBusy(f.userId),
-                      actions: [
-                        IconButton(
-                          tooltip: 'Remove friend',
-                          icon: const Icon(Icons.person_remove_outlined),
-                          onPressed: () => _confirmRemove(context, f),
-                        ),
-                      ],
-                    ),
-                ],
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _confirmRemove(BuildContext context, FriendRes f) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Remove ${f.username}?'),
-        content: const Text(
-          'You stop being friends. They won’t be told when you miss a habit '
-          'any more.',
+    final muted = GlassTokens.of(context).muted;
+    final tooltip = 'More for ${friend.username}';
+    if (isCupertino(context)) {
+      return IconButton(
+        tooltip: tooltip,
+        icon: Icon(Icons.more_horiz_rounded, color: muted),
+        onPressed: () => _remove(context),
+      );
+    }
+    return PopupMenuButton<void>(
+      tooltip: tooltip,
+      icon: Icon(Icons.more_vert_rounded, color: muted),
+      itemBuilder: (_) => [
+        PopupMenuItem(
+          onTap: () => _remove(context),
+          child: const Text('Remove friend'),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Remove'),
-          ),
-        ],
-      ),
+      ],
     );
-    if (confirmed == true) await c.remove(f.userId);
   }
 }
 
@@ -249,71 +236,66 @@ class _SearchResults extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final muted = theme.textTheme.bodySmall?.copyWith(
-      color: theme.colorScheme.onSurfaceVariant,
+    final t = GlassTokens.of(context);
+    Widget note(String text, {bool error = false}) => Padding(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: error ? Theme.of(context).colorScheme.error : t.muted,
+        ),
+      ),
     );
-    final Widget body;
-    if (c.query.length < 2) {
-      body = Padding(
-        padding: const EdgeInsets.all(16),
-        child: Text('Type at least 2 characters.', style: muted),
-      );
-    } else if (c.searching) {
-      body = const Padding(
-        padding: EdgeInsets.all(16),
-        child: LinearProgressIndicator(),
-      );
-    } else if (c.searchError != null) {
-      body = Padding(
-        padding: const EdgeInsets.all(16),
-        child: Text(
-          c.searchError!.displayMessage,
-          style: muted?.copyWith(color: theme.colorScheme.error),
-        ),
-      );
-    } else if (c.results.isEmpty) {
-      body = Padding(
-        padding: const EdgeInsets.all(16),
-        child: Text(
-          'No one with a username starting “${c.query}”.',
-          style: muted,
-        ),
-      );
-    } else {
-      body = Column(
-        children: [
-          for (final r in c.results)
-            _PersonTile(
-              username: r.username,
-              busy: c.isBusy(r.userId),
-              actions: [
-                switch (friendActionFor(r.relation)) {
-                  FriendAction.add => FilledButton.tonal(
-                    onPressed: () => c.sendRequest(r.userId),
-                    child: const Text('Add'),
-                  ),
-                  FriendAction.cancel => TextButton(
-                    onPressed: () => c.deleteRequest(r.userId),
-                    child: const Text('Cancel request'),
-                  ),
-                  FriendAction.accept => FilledButton(
-                    onPressed: () => c.accept(r.userId),
-                    child: const Text('Accept'),
-                  ),
-                  FriendAction.none => Text(
-                    r.relation == 'friend' ? 'Friends' : '',
-                    style: muted,
-                  ),
-                },
-              ],
-            ),
-        ],
+    if (c.query.length < 2) return note('Type at least 2 characters.');
+    if (c.searching) {
+      return const Padding(
+        padding: EdgeInsets.only(top: 32),
+        child: Center(child: CircularProgressIndicator()),
       );
     }
-    return Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: Card(child: body),
+    if (c.searchError case final error?) {
+      return note(error.displayMessage, error: true);
+    }
+    if (c.results.isEmpty) {
+      return note('No one with a username starting “${c.query}”.');
+    }
+    return GlassSection(
+      title: 'People',
+      dividerIndent: 66,
+      children: [
+        for (final r in c.results)
+          _Person(
+            username: r.username,
+            subtitle: switch (r.relation) {
+              'friend' => 'Friends',
+              'outgoing' => 'Request sent',
+              'incoming' => 'Wants to be friends',
+              _ => null,
+            },
+            busy: c.isBusy(r.userId),
+            actions: [
+              ?switch (friendActionFor(r.relation)) {
+                FriendAction.add => GlassButton(
+                  label: 'Add',
+                  compact: true,
+                  onPressed: () => c.sendRequest(r.userId),
+                ),
+                FriendAction.cancel => GlassButton(
+                  label: 'Cancel',
+                  compact: true,
+                  secondary: true,
+                  onPressed: () => c.deleteRequest(r.userId),
+                ),
+                FriendAction.accept => GlassButton(
+                  label: 'Accept',
+                  compact: true,
+                  onPressed: () => c.accept(r.userId),
+                ),
+                FriendAction.none => null,
+              },
+            ],
+          ),
+      ],
     );
   }
 }
@@ -329,9 +311,7 @@ class _InviteCard extends StatelessWidget {
       case Ok(:final value):
         await _share(context, inviteLink(value.code));
       case Err(:final problem):
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(problem.displayMessage)));
+        showGlassToast(context, problem.displayMessage);
     }
   }
 
@@ -352,109 +332,110 @@ class _InviteCard extends StatelessWidget {
   Future<void> _copy(BuildContext context, String link) async {
     await Clipboard.setData(ClipboardData(text: link));
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Invite link copied. Send it to a friend.')),
-    );
+    showGlassToast(context, 'Invite link copied. Send it to a friend.');
   }
 
   Future<void> _enterCode(BuildContext context) async {
-    final code = await showDialog<String>(
-      context: context,
-      builder: (_) => const _InviteCodeDialog(),
+    final code = await showGlassSheet<String>(
+      context,
+      (_) => const _InviteCodeSheet(),
     );
     if (code == null || !context.mounted) return;
     final res = await c.acceptInvite(code);
     if (!context.mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(inviteResultMessage(res))));
+    showGlassToast(context, inviteResultMessage(res));
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final t = GlassTokens.of(context);
     final invite = c.invite;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Invite a friend', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 4),
-            Text(
-              'Send your link, or a code they can enter here. Using it sends '
-              'you a friend request to accept.',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+    return Glass(
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Invite a friend',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Send your link, or a code they can enter here. Using it sends '
+            'you a friend request to accept.',
+            style: theme.textTheme.bodyMedium?.copyWith(color: t.muted),
+          ),
+          if (invite != null) ...[
+            const SizedBox(height: 14),
+            SelectableText(
+              inviteLink(invite.code),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: t.accent,
               ),
             ),
-            if (invite != null) ...[
-              const SizedBox(height: 12),
-              SelectableText(
-                inviteLink(invite.code),
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+            const SizedBox(height: 2),
+            Text(
+              'Code ${invite.code}',
+              style: theme.textTheme.bodySmall?.copyWith(color: t.muted),
+            ),
+          ],
+          const SizedBox(height: 16),
+          if (invite == null)
+            Builder(
+              builder: (context) => GlassButton(
+                label: 'Share invite link',
+                busy: c.inviting,
+                onPressed: () => _create(context),
               ),
-              Text(
-                'Code ${invite.code}',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
+            )
+          else
+            Row(
               children: [
-                if (invite == null)
-                  FilledButton.icon(
-                    onPressed: c.inviting ? null : () => _create(context),
-                    icon: c.inviting
-                        ? const SizedBox.square(
-                            dimension: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.link),
-                    label: const Text('Share invite link'),
-                  )
-                else ...[
-                  FilledButton.icon(
-                    onPressed: () => _share(context, inviteLink(invite.code)),
-                    icon: Icon(Icons.adaptive.share),
-                    label: const Text('Share invite link'),
+                Expanded(
+                  child: Builder(
+                    builder: (context) => GlassButton(
+                      label: 'Share',
+                      onPressed: () => _share(context, inviteLink(invite.code)),
+                    ),
                   ),
-                  OutlinedButton.icon(
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: GlassButton(
+                    label: 'Copy link',
+                    secondary: true,
                     onPressed: () => _copy(context, inviteLink(invite.code)),
-                    icon: const Icon(Icons.copy),
-                    label: const Text('Copy link'),
                   ),
-                ],
-                OutlinedButton.icon(
-                  onPressed: () => _enterCode(context),
-                  icon: const Icon(Icons.input),
-                  label: const Text('Enter a code'),
                 ),
               ],
             ),
-          ],
-        ),
+          const SizedBox(height: 4),
+          Center(
+            child: TextButton(
+              onPressed: () => _enterCode(context),
+              style: TextButton.styleFrom(foregroundColor: t.accent),
+              child: const Text('Have a code? Enter it'),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-/// Pops the cleaned code (see [inviteCodeFrom]), or null on cancel.
-class _InviteCodeDialog extends StatefulWidget {
-  const _InviteCodeDialog();
+/// Pops the cleaned code (see [inviteCodeFrom]), or null when dismissed.
+class _InviteCodeSheet extends StatefulWidget {
+  const _InviteCodeSheet();
 
   @override
-  State<_InviteCodeDialog> createState() => _InviteCodeDialogState();
+  State<_InviteCodeSheet> createState() => _InviteCodeSheetState();
 }
 
-class _InviteCodeDialogState extends State<_InviteCodeDialog> {
+class _InviteCodeSheetState extends State<_InviteCodeSheet> {
   final _text = TextEditingController();
   String? _error;
 
@@ -481,40 +462,82 @@ class _InviteCodeDialogState extends State<_InviteCodeDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Enter an invite'),
-      content: TextField(
-        controller: _text,
-        autofocus: true,
-        autocorrect: false,
-        decoration: InputDecoration(
-          hintText: 'Code or invite link',
-          errorText: _error,
-          suffixIcon: IconButton(
-            tooltip: 'Paste',
-            icon: const Icon(Icons.content_paste),
-            onPressed: _paste,
-          ),
-        ),
-        onSubmitted: (_) => _submit(),
+    final theme = Theme.of(context);
+    final t = GlassTokens.of(context);
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        20,
+        0,
+        20,
+        16 + MediaQuery.viewInsetsOf(context).bottom,
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Enter an invite',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Paste the link or type the code a friend sent you.',
+              style: theme.textTheme.bodyMedium?.copyWith(color: t.muted),
+            ),
+            const SizedBox(height: 14),
+            Glass(
+              radius: BorderRadius.circular(14),
+              padding: const EdgeInsets.only(left: 14),
+              child: TextField(
+                controller: _text,
+                autofocus: true,
+                autocorrect: false,
+                onSubmitted: (_) => _submit(),
+                decoration: InputDecoration(
+                  hintText: 'Code or invite link',
+                  hintStyle: TextStyle(color: t.muted),
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  filled: false,
+                  suffixIcon: TextButton(
+                    onPressed: _paste,
+                    style: TextButton.styleFrom(foregroundColor: t.accent),
+                    child: const Text('Paste'),
+                  ),
+                ),
+              ),
+            ),
+            if (_error case final error?)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
+                child: Text(
+                  error,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.error,
+                  ),
+                ),
+              ),
+            const SizedBox(height: 18),
+            GlassButton(label: 'Add friend', onPressed: _submit),
+          ],
         ),
-        FilledButton(onPressed: _submit, child: const Text('Add friend')),
-      ],
+      ),
     );
   }
 }
 
-class _PersonTile extends StatelessWidget {
+/// A person row: their avatar, name, one line and their actions.
+class _Person extends StatelessWidget {
   final String username;
   final String? subtitle;
   final bool busy;
   final List<Widget> actions;
-  const _PersonTile({
+  const _Person({
     required this.username,
     this.subtitle,
     required this.busy,
@@ -523,67 +546,97 @@ class _PersonTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final name = username.isEmpty ? 'Someone' : username;
-    return ListTile(
-      leading: CircleAvatar(
-        backgroundColor: theme.colorScheme.primaryContainer,
-        child: Text(
-          name[0].toUpperCase(),
-          style: TextStyle(color: theme.colorScheme.onPrimaryContainer),
-        ),
-      ),
-      title: Text(name, overflow: TextOverflow.ellipsis),
-      subtitle: subtitle == null ? null : Text(subtitle!),
+    return GlassRow(
+      leading: FriendAvatar(username),
+      title: username.isEmpty ? 'Someone' : username,
+      subtitle: subtitle,
       trailing: busy
           ? const SizedBox.square(
               dimension: 20,
               child: CircularProgressIndicator(strokeWidth: 2),
             )
-          : CompactButtons(
-              child: Row(mainAxisSize: MainAxisSize.min, children: actions),
-            ),
+          : actions.isEmpty
+          ? null
+          : Row(mainAxisSize: MainAxisSize.min, children: actions),
     );
   }
 }
 
-class _Header extends StatelessWidget {
-  final String text;
-  const _Header(this.text);
+/// A round initial in a colour picked from the name, so each friend keeps
+/// the same colour everywhere.
+class FriendAvatar extends StatelessWidget {
+  final String username;
+  final double size;
+  const FriendAvatar(this.username, {super.key, this.size = 38});
+
+  static const _colors = [
+    Color(0xFF0EA5E9),
+    Color(0xFF8B5CF6),
+    Color(0xFFF59E0B),
+    Color(0xFF10B981),
+    Color(0xFFEC4899),
+    Color(0xFF6366F1),
+    Color(0xFFEF4444),
+    Color(0xFF14B8A6),
+  ];
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 20, 4, 8),
-      child: Text(
-        text,
-        style: theme.textTheme.titleSmall?.copyWith(
-          color: theme.colorScheme.onSurfaceVariant,
+    final name = username.isEmpty ? '?' : username;
+    final color =
+        _colors[name.codeUnits.fold(0, (a, b) => a + b) % _colors.length];
+    return DecoratedBox(
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+      child: SizedBox.square(
+        dimension: size,
+        child: Center(
+          child: Text(
+            name[0].toUpperCase(),
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+              fontSize: size * 0.42,
+            ),
+          ),
         ),
       ),
     );
   }
 }
 
-class _ErrorRetry extends StatelessWidget {
-  final String message;
-  final VoidCallback onRetry;
-  const _ErrorRetry({required this.message, required this.onRetry});
+class _NoFriends extends StatelessWidget {
+  const _NoFriends();
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            FilledButton(onPressed: onRetry, child: const Text('Retry')),
-          ],
-        ),
+    final theme = Theme.of(context);
+    final t = GlassTokens.of(context);
+    return Glass(
+      padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
+      child: Column(
+        children: [
+          DecoratedBox(
+            decoration: BoxDecoration(color: t.track, shape: BoxShape.circle),
+            child: const SizedBox.square(
+              dimension: 52,
+              child: Icon(Icons.group_outlined, size: 26),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'No friends yet',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Friends you pick hear when you miss a habit. Find them by '
+            'username, or send an invite.',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(color: t.muted),
+          ),
+        ],
       ),
     );
   }

@@ -39,7 +39,7 @@ jobs:
           echo "Selected $XCODE"
           echo "DEVELOPER_DIR_OVERRIDE=$XCODE/Contents/Developer" >> "$GITHUB_ENV"
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: ipa
           path: donor
@@ -54,7 +54,7 @@ jobs:
       - name: Publish to TestFlight
         run: nix develop .#publish-ios -c app-store-connect publish --path "build/ios/stamped/$FLAVOR.ipa"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ipa-${{ inputs.flavor }}
           path: build/ios/stamped/*.ipa

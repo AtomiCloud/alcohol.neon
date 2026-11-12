@@ -44,7 +44,7 @@ jobs:
       - name: Build donor IPA
         run: nix develop .#cd-ios -c ./scripts/ci/cd-ios.sh
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ipa
           path: build/ios/ipa/*.ipa

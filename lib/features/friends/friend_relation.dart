@@ -20,12 +20,13 @@ FriendAction friendActionFor(String relation) => switch (relation) {
   _ => FriendAction.none,
 };
 
-/// Where invite links point; the code is the last path segment.
-const inviteLinkBase = 'https://lazytax.club/f/';
+/// Where invite links point; the code is the last path segment. The tag
+/// domain, because the app already claims it as a Universal/App Link host.
+const inviteLinkBase = 'https://t.lazytax.club/f/';
 
 String inviteLink(String code) => '$inviteLinkBase$code';
 
-/// A pasted invite code or link (`https://lazytax.club/f/{code}`, with or
+/// A pasted invite code or link (`https://t.lazytax.club/f/{code}`, with or
 /// without the scheme) → the code, lower-cased like zinc stores it. Null when
 /// nothing code-like is left.
 String? inviteCodeFrom(String input) {

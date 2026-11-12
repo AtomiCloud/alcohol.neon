@@ -37,7 +37,8 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-            <!-- App Links for NFC habit tags (https://t.lazytax.club/t/{tagId}).
+            <!-- App Links for NFC habit tags (https://t.lazytax.club/t/{tagId})
+                 and friend invites (https://t.lazytax.club/f/{code}).
                  autoVerify checks /.well-known/assetlinks.json on the domain
                  (served by alcohol.helium); a verified link opens the app directly. -->
             <intent-filter android:autoVerify="true">
@@ -48,6 +49,7 @@
                     android:scheme="https"
                     android:host="t.lazytax.club"
                     android:pathPrefix="/t/" />
+                <data android:pathPrefix="/f/" />
             </intent-filter>
             <!-- A physical tag scan is dispatched as NDEF_DISCOVERED, not VIEW —
                  without this filter the tap opens the browser instead of the

@@ -128,7 +128,7 @@ void main() {
     );
     expect(inviteCodeFrom(''), isNull);
     expect(inviteCodeFrom('https://lazytax.club/f/'), isNull);
-    expect(inviteLink('ab23cdefgh'), 'https://lazytax.club/f/ab23cdefgh');
+    expect(inviteLink('ab23cdefgh'), 'https://t.lazytax.club/f/ab23cdefgh');
   });
 
   group('inboxKindOf', () {

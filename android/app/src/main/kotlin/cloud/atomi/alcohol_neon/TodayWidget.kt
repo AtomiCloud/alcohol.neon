@@ -172,8 +172,15 @@ object TodayWidgets {
     private const val ROW_DP = 40
     private const val MORE_DP = 18
 
+    /** What the 4x2 says when no habit is open: signed out, nothing scheduled, or all done. */
+    internal fun emptyMessage(day: Day?) = when {
+        day == null -> "Open LazyTax to load today"
+        day.total == 0 -> "No habits today"
+        else -> "Nothing left today"
+    }
+
     /** How many open habits a 4x2 of [heightDp] shows, leaving room for "+N more" if needed. */
-    private fun rowsThatFit(heightDp: Int, open: Int): Int {
+    internal fun rowsThatFit(heightDp: Int, open: Int): Int {
         if (heightDp <= 0) return minOf(open, 3)
         // Launchers report a little more than they draw (233dp for a 222dp 4x2 on a Pixel).
         val usable = heightDp - 32 - 12
@@ -224,14 +231,7 @@ object TodayWidgets {
         views.setTextViewText(R.id.more, "+$hidden more")
         views.setViewVisibility(R.id.more, if (hidden > 0) View.VISIBLE else View.GONE)
 
-        views.setTextViewText(
-            R.id.empty,
-            when {
-                day == null -> context.getString(R.string.widget_no_data)
-                day.total == 0 -> "No habits today"
-                else -> "Nothing left today"
-            },
-        )
+        views.setTextViewText(R.id.empty, emptyMessage(day))
         views.setViewVisibility(R.id.empty, if (open.isEmpty()) View.VISIBLE else View.GONE)
         return views
     }

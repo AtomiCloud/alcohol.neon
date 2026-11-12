@@ -85,7 +85,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
-            android:text="@string/widget_no_data"
+            android:text="Open LazyTax to load today"
             android:textColor="@color/widget_muted"
             android:textSize="13sp" />
     </LinearLayout>

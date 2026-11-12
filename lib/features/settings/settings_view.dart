@@ -4,23 +4,33 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/problem.dart';
+import '../../data/config_repository.dart';
 import '../../generated/zinc/models/charity_principal_res.dart';
 import '../../generated/zinc/models/configuration_res.dart';
 import '../../generated/zinc/models/payment_consent_res.dart';
 import '../../generated/zinc/models/update_configuration_req.dart';
 import '../../session/session_controller.dart';
 import '../../session/timezone_preference.dart';
+import '../../theme/glass.dart';
+import '../../widgets/glass_list.dart';
+import '../../widgets/glass_modal.dart';
+import '../../widgets/glass_page.dart';
 import '../charity/charity_picker.dart';
 import 'timezone_picker.dart';
 import '../payment/consent_service.dart';
 import '../subscription/subscription_view.dart';
 
-/// M5 — account settings (mirrors argon's `settings.tsx` field-card layout, minus
-/// the web-only consent SETUP/REMOVAL actions, which land in M6). Loads the user's
-/// configuration (`GET /Configuration/me` — its `charity` object gives the default
-/// charity's *name*, which the cached principal lacks) and a read-only payment
-/// consent status, then lets the user change timezone + default charity and
-/// `PUT /Configuration/{id}`.
+/// The last part of an IANA id, as people say it: `America/New_York` → "New
+/// York".
+String timezoneCity(String id) => id.split('/').last.replaceAll('_', ' ');
+
+/// Account settings: "Follow phone" and the timezone, the default charity,
+/// the payment card and the plan. Loads `GET /Configuration/me` (its `charity`
+/// gives the default charity's name) and the payment consent.
+///
+/// Each change saves as soon as it is made (`PUT /Configuration/{id}`), like
+/// the phone's own Settings. Only a hand-picked timezone asks first, because
+/// the change can settle days that already ended in the new zone.
 class SettingsView extends StatefulWidget {
   const SettingsView({super.key});
 
@@ -29,30 +39,25 @@ class SettingsView extends StatefulWidget {
 }
 
 class _SettingsViewState extends State<SettingsView> {
-  // Loaded baseline (to diff against for the Save button).
   ConfigurationRes? _config;
   PaymentConsentRes? _consent;
 
-  // The IANA list + device default.
+  /// The IANA list for the picker.
   List<String> _timezones = const [];
 
-  // Current (possibly edited) selections.
+  /// Shown while following the phone and before the config loads.
   String? _timezone;
-  String? _charityId;
-  String? _charityName;
 
-  // "Follow phone timezone" (local preference, default ON). Picking a timezone
-  // by hand turns it off; turning it back on syncs to the phone immediately.
   bool _followPhone = true;
 
   bool _loading = true;
   bool _saving = false;
-  bool _followBusy = false;
   bool _consentBusy = false;
   bool _timezoneDiscoveryFailed = false;
   Problem? _loadError;
-  Problem? _saveError;
-  Problem? _consentError;
+
+  /// The last failed save or payment action, shown as a banner at the top.
+  Problem? _error;
 
   @override
   void initState() {
@@ -69,7 +74,6 @@ class _SettingsViewState extends State<SettingsView> {
     final session = context.read<SessionController>();
     _followPhone = session.followPhoneTimezone;
 
-    // Timezones first (device default + IANA list), then the config + consent.
     await _loadTimezones();
 
     final cfgRes = await session.configs.mine();
@@ -78,8 +82,6 @@ class _SettingsViewState extends State<SettingsView> {
       case Ok(:final value):
         _config = value;
         _timezone = value.principal.timezone ?? _timezone;
-        _charityId = value.principal.defaultCharityId;
-        _charityName = value.charity?.name;
       case Err(:final problem):
         setState(() {
           _loading = false;
@@ -124,37 +126,55 @@ class _SettingsViewState extends State<SettingsView> {
     }
   }
 
-  Future<void> _pickTimezone() async {
-    final picked = await Navigator.of(context).push<String>(
-      MaterialPageRoute(
-        builder: (_) => TimezonePicker(
-          timezones: {..._timezones, ?_timezone}.toList()..sort(),
-          selected: _timezone,
-        ),
-      ),
+  void _toast(String text, {Duration duration = const Duration(seconds: 4)}) =>
+      showGlassToast(context, text, duration: duration);
+
+  /// Saves [timezone] and [charityId] to zinc straight away. Returns the
+  /// update, or null after showing the error.
+  Future<ConfigurationUpdate?> _put({
+    required String timezone,
+    required String? charityId,
+  }) async {
+    final session = context.read<SessionController>();
+    final id = _config?.principal.id;
+    if (id == null) return null;
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    final res = await session.configs.update(
+      id,
+      UpdateConfigurationReq(timezone: timezone, defaultCharityId: charityId),
     );
-    if (picked != null && picked != _timezone && mounted) {
-      setState(() {
-        _timezone = picked;
-        // A hand-picked timezone overrides the phone (persisted on save).
-        _followPhone = false;
-      });
+    if (!mounted) return null;
+    switch (res) {
+      case Ok(:final value):
+        // Best-effort: the dashboard and habit defaults read the cached config.
+        await session.refreshConfig();
+        if (!mounted) return null;
+        setState(() => _saving = false);
+        return value;
+      case Err(:final problem):
+        setState(() {
+          _saving = false;
+          _error = problem;
+        });
+        return null;
     }
   }
 
-  /// Toggles "Follow phone timezone". ON persists the preference and syncs
-  /// Configuration.Timezone to the phone right away (discarding an unsaved
-  /// hand-picked timezone); OFF keeps the current timezone.
+  /// "Follow phone" saves at once. Turning it on also moves the timezone to
+  /// the phone's.
   Future<void> _setFollowPhone(bool follow) async {
     final session = context.read<SessionController>();
     setState(() {
-      _followBusy = true;
-      _saveError = null;
+      _saving = true;
+      _error = null;
     });
     final res = await session.setFollowPhoneTimezone(follow);
     if (!mounted) return;
     setState(() {
-      _followBusy = false;
+      _saving = false;
       switch (res) {
         case Ok():
           _followPhone = follow;
@@ -169,11 +189,56 @@ class _SettingsViewState extends State<SettingsView> {
             _timezone = principal.timezone ?? _timezone;
           }
         case Err(:final problem):
-          _saveError = problem;
+          _error = problem;
       }
     });
+    if (res is Ok) {
+      _toast(follow ? 'Following your phone’s timezone' : 'Saved');
+    }
   }
 
+  /// Picks a timezone by hand, asks first, then saves it.
+  Future<void> _pickTimezone() async {
+    final picked = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (_) => TimezonePicker(
+          timezones: {..._timezones, ?_timezone}.toList()..sort(),
+          selected: _timezone,
+        ),
+      ),
+    );
+    if (picked == null || picked == _timezone || !mounted) return;
+    final city = timezoneCity(picked);
+    final ok = await showGlassConfirm(
+      context,
+      title: 'Change timezone to $city?',
+      message:
+          'Each habit day will end at midnight $city time. Days that have '
+          'already ended in $city are settled now.',
+      confirmLabel: 'Change',
+      destructive: false,
+    );
+    if (!ok || !mounted) return;
+    final update = await _put(
+      timezone: picked,
+      charityId: _config?.principal.defaultCharityId,
+    );
+    if (update == null || !mounted) return;
+    setState(() {
+      _timezone = picked;
+      _config = ConfigurationRes(
+        principal: update.principal,
+        charity: _config?.charity,
+      );
+    });
+    final settled = timezoneSettledMessage(picked, update.settledChecks);
+    _toast(
+      settled ?? 'Timezone changed to $city',
+      duration: Duration(seconds: settled == null ? 4 : 8),
+    );
+  }
+
+  /// Picks the default charity and saves it.
   Future<void> _pickCharity() async {
     final session = context.read<SessionController>();
     final picked = await Navigator.of(context).push<CharityPrincipalRes>(
@@ -184,33 +249,23 @@ class _SettingsViewState extends State<SettingsView> {
         ),
       ),
     );
-    if (picked != null && mounted) {
-      setState(() {
-        _charityId = picked.id;
-        _charityName = picked.name;
-      });
-    }
+    final tz = _config?.principal.timezone ?? _timezone;
+    if (picked == null || tz == null || !mounted) return;
+    if (picked.id == _config?.principal.defaultCharityId) return;
+    final update = await _put(timezone: tz, charityId: picked.id);
+    if (update == null || !mounted) return;
+    setState(() {
+      _config = ConfigurationRes(principal: update.principal, charity: picked);
+    });
+    _toast('Default charity saved');
   }
 
-  /// Save is enabled only when timezone or defaultCharityId actually changed vs
-  /// the loaded config. No default charity is fine: one is set with the first
-  /// staked habit.
-  bool get _canSave {
-    final cfg = _config;
-    if (cfg == null) return false;
-    final changed =
-        _timezone != cfg.principal.timezone ||
-        _charityId != cfg.principal.defaultCharityId;
-    return changed && !_saving;
-  }
-
-  /// Runs the full consent collection flow (confirm → native sheet → poll),
-  /// then mirrors the session's refreshed consent into the local card.
+  /// Runs the full consent collection flow (confirm → native sheet → poll).
   Future<void> _setUpConsent() async {
     final session = context.read<SessionController>();
     setState(() {
       _consentBusy = true;
-      _consentError = null;
+      _error = null;
     });
     final res = await ConsentService(session).ensureConsent(context);
     if (!mounted) return;
@@ -220,392 +275,200 @@ class _SettingsViewState extends State<SettingsView> {
           _consent = session.consent ?? _consent;
           _consentBusy = false;
         });
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Payment method set up')));
+        _toast('Card added');
       case Err(:final problem):
         setState(() {
           _consentBusy = false;
-          _consentError = problem;
+          _error = problem;
         });
     }
   }
 
-  /// Revokes consent (`DELETE /Payment/{userId}/consent`), then re-GETs to confirm
-  /// and refreshes the session cache. Warns that existing stakes remain in place.
+  /// Revokes consent, then re-reads it to confirm.
   Future<void> _removeConsent() async {
     final session = context.read<SessionController>();
     final userId = session.userId;
     if (userId == null) return;
 
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Remove payment method?'),
-        content: const Text(
-          'This removes your saved payment method. Your existing staked habits '
-          'stay as they are, but they can no longer be charged — so misses '
-          "won't result in a donation until you set a payment method up again.",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Remove'),
-          ),
-        ],
-      ),
+    final ok = await showGlassConfirm(
+      context,
+      title: 'Remove your card?',
+      message:
+          'Staked habits stay as they are, but misses can’t be charged until '
+          'you add a card again.',
+      confirmLabel: 'Remove card',
     );
-    if (confirmed != true || !mounted) return;
+    if (!ok || !mounted) return;
 
     setState(() {
       _consentBusy = true;
-      _consentError = null;
+      _error = null;
     });
-
     final res = await session.payments.revokeConsent(userId);
     if (!mounted) return;
     if (res case Err(:final problem)) {
       setState(() {
         _consentBusy = false;
-        _consentError = problem;
+        _error = problem;
       });
       return;
     }
-
-    // Re-GET to confirm + refresh the session cache (truth = the GET).
     await session.refreshConsent();
     if (!mounted) return;
     setState(() {
       _consent = session.consent ?? _consent;
       _consentBusy = false;
     });
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Payment method removed')));
-  }
-
-  Future<void> _save() async {
-    final session = context.read<SessionController>();
-    final id = _config?.principal.id;
-    final tz = _timezone;
-    final charityId = _charityId;
-    if (id == null || tz == null) return;
-
-    setState(() {
-      _saving = true;
-      _saveError = null;
-    });
-
-    final res = await session.configs.update(
-      id,
-      UpdateConfigurationReq(timezone: tz, defaultCharityId: charityId),
-    );
-    if (!mounted) return;
-
-    switch (res) {
-      case Ok(:final value):
-        // A hand-picked timezone overrides the phone from now on.
-        if (tz != _config?.principal.timezone) {
-          await session.setFollowPhoneTimezone(false);
-          if (!mounted) return;
-        }
-        // Refresh the cached config so the dashboard / habit defaults pick up
-        // the new timezone + charity. Best-effort: a refresh failure doesn't
-        // undo the successful save.
-        await session.refreshConfig();
-        if (!mounted) return;
-        final settled = timezoneSettledMessage(tz, value.settledChecks);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(settled ?? 'Settings saved'),
-            duration: Duration(seconds: settled == null ? 4 : 8),
-          ),
-        );
-        Navigator.of(context).pop();
-      case Err(:final problem):
-        setState(() {
-          _saving = false;
-          _saveError = problem;
-        });
-    }
+    _toast('Card removed');
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
-      body: _loading
-          ? const AppLoader()
-          : _loadError != null
-          ? _ErrorRetry(problem: _loadError!, onRetry: _load)
+    if (_loading) {
+      return const AmbientBackdrop(
+        child: Scaffold(backgroundColor: Colors.transparent, body: AppLoader()),
+      );
+    }
+    return GlassPage(
+      title: 'Settings',
+      children: _loadError != null
+          ? [
+              GlassBanner(
+                icon: Icons.error_outline_rounded,
+                title: _loadError!.title,
+                body: _loadError!.detail,
+                error: true,
+                action: TextButton(
+                  onPressed: _load,
+                  child: const Text('Retry'),
+                ),
+              ),
+            ]
           : _content(context),
     );
   }
 
-  Widget _content(BuildContext context) {
-    final theme = Theme.of(context);
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Text(
-          'Manage your account preferences',
-          style: theme.textTheme.titleMedium,
+  List<Widget> _content(BuildContext context) {
+    final t = GlassTokens.of(context);
+    final cfg = _config;
+    final charityId = cfg?.principal.defaultCharityId;
+    final hasCharity = charityId?.isNotEmpty ?? false;
+    final has = _consent?.hasPaymentConsent ?? false;
+    final busy = _saving || _consentBusy;
+    final tz = _timezone;
+    return [
+      if (_error != null)
+        GlassBanner(
+          icon: Icons.error_outline_rounded,
+          title: _error!.displayMessage,
+          error: true,
         ),
-        const SizedBox(height: 16),
-        _FieldCard(
-          icon: Icons.public,
-          label: 'Timezone',
-          value: _timezone?.replaceAll('_', ' ') ?? 'Not set',
-          subtitle: _followPhone
-              ? 'Sets when each habit day ends and when reminders fire. '
-                    "Follows your phone's timezone; pick one to override it."
-              : 'Sets when each habit day ends and when reminders fire. Pick '
-                    'the region closest to you.',
-          onTap: _pickTimezone,
-        ),
-        if (_timezoneDiscoveryFailed) ...[
-          const Text(timezoneDiscoveryNotice),
-          TextButton(
+      if (_timezoneDiscoveryFailed)
+        GlassBanner(
+          icon: Icons.public_off_rounded,
+          title: 'Timezone list unavailable',
+          body: timezoneDiscoveryNotice,
+          action: TextButton(
             onPressed: _loadTimezones,
-            child: const Text('Retry timezone discovery'),
-          ),
-        ],
-        Card(
-          child: SwitchListTile(
-            secondary: const Icon(Icons.phone_iphone),
-            title: const Text('Follow phone timezone'),
-            subtitle: const Text(
-              "Keep your timezone in step with your phone's when you travel.",
-            ),
-            value: _followPhone,
-            onChanged: _followBusy ? null : _setFollowPhone,
+            child: const Text('Retry'),
           ),
         ),
-        _FieldCard(
-          icon: Icons.volunteer_activism,
-          label: 'Default charity',
-          value: _charityId?.isNotEmpty ?? false
-              ? _charityName ?? 'Choose a charity'
-              : 'None yet',
-          subtitle: _charityId?.isNotEmpty ?? false
-              ? 'Pre-selected when you stake money on a habit. You can change '
-                    'this anytime.'
-              : 'Set when you first stake money on a habit, or choose one now.',
-          onTap: _pickCharity,
-        ),
-        _ConsentCard(
-          consent: _consent,
-          busy: _consentBusy,
-          error: _consentError,
-          onSetUp: _consentBusy ? null : _setUpConsent,
-          onRemove: _consentBusy ? null : _removeConsent,
-        ),
-        _FieldCard(
-          icon: Icons.workspace_premium_outlined,
-          label: 'Subscription',
-          value: 'View your plan',
-          subtitle: 'See your current plan and manage it.',
-          onTap: () => Navigator.of(
-            context,
-          ).push(MaterialPageRoute(builder: (_) => const SubscriptionView())),
-        ),
-        if (_saveError != null) ...[
-          const SizedBox(height: 12),
-          Text(
-            _saveError!.displayMessage,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.error,
-            ),
-          ),
-        ],
-        const SizedBox(height: 24),
-        FilledButton(
-          onPressed: _canSave ? _save : null,
-          child: _saving
-              ? const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text('Save changes'),
-        ),
-      ],
-    );
-  }
-}
-
-/// A tappable field card (mirrors argon's FieldCard): label + current value +
-/// subtitle/restriction line, with a chevron affordance.
-class _FieldCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  final String subtitle;
-  final VoidCallback onTap;
-  const _FieldCard({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      child: ListTile(
-        leading: Icon(icon),
-        title: Text(label),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              value,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              subtitle,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-        isThreeLine: true,
-        trailing: const Icon(Icons.chevron_right),
-        onTap: onTap,
-      ),
-    );
-  }
-}
-
-/// Payment-consent status + actions (M6). Shows "Set up payment method" when none
-/// is on file, and "Remove" when one is. While an action runs, both are disabled
-/// and a spinner shows.
-class _ConsentCard extends StatelessWidget {
-  final PaymentConsentRes? consent;
-  final bool busy;
-  final Problem? error;
-  final VoidCallback? onSetUp;
-  final VoidCallback? onRemove;
-
-  const _ConsentCard({
-    required this.consent,
-    required this.busy,
-    required this.error,
-    required this.onSetUp,
-    required this.onRemove,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final c = consent;
-    final has = c?.hasPaymentConsent ?? false;
-    final String detail;
-    if (c == null) {
-      detail = 'Could not load payment consent status.';
-    } else if (has) {
-      final status = c.status;
-      detail = status == null || status.isEmpty
-          ? 'Payment consent is active.'
-          : 'Payment consent is active ($status).';
-    } else {
-      detail =
-          'No payment consent on file. Set it up to enable stakes and '
-          'donations.';
-    }
-    return Card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      GlassSection(
+        title: 'Timezone',
+        footer: _followPhone
+            ? 'Your timezone moves with your phone when you travel. Each habit '
+                  'day ends at midnight in it.'
+            : 'Your timezone stays put when you travel. Tap it to pick a '
+                  'region.',
         children: [
-          ListTile(
-            leading: Icon(
-              has ? Icons.verified_user : Icons.gpp_maybe,
-              color: has
-                  ? Colors.green.shade700
-                  : theme.colorScheme.onSurfaceVariant,
+          GlassRow(
+            leading: const Icon(Icons.smartphone_rounded),
+            title: 'Follow phone',
+            trailing: GlassSwitch(
+              value: _followPhone,
+              onChanged: busy ? null : _setFollowPhone,
             ),
-            title: const Text('Payment consent'),
-            subtitle: Text(detail),
-            isThreeLine: false,
           ),
-          if (error != null)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: Text(
-                error!.displayMessage,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.error,
-                ),
-              ),
-            ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: busy
-                  ? const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8),
-                      child: SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    )
-                  : has
-                  ? TextButton.icon(
-                      onPressed: onRemove,
-                      icon: const Icon(Icons.delete_outline),
-                      style: TextButton.styleFrom(
-                        foregroundColor: theme.colorScheme.error,
-                      ),
-                      label: const Text('Remove'),
-                    )
-                  : FilledButton.icon(
-                      onPressed: onSetUp,
-                      icon: const Icon(Icons.add_card),
-                      label: const Text('Set up payment method'),
-                    ),
-            ),
+          GlassRow(
+            leading: const Icon(Icons.public_rounded),
+            title: 'Timezone',
+            value: tz == null ? 'Not set' : timezoneCity(tz),
+            onTap: _followPhone || busy ? null : _pickTimezone,
           ),
         ],
       ),
-    );
-  }
-}
-
-class _ErrorRetry extends StatelessWidget {
-  final Problem problem;
-  final VoidCallback onRetry;
-  const _ErrorRetry({required this.problem, required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(problem.title, style: Theme.of(context).textTheme.titleMedium),
-            if (problem.detail != null) ...[
-              const SizedBox(height: 8),
-              Text(problem.detail!, textAlign: TextAlign.center),
-            ],
-            const SizedBox(height: 16),
-            FilledButton(onPressed: onRetry, child: const Text('Retry')),
-          ],
-        ),
+      GlassSection(
+        title: 'Giving',
+        children: [
+          GlassRow(
+            leading: Icon(Icons.favorite_border_rounded, color: t.muted),
+            title: hasCharity
+                ? cfg?.charity?.name ?? 'Default charity'
+                : 'Default charity',
+            subtitle: hasCharity
+                ? 'Pre-filled when you stake money'
+                : 'None yet. Set when you first stake money.',
+            value: hasCharity ? null : 'Choose',
+            onTap: busy ? null : _pickCharity,
+          ),
+        ],
       ),
-    );
+      GlassSection(
+        title: 'Payment',
+        children: [
+          if (_consentBusy)
+            const GlassRow(
+              leading: SizedBox.square(
+                dimension: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              title: 'Updating your card…',
+            )
+          else if (_consent == null)
+            const GlassRow(
+              leading: Icon(Icons.credit_card_off_outlined),
+              title: 'Card status unavailable',
+              subtitle: 'Could not load your payment details.',
+            )
+          else if (has) ...[
+            GlassRow(
+              leading: Icon(Icons.verified_user_outlined, color: t.accent),
+              title: 'Card on file',
+              subtitle:
+                  'Held by Airwallex. Charged only when you miss a staked day.',
+            ),
+            GlassRow(
+              leading: const Icon(Icons.delete_outline_rounded),
+              title: 'Remove card',
+              destructive: true,
+              chevron: false,
+              onTap: busy ? null : _removeConsent,
+            ),
+          ] else
+            GlassRow(
+              leading: const Icon(Icons.credit_card_rounded),
+              title: 'No card on file',
+              subtitle: 'Needed before you stake money.',
+              trailing: GlassButton(
+                label: 'Add card',
+                compact: true,
+                onPressed: busy ? null : _setUpConsent,
+              ),
+            ),
+        ],
+      ),
+      GlassSection(
+        title: 'Plan',
+        children: [
+          GlassRow(
+            leading: const Icon(Icons.workspace_premium_outlined),
+            title: 'Subscription',
+            onTap: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const SubscriptionView())),
+          ),
+        ],
+      ),
+    ];
   }
 }

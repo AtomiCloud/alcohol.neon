@@ -184,7 +184,7 @@ void main() {
     navigator.push(MaterialPageRoute(builder: (_) => const ProfileView()));
     await tester.pumpAndSettle();
 
-    final deleteButton = find.widgetWithText(OutlinedButton, 'Delete account');
+    final deleteButton = find.text('Delete account');
     await tester.scrollUntilVisible(
       deleteButton,
       200,
@@ -196,7 +196,12 @@ void main() {
     await tester.pumpAndSettle();
 
     // Confirm in the irreversible-delete dialog.
-    await tester.tap(find.widgetWithText(FilledButton, 'Delete account'));
+    await tester.tap(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text('Delete account'),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.byType(ProfileView), findsNothing);

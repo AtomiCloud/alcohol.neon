@@ -13,6 +13,7 @@ import '../../generated/zinc/models/habit_overview_habit_res.dart';
 import '../../session/session_controller.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/glass.dart';
+import '../../widgets/glass_list.dart';
 import '../../widgets/app_loader.dart';
 import '../habit/habit_editor_view.dart';
 import '../inbox/inbox_bell.dart';
@@ -299,7 +300,7 @@ class _TodayState extends State<_Today> {
 
     final sections = <Widget>[
       if (c.refreshError != null)
-        _Banner(
+        GlassBanner(
           icon: Icons.sync_problem,
           title: 'Could not refresh the dashboard',
           body:
@@ -308,7 +309,7 @@ class _TodayState extends State<_Today> {
           action: TextButton(onPressed: c.load, child: const Text('Retry')),
         ),
       if (c.actionError != null)
-        _Banner(
+        GlassBanner(
           icon: Icons.error_outline,
           title: c.actionError!.displayMessage,
           error: true,
@@ -1326,63 +1327,6 @@ class _AddButton extends StatelessWidget {
             dimension: 56,
             child: Icon(Icons.add_rounded, size: 28),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _Banner extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String? body;
-  final Widget action;
-  final bool error;
-  const _Banner({
-    required this.icon,
-    required this.title,
-    required this.action,
-    this.body,
-    this.error = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final t = GlassTokens.of(context);
-    final tint = error ? theme.colorScheme.error : t.muted;
-    return Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: Glass(
-        strong: true,
-        padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
-        child: Row(
-          children: [
-            Icon(icon, color: tint),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: error ? theme.colorScheme.error : null,
-                    ),
-                  ),
-                  if (body != null)
-                    Text(
-                      body!,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: t.muted,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            action,
-          ],
         ),
       ),
     );

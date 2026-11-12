@@ -8,22 +8,25 @@ import '../../auth/auth_service.dart';
 import '../dev/dev_config_view.dart';
 import '../../core/problem.dart';
 import '../../generated/zinc/models/user_principal_res.dart';
-import '../../services/notification_service.dart';
 import '../../session/session_controller.dart';
 import '../../theme/app_theme.dart';
+import '../../theme/glass.dart';
+import '../../widgets/glass_list.dart';
+import '../../widgets/glass_modal.dart';
+import '../../widgets/glass_page.dart';
 import '../charity/charity_picker.dart';
 import '../dashboard/today_layout.dart';
 import '../friends/friends_view.dart';
 import '../nfc/tag_inspector_view.dart';
 import '../settings/settings_view.dart';
 import '../strava/strava_view.dart';
+import '../subscription/subscription_view.dart';
 import '../vacation/vacation_list_view.dart';
 
-/// M5 — the profile screen (mirrors argon's `profile.tsx` field-card layout, minus
-/// the web-only TokensSection / developer / append-details blocks). Header shows
-/// name + email from the id-token claims; the account fields (username, email
-/// verified, active) come from `GET /User/Me/All` since `UserClaims` doesn't carry
-/// username / emailVerified. Hosts the 'Manage settings' entry point and Sign out.
+/// Profile: who you are, the Today layout choice, and the places Profile
+/// opens, grouped by what they do. Name and email come from the id-token
+/// claims; verified and active come from `GET /User/Me/All`. Seven taps on the
+/// name open the developer menu (which also has "Send test notification").
 class ProfileView extends StatefulWidget {
   const ProfileView({super.key});
 
@@ -99,12 +102,6 @@ class _ProfileViewState extends State<ProfileView> {
   void _push(Widget page) =>
       Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
 
-  void _openSettings() {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const SettingsView()));
-  }
-
   // AuthService is a ChangeNotifier and RootView reacts to its status — just sign
   // out and let the shell swap to the signed-out experience (no manual nav).
   void _signOut() => context.read<AuthService>().signOut();
@@ -114,33 +111,17 @@ class _ProfileViewState extends State<ProfileView> {
   /// signed-in/locked-out shell. A 409 means deletion is blocked by outstanding debt;
   /// we surface the server's message inline rather than a raw error.
   Future<void> _deleteAccount() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete account?'),
-        content: const Text(
-          'This permanently deletes your account and sign-in — your profile, habits, '
-          'history, vacations, freeze balances, payment details and settings. There '
-          'is no grace period and it cannot be undone.\n\n'
-          'Past charity-donation records are kept for accounting, with your personal '
-          'details removed.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
-            ),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete account'),
-          ),
-        ],
-      ),
+    final confirmed = await showGlassConfirm(
+      context,
+      title: 'Delete account?',
+      message:
+          'This permanently deletes your account and sign-in: your profile, '
+          'habits, history, vacations, freeze balances, payment details and '
+          'settings. It can’t be undone.\n\nPast charity-donation records are '
+          'kept for accounting, with your personal details removed.',
+      confirmLabel: 'Delete account',
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
 
     final session = context.read<SessionController>();
     final auth = context.read<AuthService>();
@@ -175,18 +156,33 @@ class _ProfileViewState extends State<ProfileView> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
-      body: _loading
-          ? const AppLoader()
-          : _error != null
-          ? _ErrorRetry(problem: _error!, onRetry: _load)
+    if (_loading) {
+      return const AmbientBackdrop(
+        child: Scaffold(backgroundColor: Colors.transparent, body: AppLoader()),
+      );
+    }
+    return GlassPage(
+      title: 'Profile',
+      children: _error != null
+          ? [
+              GlassBanner(
+                icon: Icons.error_outline_rounded,
+                title: _error!.title,
+                body: _error!.detail,
+                error: true,
+                action: TextButton(
+                  onPressed: _load,
+                  child: const Text('Retry'),
+                ),
+              ),
+            ]
           : _content(context),
     );
   }
 
-  Widget _content(BuildContext context) {
+  List<Widget> _content(BuildContext context) {
     final theme = Theme.of(context);
+    final t = GlassTokens.of(context);
     final user = _user;
     final displayName =
         _claims?.name ??
@@ -195,309 +191,275 @@ class _ProfileViewState extends State<ProfileView> {
         user?.email ??
         'User';
     final email = _claims?.email ?? user?.email ?? '';
-    final initial = (user?.username ?? email).trim().isEmpty
-        ? 'U'
-        : (user?.username ?? email).trim()[0].toUpperCase();
+    final handle = (user?.username ?? email).trim();
+    final initial = handle.isEmpty ? 'U' : handle[0].toUpperCase();
+    final session = context.read<SessionController>();
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Row(
-          children: [
-            CircleAvatar(
-              radius: 32,
-              backgroundColor: theme.colorScheme.primaryContainer,
-              child: Text(
-                initial,
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  color: theme.colorScheme.onPrimaryContainer,
+    return [
+      if (user != null && !user.active)
+        const GlassBanner(
+          icon: Icons.block_rounded,
+          title: 'Your account is inactive',
+          error: true,
+        ),
+      Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: Glass(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 28,
+                backgroundColor: t.accent,
+                child: Text(
+                  initial,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    color: t.onAccent,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  GestureDetector(
-                    onTap: _onNameTap,
-                    behavior: HitTestBehavior.opaque,
-                    child: Text(
-                      displayName,
-                      style: theme.textTheme.titleLarge,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  if (email.isNotEmpty)
-                    Text(
-                      email,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    GestureDetector(
+                      onTap: _onNameTap,
+                      behavior: HitTestBehavior.opaque,
+                      child: Text(
+                        displayName,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      overflow: TextOverflow.ellipsis,
                     ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 24),
-        _FieldCard(
-          label: 'Username',
-          value: (user?.username ?? '').isEmpty ? '—' : user!.username!,
-          subtitle: 'Your unique handle used across the app.',
-        ),
-        _FieldCard(
-          label: 'Email',
-          value: email.isEmpty ? '—' : email,
-          subtitle: 'Used for sign-in and notifications.',
-        ),
-        _FieldCard(
-          label: 'Email verified',
-          value: user == null ? '—' : (user.emailVerified ? 'Yes' : 'No'),
-          subtitle: 'Whether your email address has been verified.',
-        ),
-        _FieldCard(
-          label: 'Active',
-          value: user == null ? '—' : (user.active ? 'Yes' : 'No'),
-          subtitle: 'Whether your account is active.',
-        ),
-        const SizedBox(height: 8),
-        Card(
-          child: ListTile(
-            leading: const Icon(Icons.settings),
-            title: const Text('Manage settings'),
-            subtitle: const Text('Timezone, default charity, payment consent'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: _openSettings,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Today layout', style: theme.textTheme.titleMedium),
-                const SizedBox(height: 4),
-                Text(
-                  'Lead with the next habit to do, or with the whole day.',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                ValueListenableBuilder<TodayLayout>(
-                  valueListenable: TodayLayoutSetting.instance,
-                  builder: (_, layout, _) => SizedBox(
-                    width: double.infinity,
-                    child: SegmentedButton<TodayLayout>(
-                      showSelectedIcon: false,
-                      segments: const [
-                        ButtonSegment(
-                          value: TodayLayout.nextUp,
-                          label: Text('Next up'),
+                    if (email.isNotEmpty)
+                      Text(
+                        email,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: t.muted,
                         ),
-                        ButtonSegment(
-                          value: TodayLayout.progressList,
-                          label: Text('Progress list'),
-                        ),
-                      ],
-                      selected: {layout},
-                      onSelectionChanged: (s) =>
-                          TodayLayoutSetting.instance.set(s.first),
-                    ),
-                  ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    if (user?.emailVerified ?? false) ...[
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.check_circle_rounded,
+                            size: 14,
+                            color: t.accent,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Verified',
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: t.accent,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
                 ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Card(
-          child: Column(
-            children: [
-              ListTile(
-                leading: const Icon(Icons.group_outlined),
-                title: const Text('Friends'),
-                subtitle: const Text('Find friends, requests and invites'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => _push(const FriendsView()),
-              ),
-              ListTile(
-                leading: const Icon(Icons.directions_run, color: stravaOrange),
-                title: const Text('Strava'),
-                subtitle: const Text('Complete habits from your activities'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => _push(const StravaView()),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 8),
-        Card(
-          child: Column(
-            children: [
-              ListTile(
-                leading: const Icon(
-                  Icons.beach_access,
-                  color: AppColors.vacation,
-                ),
-                title: const Text('Vacations'),
-                subtitle: const Text('Pause habits for a date range'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => _push(const VacationListView()),
+      ),
+      const _LayoutChoice(),
+      GlassSection(
+        title: 'Checking off',
+        dividerIndent: 60,
+        children: [
+          GlassRow(
+            leading: const IconTile(Icons.directions_run_rounded, stravaOrange),
+            title: 'Strava',
+            subtitle: 'Habits tick themselves off from your activities',
+            onTap: () => _push(const StravaView()),
+          ),
+          GlassRow(
+            leading: const IconTile(Icons.nfc_rounded, Color(0xFF6366F1)),
+            title: 'NFC tags',
+            subtitle: 'See which habit a tag ticks off',
+            onTap: () => _push(const TagInspectorView()),
+          ),
+        ],
+      ),
+      GlassSection(
+        title: 'Stakes',
+        dividerIndent: 60,
+        children: [
+          GlassRow(
+            leading: const IconTile(Icons.group_rounded, Color(0xFF0EA5E9)),
+            title: 'Friends',
+            subtitle: 'Who hears when you miss',
+            onTap: () => _push(const FriendsView()),
+          ),
+          GlassRow(
+            leading: const IconTile(Icons.favorite_rounded, Color(0xFFE11D48)),
+            title: 'Charities',
+            subtitle: 'Where money stakes go',
+            onTap: () => _push(
+              CharityBrowse(
+                repository: session.charities,
+                causeRepository: session.causes,
+                selectionMode: false,
               ),
-              ListTile(
-                leading: const Icon(Icons.nfc),
-                title: const Text('NFC tags'),
-                subtitle: const Text('See what a tag is linked to'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => _push(const TagInspectorView()),
-              ),
-              ListTile(
-                leading: const Icon(Icons.volunteer_activism),
-                title: const Text('Browse charities'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  final session = context.read<SessionController>();
-                  _push(
-                    CharityBrowse(
-                      repository: session.charities,
-                      causeRepository: session.causes,
-                      selectionMode: false,
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
-        Card(
-          child: ListTile(
-            leading: const Icon(Icons.notifications_active_outlined),
-            title: const Text('Send test notification'),
-            subtitle: const Text('Fires a local notification now'),
-            onTap: () async {
-              await NotificationService.instance.showNow();
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Test notification sent')),
-                );
-              }
-            },
-          ),
-        ),
-        const SizedBox(height: 24),
-        OutlinedButton.icon(
-          onPressed: _deleting ? null : _signOut,
-          icon: const Icon(Icons.logout),
-          label: const Text('Sign out'),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: theme.colorScheme.error,
-          ),
-        ),
-        const SizedBox(height: 8),
-        OutlinedButton.icon(
-          onPressed: _deleting ? null : _deleteAccount,
-          icon: _deleting
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.delete_forever),
-          label: Text(_deleting ? 'Deleting…' : 'Delete account'),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: theme.colorScheme.error,
-            side: BorderSide(color: theme.colorScheme.error),
-          ),
-        ),
-        if (_deleteError != null) ...[
-          const SizedBox(height: 12),
-          Text(
-            _deleteError!.status == 409 &&
-                    (_deleteError!.detail?.trim().isEmpty ?? true)
-                ? 'You have an outstanding debt. Please settle it before '
-                      'deleting your account.'
-                : _deleteError!.displayMessage,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.error,
             ),
           ),
         ],
-      ],
-    );
+      ),
+      GlassSection(
+        title: 'Breaks',
+        dividerIndent: 60,
+        children: [
+          GlassRow(
+            leading: const IconTile(
+              Icons.beach_access_rounded,
+              AppColors.vacation,
+            ),
+            title: 'Vacations',
+            subtitle: 'Pause every habit for a date range',
+            onTap: () => _push(const VacationListView()),
+          ),
+        ],
+      ),
+      GlassSection(
+        title: 'Account',
+        dividerIndent: 60,
+        children: [
+          GlassRow(
+            leading: const IconTile(Icons.settings_rounded, Color(0xFF71717A)),
+            title: 'Settings',
+            subtitle: 'Timezone, default charity and card',
+            onTap: () => _push(const SettingsView()),
+          ),
+          GlassRow(
+            leading: const IconTile(
+              Icons.workspace_premium_rounded,
+              Color(0xFFF59E0B),
+            ),
+            title: 'Plan',
+            subtitle: 'See or change your plan',
+            onTap: () => _push(const SubscriptionView()),
+          ),
+        ],
+      ),
+      GlassSection(
+        children: [
+          GlassRow(
+            title: 'Sign out',
+            centered: true,
+            destructive: true,
+            chevron: false,
+            onTap: _deleting ? null : _signOut,
+          ),
+        ],
+      ),
+      if (_deleteError != null)
+        GlassBanner(
+          icon: Icons.error_outline_rounded,
+          title:
+              _deleteError!.status == 409 &&
+                  (_deleteError!.detail?.trim().isEmpty ?? true)
+              ? 'You have an outstanding debt. Please settle it before '
+                    'deleting your account.'
+              : _deleteError!.displayMessage,
+          error: true,
+        ),
+      const SizedBox(height: 8),
+      Center(
+        child: TextButton(
+          style: TextButton.styleFrom(
+            foregroundColor: theme.colorScheme.error,
+            overlayColor: Colors.transparent,
+          ),
+          onPressed: _deleting ? null : _deleteAccount,
+          child: Text(_deleting ? 'Deleting…' : 'Delete account'),
+        ),
+      ),
+    ];
   }
 }
 
-/// Read-only profile field (mirrors argon's disabled-input FieldCard).
-class _FieldCard extends StatelessWidget {
-  final String label;
-  final String value;
-  final String subtitle;
-  const _FieldCard({
-    required this.label,
-    required this.value,
-    required this.subtitle,
-  });
+/// "Next up" or "Progress list" for Today, saved as soon as it is picked.
+class _LayoutChoice extends StatelessWidget {
+  const _LayoutChoice();
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-        child: Column(
+    final t = GlassTokens.of(context);
+    return ValueListenableBuilder<TodayLayout>(
+      valueListenable: TodayLayoutSetting.instance,
+      builder: (_, layout, _) {
+        Widget option(TodayLayout value, String label) {
+          final on = layout == value;
+          return Expanded(
+            child: Semantics(
+              selected: on,
+              button: true,
+              child: Pressable(
+                onTap: () => TodayLayoutSetting.instance.set(value),
+                child: AnimatedContainer(
+                  duration: GlassMotion.of(context, GlassMotion.fast),
+                  curve: GlassMotion.curve,
+                  height: 36,
+                  alignment: Alignment.center,
+                  decoration: ShapeDecoration(
+                    shape: const StadiumBorder(),
+                    color: on ? t.accent : Colors.transparent,
+                  ),
+                  child: Text(
+                    label,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: on ? t.onAccent : theme.colorScheme.onSurface,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+
+        return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              label,
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
+              child: Text(
+                'Today layout',
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: t.muted,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
-            const SizedBox(height: 4),
-            Text(value, style: theme.textTheme.titleMedium),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+            Glass(
+              radius: const BorderRadius.all(Radius.circular(22)),
+              padding: const EdgeInsets.all(4),
+              child: Row(
+                children: [
+                  option(TodayLayout.nextUp, 'Next up'),
+                  option(TodayLayout.progressList, 'Progress list'),
+                ],
               ),
             ),
+            GlassFooter(
+              layout == TodayLayout.nextUp
+                  ? 'Today leads with the next habit to do.'
+                  : 'Today leads with the whole day’s progress.',
+            ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ErrorRetry extends StatelessWidget {
-  final Problem problem;
-  final VoidCallback onRetry;
-  const _ErrorRetry({required this.problem, required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(problem.title, style: Theme.of(context).textTheme.titleMedium),
-            if (problem.detail != null) ...[
-              const SizedBox(height: 8),
-              Text(problem.detail!, textAlign: TextAlign.center),
-            ],
-            const SizedBox(height: 16),
-            FilledButton(onPressed: onRetry, child: const Text('Retry')),
-          ],
-        ),
-      ),
+        );
+      },
     );
   }
 }

@@ -1,3 +1,15 @@
+## [1.26.0](https://github.com/ProtoDurian/alcohol.neon/compare/v1.25.0...v1.26.0) (2026-11-12)
+
+
+### ✨ Features ✨
+
+* Android widgets fit their height and follow light mode ([f51c815](https://github.com/ProtoDurian/alcohol.neon/commit/f51c815993c9b908d1b63f81ed457996c8724039))
+
+
+### 🧪 Tests 🧪
+
+* JVM unit tests for the Android widget's rows and empty states ([487d926](https://github.com/ProtoDurian/alcohol.neon/commit/487d926135fb23034102983c495b1f65fb190c35)), closes [#58](https://github.com/ProtoDurian/alcohol.neon/issues/58)
+
 ## [1.25.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.24.0...v1.25.0) (2026-11-12)
 
 

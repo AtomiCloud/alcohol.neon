@@ -25,24 +25,11 @@ class GlassSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final t = GlassTokens.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (title != null)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
-            child: Text(
-              title!,
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: t.muted,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          )
-        else
-          const SizedBox(height: 24),
+        if (title != null) GlassHeading(title!) else const SizedBox(height: 24),
         Glass(
           child: Column(
             children: [
@@ -61,6 +48,24 @@ class GlassSection extends StatelessWidget {
       ],
     );
   }
+}
+
+/// The muted label above a glass group.
+class GlassHeading extends StatelessWidget {
+  final String text;
+  const GlassHeading(this.text, {super.key});
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
+    child: Text(
+      text,
+      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+        color: GlassTokens.of(context).muted,
+        fontWeight: FontWeight.w600,
+      ),
+    ),
+  );
 }
 
 /// Small muted text under a [GlassSection].
@@ -197,6 +202,18 @@ class GlassRow extends StatelessWidget {
       child: Pressable(onTap: onTap, scale: 0.98, child: row),
     );
   }
+}
+
+/// A [Glass] card for Material list tiles, which paint on their own
+/// transparent Material so they show over the glass fill.
+class GlassCard extends StatelessWidget {
+  final Widget child;
+  const GlassCard({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) => Glass(
+    child: Material(type: MaterialType.transparency, child: child),
+  );
 }
 
 /// A coloured rounded square behind a white icon, for launcher rows.

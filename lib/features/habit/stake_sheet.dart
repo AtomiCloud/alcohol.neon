@@ -1,19 +1,17 @@
 import 'package:flutter/material.dart';
+import '../../widgets/glass_modal.dart';
 import 'package:flutter/services.dart';
 
 import '../../theme/app_theme.dart';
+import '../../theme/glass.dart';
+import '../../widgets/glass_list.dart';
 
 /// Bottom-sheet stake entry, mirroring argon's StakeSheet: a big USD amount,
 /// quick-pick chips and a numeric keypad working in cents (so there's no decimal
 /// typing). Returns the chosen amount as a decimal string ("10.50"), or null if
 /// cancelled.
 Future<String?> showStakeSheet(BuildContext context, {String? initial}) {
-  return showModalBottomSheet<String>(
-    context: context,
-    isScrollControlled: true,
-    showDragHandle: true,
-    builder: (_) => _StakeSheet(initial: initial),
-  );
+  return showGlassSheet<String>(context, (_) => _StakeSheet(initial: initial));
 }
 
 class _StakeSheet extends StatefulWidget {
@@ -88,9 +86,10 @@ class _StakeSheetState extends State<_StakeSheet> {
               alignment: WrapAlignment.center,
               children: [
                 for (final v in const [1, 5, 10, 20])
-                  ActionChip(
-                    label: Text('\$$v'),
-                    onPressed: () => setState(() => _cents = v * 100),
+                  _Chip(
+                    label: '\$$v',
+                    on: _cents == v * 100,
+                    onTap: () => setState(() => _cents = v * 100),
                   ),
               ],
             ),
@@ -124,16 +123,20 @@ class _StakeSheetState extends State<_StakeSheet> {
             Row(
               children: [
                 Expanded(
-                  child: OutlinedButton(
+                  child: TextButton(
+                    style: TextButton.styleFrom(
+                      foregroundColor: GlassTokens.of(context).muted,
+                      minimumSize: const Size.fromHeight(50),
+                    ),
                     onPressed: () => Navigator.pop(context),
                     child: const Text('Cancel'),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: FilledButton(
+                  child: GlassButton(
+                    label: 'Set stake',
                     onPressed: () => Navigator.pop(context, _decimal),
-                    child: const Text('Confirm'),
                   ),
                 ),
               ],
@@ -145,18 +148,48 @@ class _StakeSheetState extends State<_StakeSheet> {
   }
 
   Widget _key(ThemeData theme, String k) {
-    return Material(
-      color: theme.colorScheme.surfaceContainerHigh,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => _append(k),
+    return Pressable(
+      onTap: () => _append(k),
+      scale: 0.94,
+      child: Glass(
+        radius: const BorderRadius.all(Radius.circular(14)),
         child: Center(
           child: Text(
             k,
             style: theme.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.w500,
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A quick-pick amount, filled when it's the current stake.
+class _Chip extends StatelessWidget {
+  final String label;
+  final bool on;
+  final VoidCallback onTap;
+  const _Chip({required this.label, required this.on, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GlassTokens.of(context);
+    return Pressable(
+      onTap: onTap,
+      scale: 0.94,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: ShapeDecoration(
+          shape: StadiumBorder(side: BorderSide(color: t.separator)),
+          color: on ? t.accent : t.fill,
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: on ? t.onAccent : null,
           ),
         ),
       ),

@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../../widgets/app_loader.dart';
 import 'package:provider/provider.dart';
@@ -9,7 +10,10 @@ import '../../generated/zinc/models/create_habit_req.dart';
 import '../../generated/zinc/models/habit_version_res.dart';
 import '../../generated/zinc/models/update_habit_req.dart';
 import '../../session/session_controller.dart';
-import '../../theme/app_theme.dart';
+import '../../theme/glass.dart';
+import '../../widgets/glass_list.dart';
+import '../../widgets/glass_modal.dart';
+import '../../widgets/glass_page.dart';
 import '../charity/charity_picker.dart';
 import '../friends/friend_stake_tile.dart';
 import '../nfc/link_tag_flow.dart';
@@ -170,9 +174,54 @@ class _HabitEditorViewState extends State<HabitEditorView> {
 
   bool get _hasCharity => _charityId?.isNotEmpty ?? false;
 
+  /// A wheel in a sheet on iOS, the Material time picker on Android.
   Future<void> _pickTime() async {
-    final picked = await showTimePicker(context: context, initialTime: _time);
-    if (picked != null && mounted) setState(() => _time = picked);
+    if (!isCupertino(context)) {
+      final picked = await showTimePicker(context: context, initialTime: _time);
+      if (picked != null && mounted) setState(() => _time = picked);
+      return;
+    }
+    var picked = _time;
+    final done = await showGlassSheet<bool>(
+      context,
+      (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Remind me at',
+                style: Theme.of(
+                  ctx,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+              ),
+              SizedBox(
+                height: 200,
+                child: CupertinoDatePicker(
+                  mode: CupertinoDatePickerMode.time,
+                  use24hFormat: MediaQuery.alwaysUse24HourFormatOf(ctx),
+                  initialDateTime: DateTime(
+                    2000,
+                    1,
+                    1,
+                    _time.hour,
+                    _time.minute,
+                  ),
+                  onDateTimeChanged: (d) =>
+                      picked = TimeOfDay(hour: d.hour, minute: d.minute),
+                ),
+              ),
+              GlassButton(
+                label: 'Done',
+                onPressed: () => Navigator.pop(ctx, true),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (done == true && mounted) setState(() => _time = picked);
   }
 
   Future<void> _pickCharity() async {
@@ -337,14 +386,11 @@ class _HabitEditorViewState extends State<HabitEditorView> {
       navigator.pop(true);
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          '“$name” is created, but ${failed.join(' and ')} isn’t set up. '
-          'Try again here.',
-        ),
-        duration: const Duration(seconds: 8),
-      ),
+    showGlassToast(
+      context,
+      '“$name” is created, but ${failed.join(' and ')} isn’t set up. '
+      'Try again here.',
+      duration: const Duration(seconds: 8),
     );
     navigator.pushReplacement(
       MaterialPageRoute<bool>(
@@ -356,68 +402,60 @@ class _HabitEditorViewState extends State<HabitEditorView> {
 
   /// Asks to scan the NFC tag now; false when the user picks "Not now".
   Future<bool> _askToScan(String name) async {
-    final scan = await showModalBottomSheet<bool>(
-      context: context,
-      showDragHandle: true,
-      builder: (ctx) => SafeArea(
+    final scan = await showGlassSheet<bool>(context, (ctx) {
+      final t = GlassTokens.of(ctx);
+      return SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.nfc, size: 48),
+              Icon(Icons.nfc_rounded, size: 48, color: t.accent),
               const SizedBox(height: 12),
               Text(
                 'Link an NFC tag to “$name”',
-                style: Theme.of(ctx).textTheme.titleMedium,
+                style: Theme.of(
+                  ctx,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'Tap the sticker any day to complete the habit.',
                 textAlign: TextAlign.center,
+                style: TextStyle(color: t.muted),
               ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: () => Navigator.pop(ctx, true),
-                  child: const Text('Scan tag'),
-                ),
+              const SizedBox(height: 20),
+              GlassButton(
+                label: 'Scan tag',
+                onPressed: () => Navigator.pop(ctx, true),
               ),
               TextButton(
+                style: TextButton.styleFrom(foregroundColor: t.muted),
                 onPressed: () => Navigator.pop(ctx, false),
                 child: const Text('Not now'),
               ),
             ],
           ),
         ),
-      ),
-    );
+      );
+    });
     return scan ?? false;
   }
 
   Future<void> _delete() async {
     final uid = _session.userId;
     if (uid == null) return;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete habit?'),
-        content: const Text('This removes the habit. This cannot be undone.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+    final name = _task.text.trim();
+    final confirmed = await showGlassConfirm(
+      context,
+      title: 'Delete habit?',
+      message:
+          'This removes ${name.isEmpty ? 'the habit' : name} and its history. '
+          'It can’t be undone.',
+      confirmLabel: 'Delete habit',
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
     setState(() => _saving = true);
     final res = await _session.habits.remove(uid, widget.habitId!);
     if (!mounted) return;
@@ -432,9 +470,34 @@ class _HabitEditorViewState extends State<HabitEditorView> {
     }
   }
 
+  /// "Weekdays · reminder at 22:00 · nothing at stake", under the name.
+  String _summary(BuildContext context) {
+    const weekdays = {'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'};
+    final String days;
+    if (_days.length == 7) {
+      days = 'Every day';
+    } else if (_days.length == 5 && _days.containsAll(weekdays)) {
+      days = 'Weekdays';
+    } else if (_days.length == 2 && _days.containsAll({'Saturday', 'Sunday'})) {
+      days = 'Weekends';
+    } else if (_days.isEmpty) {
+      days = 'No days yet';
+    } else {
+      days = [
+        for (final (key, label) in _weekDays)
+          if (_days.contains(key)) label,
+      ].join(', ');
+    }
+    final stake = !_staked
+        ? 'nothing at stake'
+        : '${_stakeDisplay()} to ${_charityName ?? 'a charity you choose'} '
+              'if you miss';
+    return '$days · reminder at ${_time.format(context)} · $stake';
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final t = GlassTokens.of(context);
     final session = context.watch<SessionController>();
     final hasDefaultCharity =
         session.config?.defaultCharityId?.isNotEmpty ?? false;
@@ -444,189 +507,241 @@ class _HabitEditorViewState extends State<HabitEditorView> {
         ? null
         : 'A charity is only needed because there’s money at stake. Your '
               'first one is remembered for next time.';
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.isEdit ? 'Edit habit' : 'New habit'),
-        actions: [
-          if (widget.isEdit)
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
-              onPressed: _saving ? null : _delete,
-            ),
-        ],
+    final title = widget.isEdit ? 'Edit habit' : 'New habit';
+    if (_loading) {
+      return GlassPage(
+        title: title,
+        modal: !widget.isEdit,
+        children: const [SizedBox(height: 240, child: AppLoader())],
+      );
+    }
+    final name = _task.text.trim().isEmpty ? 'this habit' : _task.text.trim();
+    return GlassPage(
+      title: title,
+      modal: !widget.isEdit,
+      dock: GlassButton(
+        label: widget.isEdit ? 'Save changes' : 'Create habit',
+        busy: _saving,
+        onPressed: _save,
       ),
-      body: _loading
-          ? const AppLoader()
-          : ListView(
-              padding: const EdgeInsets.all(16),
+      children: [
+        if (_error != null)
+          GlassBanner(
+            icon: Icons.error_outline_rounded,
+            title: _friendly(_error!),
+            error: true,
+          ),
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Glass(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 TextField(
                   controller: _task,
                   maxLength: 256,
-                  decoration: const InputDecoration(
-                    labelText: 'Habit',
-                    hintText: 'e.g. Morning run',
-                    border: OutlineInputBorder(),
+                  autofocus: !widget.isEdit,
+                  textCapitalization: TextCapitalization.sentences,
+                  onChanged: (_) => setState(() {}),
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'Name your habit',
+                    hintStyle: TextStyle(color: t.muted),
+                    filled: false,
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    contentPadding: EdgeInsets.zero,
+                    counterText: '',
                   ),
                 ),
-                const SizedBox(height: 16),
-                Text('Days', style: theme.textTheme.labelLarge),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  children: [
-                    for (final (key, label) in _weekDays)
-                      FilterChip(
-                        label: Text(label),
-                        selected: _days.contains(key),
-                        onSelected: (on) => setState(
-                          () => on ? _days.add(key) : _days.remove(key),
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Card(
-                  child: ListTile(
-                    leading: const Icon(Icons.notifications_outlined),
-                    title: const Text('Reminder time'),
-                    subtitle: Text(_time.format(context)),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: _pickTime,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Card(
-                  child: ListTile(
-                    leading: const Icon(
-                      Icons.attach_money,
-                      color: AppColors.money,
-                    ),
-                    title: const Text('Stake'),
-                    subtitle: Text(_stakeDisplay()),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () async {
-                      final picked = await showStakeSheet(
-                        context,
-                        initial: _stake.text,
-                      );
-                      if (picked != null && mounted) {
-                        setState(() => _stake.text = picked);
-                      }
-                    },
-                  ),
-                ),
-                if (_staked) ...[
-                  const SizedBox(height: 8),
-                  // Only the charity's name, on one line, so long names fit.
-                  Card(
-                    child: ListTile(
-                      leading: const Icon(Icons.volunteer_activism),
-                      title: Text(
-                        _charityName ?? 'Choose a charity',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: _pickCharity,
-                    ),
-                  ),
-                ],
-                if (charityHint != null)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-                    child: Text(
-                      charityHint,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                if (!widget.isEdit) ...[
-                  const SizedBox(height: 16),
-                  Text('Proof', style: theme.textTheme.labelLarge),
-                  const SizedBox(height: 8),
-                  StravaProofTile.draft(
-                    draft: _stravaDraft,
-                    onDraftChanged: (v) => setState(() => _stravaDraft = v),
-                  ),
-                  const SizedBox(height: 8),
-                  Card(
-                    child: SwitchListTile(
-                      secondary: const Icon(Icons.nfc),
-                      title: const Text('NFC tag'),
-                      subtitle: Text(
-                        _nfcDraft ? 'Scan it after Create' : 'Tap a sticker',
-                      ),
-                      value: _nfcDraft,
-                      onChanged: (v) => setState(() => _nfcDraft = v),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-                    child: Text(
-                      'Optional. Leave both off and you tick it off yourself. '
-                      'Friends can be told once the habit exists.',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                ],
-                if (widget.isEdit) ...[
-                  const SizedBox(height: 8),
-                  SwitchListTile(
-                    title: const Text('Enabled'),
-                    subtitle: const Text('Pause without deleting'),
-                    value: _enabled,
-                    onChanged: (v) => setState(() => _enabled = v),
-                  ),
-                  const SizedBox(height: 8),
-                  Card(
-                    child: ListTile(
-                      leading: const Icon(Icons.nfc),
-                      title: const Text('Link NFC tag'),
-                      subtitle: const Text(
-                        'Tap a sticker to complete this habit',
-                      ),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () => runLinkTagFlow(
-                        context,
-                        habitId: widget.habitId!,
-                        habitName: _task.text.trim().isEmpty
-                            ? 'this habit'
-                            : _task.text.trim(),
-                      ),
-                    ),
-                  ),
-                  // Strava proof and friend stake need the habit id and save
-                  // on their own, so they're offered once the habit exists.
-                  const SizedBox(height: 8),
-                  StravaProofTile(habitId: widget.habitId!),
-                  FriendStakeTile(habitId: widget.habitId!),
-                ],
-                if (_error != null) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    _friendly(_error!),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.error,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 20),
-                FilledButton(
-                  onPressed: _saving ? null : _save,
-                  child: _saving
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(widget.isEdit ? 'Save changes' : 'Create habit'),
+                const SizedBox(height: 6),
+                Text(
+                  _summary(context),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: t.muted),
                 ),
               ],
             ),
+          ),
+        ),
+        const GlassHeading('Days'),
+        Glass(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              for (final (key, label) in _weekDays)
+                _DayToggle(
+                  label: label,
+                  on: _days.contains(key),
+                  onTap: () => setState(
+                    () => _days.contains(key)
+                        ? _days.remove(key)
+                        : _days.add(key),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        GlassSection(
+          title: 'Reminder',
+          children: [
+            GlassRow(
+              leading: const Icon(Icons.notifications_none_rounded),
+              title: 'Remind me at',
+              value: _time.format(context),
+              onTap: _pickTime,
+            ),
+          ],
+        ),
+        GlassSection(
+          title: 'If you miss',
+          footer: charityHint,
+          children: [
+            GlassRow(
+              leading: Icon(Icons.attach_money_rounded, color: t.accent),
+              title: 'Stake',
+              value: _staked ? _stakeDisplay() : 'None',
+              onTap: () async {
+                final picked = await showStakeSheet(
+                  context,
+                  initial: _stake.text,
+                );
+                if (picked != null && mounted) {
+                  setState(() => _stake.text = picked);
+                }
+              },
+            ),
+            if (_staked)
+              // Only the charity's name, on one line, so long names fit.
+              GlassRow(
+                leading: const Icon(Icons.volunteer_activism),
+                title: _charityName ?? 'Choose a charity',
+                accent: _charityName == null,
+                onTap: _pickCharity,
+              ),
+          ],
+        ),
+        const GlassHeading('Proof'),
+        if (widget.isEdit) ...[
+          StravaProofTile(habitId: widget.habitId!),
+          const SizedBox(height: 8),
+          Glass(
+            child: GlassRow(
+              leading: const Icon(Icons.nfc_rounded),
+              title: 'Link NFC tag',
+              subtitle: 'Tap a sticker to complete this habit',
+              onTap: () => runLinkTagFlow(
+                context,
+                habitId: widget.habitId!,
+                habitName: name,
+              ),
+            ),
+          ),
+          const GlassFooter('Proof saves as soon as you change it.'),
+          // Friends need the habit id and save on their own.
+          const GlassHeading('Friends'),
+          FriendStakeTile(habitId: widget.habitId!),
+          GlassSection(
+            title: 'Status',
+            children: [
+              GlassRow(
+                leading: const Icon(Icons.pause_rounded),
+                title: 'Pause this habit',
+                subtitle: 'No checks or charges while paused',
+                trailing: GlassSwitch(
+                  value: !_enabled,
+                  onChanged: (v) => setState(() => _enabled = !v),
+                ),
+              ),
+            ],
+          ),
+          GlassSection(
+            children: [
+              GlassRow(
+                title: 'Delete habit',
+                destructive: true,
+                centered: true,
+                chevron: false,
+                onTap: _saving ? null : _delete,
+              ),
+            ],
+          ),
+        ] else ...[
+          StravaProofTile.draft(
+            draft: _stravaDraft,
+            onDraftChanged: (v) => setState(() => _stravaDraft = v),
+          ),
+          const SizedBox(height: 8),
+          Glass(
+            child: GlassRow(
+              leading: const Icon(Icons.nfc_rounded),
+              title: 'NFC tag',
+              subtitle: _nfcDraft ? 'Scan it after Create' : 'Tap a sticker',
+              trailing: GlassSwitch(
+                value: _nfcDraft,
+                onChanged: (v) => setState(() => _nfcDraft = v),
+              ),
+              onTap: () => setState(() => _nfcDraft = !_nfcDraft),
+            ),
+          ),
+          const GlassFooter(
+            'Optional. Leave both off and you tick it off yourself. '
+            'Friends can be told once the habit exists.',
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// One round day toggle in the Days row.
+class _DayToggle extends StatelessWidget {
+  final String label;
+  final bool on;
+  final VoidCallback onTap;
+  const _DayToggle({
+    required this.label,
+    required this.on,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GlassTokens.of(context);
+    return Semantics(
+      button: true,
+      selected: on,
+      label: label,
+      excludeSemantics: true,
+      child: Pressable(
+        onTap: onTap,
+        scale: 0.9,
+        child: AnimatedContainer(
+          duration: GlassMotion.of(context, GlassMotion.fast),
+          curve: GlassMotion.curve,
+          width: 40,
+          height: 40,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: on ? t.accent : Colors.transparent,
+            border: on ? null : Border.all(color: t.separator, width: 1),
+          ),
+          child: Text(
+            label.substring(0, 1),
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: on ? t.onAccent : t.muted,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

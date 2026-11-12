@@ -10,6 +10,7 @@ import 'package:alcohol_neon/features/settings/timezone_picker.dart';
 import 'package:alcohol_neon/features/settings/settings_view.dart';
 import 'package:alcohol_neon/session/session_controller.dart';
 import 'package:alcohol_neon/theme/app_theme.dart';
+import 'package:alcohol_neon/widgets/glass_list.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -288,7 +289,7 @@ void main() {
         // The row is just the charity's name, with no "Charity" label.
         expect(
           find.descendant(
-            of: find.ancestor(of: charityRow, matching: find.byType(ListTile)),
+            of: find.ancestor(of: charityRow, matching: find.byType(GlassRow)),
             matching: find.byType(Text),
           ),
           findsOneWidget,
@@ -463,7 +464,10 @@ void main() {
       await pickRun(tester);
       await create(tester);
       expect(results, [true], reason: 'Today reloads: the habit exists');
-      expect(find.text('Edit habit'), findsOneWidget);
+      expect(
+        tester.widget<HabitEditorView>(find.byType(HabitEditorView)).isEdit,
+        isTrue,
+      );
       expect(
         find.text(
           '“Evening run” is created, but Strava isn’t set up. Try again here.',

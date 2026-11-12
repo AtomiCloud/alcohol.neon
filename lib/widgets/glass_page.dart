@@ -175,16 +175,20 @@ class _GlassHeader extends SliverPersistentHeaderDelegate {
             left: 20,
             right: 20,
             bottom: 6,
-            child: Opacity(
-              opacity: (1 - p * 1.8).clamp(0.0, 1.0),
-              child: Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.displaySmall?.copyWith(
-                  fontWeight: cupertino ? FontWeight.w700 : FontWeight.w400,
-                  fontSize: cupertino ? 34 : 32,
-                  color: theme.colorScheme.onSurface,
+            // Folded away, the large title still overlaps the bar, so it
+            // must not take the back button's taps.
+            child: IgnorePointer(
+              child: Opacity(
+                opacity: (1 - p * 1.8).clamp(0.0, 1.0),
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.displaySmall?.copyWith(
+                    fontWeight: cupertino ? FontWeight.w700 : FontWeight.w400,
+                    fontSize: cupertino ? 34 : 32,
+                    color: theme.colorScheme.onSurface,
+                  ),
                 ),
               ),
             ),

@@ -14,6 +14,7 @@ import '../../session/session_controller.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/glass.dart';
 import '../../widgets/glass_list.dart';
+import '../../widgets/glass_modal.dart';
 import '../../widgets/app_loader.dart';
 import '../habit/habit_editor_view.dart';
 import '../inbox/inbox_bell.dart';
@@ -31,12 +32,16 @@ Future<void> _openEditor(
   String? habitId,
   bool enabled = true,
 }) async {
-  final changed = await Navigator.of(context).push<bool>(
-    MaterialPageRoute(
-      builder: (_) =>
-          HabitEditorView(habitId: habitId, initialEnabled: enabled),
-    ),
-  );
+  // New habit is a task to finish or cancel, so it opens as a modal; Edit
+  // goes deeper into one habit, so it's pushed.
+  final changed = habitId == null
+      ? await showGlassModal<bool>(context, (_) => const HabitEditorView())
+      : await Navigator.of(context).push<bool>(
+          MaterialPageRoute(
+            builder: (_) =>
+                HabitEditorView(habitId: habitId, initialEnabled: enabled),
+          ),
+        );
   if (changed == true) c.load();
 }
 

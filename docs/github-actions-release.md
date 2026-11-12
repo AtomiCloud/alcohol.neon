@@ -43,7 +43,8 @@ the run's artifacts (90 days).
   versionName) and the resource table's `package_name` via a `protoc` text-format
   round-trip, swaps the launcher-icon PNGs (release PNG crunch is disabled so repo bytes
   match AAB bytes 1:1), re-signs with `jarsigner`, and runs a doctor (`bundletool
-validate` + dump assertions) before anything is uploaded. Never edit inside the
+validate` + dump assertions, including that `…://strava` opens MainActivity and
+  `…://callback` opens CallbackActivity with the stamped scheme) before anything is uploaded. Never edit inside the
   resource table's `source_pool` blob — it's a length-prefixed string pool and any width
   change corrupts it.
 - A small `setup` job resolves the publish matrix: **all 3 landscapes on a tag**, or

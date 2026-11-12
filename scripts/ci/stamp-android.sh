@@ -158,6 +158,24 @@ for want in "${wants[@]}"; do
     exit 1
   }
 done
+# The app's own-scheme redirects must open the right activity with this
+# landscape's scheme: zinc's Strava OAuth return (…://strava) in MainActivity,
+# Logto's sign-in return (…://callback) in flutter_web_auth_2's CallbackActivity.
+redirect() {
+  bundletool dump manifest --bundle="$OUT" \
+    --xpath "/manifest/application/activity[intent-filter/data/@android:host='$1']/@android:name"
+  bundletool dump manifest --bundle="$OUT" \
+    --xpath "/manifest/application/activity/intent-filter[data/@android:host='$1']/data/@android:scheme"
+}
+for want in "strava cloud.atomi.alcohol_neon.MainActivity" \
+  "callback com.linusu.flutter_web_auth_2.CallbackActivity"; do
+  host=${want%% *} activity=${want#* }
+  got=$(redirect "$host" | tr '\n' ' ')
+  [ "$got" = "$activity $NEW_ID " ] || {
+    echo "stamp-android doctor: ://$host should open $activity with scheme $NEW_ID, got: $got" >&2
+    exit 1
+  }
+done
 if [ "$OLD_ID" != "$NEW_ID" ] && grep -qF "$OLD_ID" <<<"$DUMP"; then
   echo "stamp-android doctor: donor id $OLD_ID still present" >&2
   exit 1

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Home Screen widget palette, light mode: the app's light glass tokens (lib/theme/glass.dart). -->
+<resources>
+    <color name="widget_bg">#F2FFFFFF</color>
+    <color name="widget_edge">#0F000000</color>
+    <color name="widget_text">#1C1C1E</color>
+    <color name="widget_muted">#9E3C3C43</color>
+    <color name="widget_accent">#059669</color>
+    <color name="widget_accent_dim">#66059669</color>
+    <color name="widget_track">#14000000</color>
+</resources>

@@ -8,6 +8,7 @@ import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.os.Bundle
 import android.os.SystemClock
 import android.view.View
 import android.widget.RemoteViews
@@ -22,8 +23,8 @@ import java.util.concurrent.Executors
  * Android's counterpart of the iOS glass "Today" widget (ios/NeonWidget):
  * - [NextUpWidget] (2x2): the next open habit, a countdown to its deadline,
  *   its proof and today's ring.
- * - [TodayWidget] (4x2): today's ring plus up to three open habits; check-in
- *   habits get a Complete button, NFC habits show the tag icon.
+ * - [TodayWidget] (4x2): today's ring plus as many open habits as its height
+ *   fits; check-in habits get a Complete button, NFC habits show the tag icon.
  * Both read the `today_schedule` JSON the app writes through home_widget
  * (WidgetService.sync), the same payload the iOS widget reads.
  */
@@ -79,13 +80,13 @@ object TodayWidgets {
     /** Redraws every placed widget of both sizes. */
     fun refreshAll(context: Context) {
         val mgr = AppWidgetManager.getInstance(context)
-        for ((cls, draw) in listOf(
-            NextUpWidget::class.java to ::nextUp,
-            TodayWidget::class.java to ::today,
-        )) {
-            for (id in mgr.getAppWidgetIds(ComponentName(context, cls))) {
-                mgr.updateAppWidget(id, draw(context))
-            }
+        for (id in mgr.getAppWidgetIds(ComponentName(context, NextUpWidget::class.java))) {
+            mgr.updateAppWidget(id, nextUp(context))
+        }
+        for (id in mgr.getAppWidgetIds(ComponentName(context, TodayWidget::class.java))) {
+            // Portrait height; 0 before the launcher has reported a size.
+            val height = mgr.getAppWidgetOptions(id).getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT)
+            mgr.updateAppWidget(id, today(context, height))
         }
         scheduleNextRefresh(context)
     }
@@ -160,58 +161,77 @@ object TodayWidgets {
         )
         views.setTextViewText(
             R.id.proof,
-            if (pendingId(context) == next.id) "Saving…" else if (next.nfc) "NFC tag" else "Check-in",
+            if (pendingId(context) == next.id) "Saving…" else "${proofLabel(next)} · by ${hm(next.deadline)}",
         )
         return views
     }
 
-    private val rows = listOf(
-        intArrayOf(R.id.row1, R.id.row1_button, R.id.row1_name, R.id.row1_sub),
-        intArrayOf(R.id.row2, R.id.row2_button, R.id.row2_name, R.id.row2_sub),
-        intArrayOf(R.id.row3, R.id.row3_button, R.id.row3_name, R.id.row3_sub),
-    )
+    private fun proofLabel(habit: Habit) = if (habit.nfc) "NFC tag" else "Check-in"
 
-    fun today(context: Context): RemoteViews {
+    // widget_today: 16dp padding top and bottom, a 40dp row, an 18dp "+N more" line.
+    private const val ROW_DP = 40
+    private const val MORE_DP = 18
+
+    /** How many open habits a 4x2 of [heightDp] shows, leaving room for "+N more" if needed. */
+    private fun rowsThatFit(heightDp: Int, open: Int): Int {
+        if (heightDp <= 0) return minOf(open, 3)
+        // Launchers report a little more than they draw (233dp for a 222dp 4x2 on a Pixel).
+        val usable = heightDp - 32 - 12
+        return if (open <= usable / ROW_DP) open else maxOf(1, (usable - MORE_DP) / ROW_DP)
+    }
+
+    fun today(context: Context, heightDp: Int = 0): RemoteViews {
         val views = RemoteViews(context.packageName, R.layout.widget_today)
         views.setOnClickPendingIntent(R.id.root, openApp(context))
         val day = load(context)
         ring(views, day)
         views.setTextViewText(R.id.count, day?.let { "${it.done}/${it.total}" } ?: "–")
         val open = day?.open.orEmpty()
-        views.setTextViewText(
-            R.id.next,
-            when {
-                day == null -> "Open the app"
-                open.isNotEmpty() -> "Next by ${hm(open.first().deadline)}"
-                day.total == 0 -> "Nothing today"
-                else -> "All done"
-            },
-        )
+        val next = when {
+            open.isNotEmpty() -> "Next by ${hm(open.first().deadline)}"
+            day != null && day.total > 0 -> "All done"
+            else -> null
+        }
+        views.setTextViewText(R.id.next, next ?: "")
+        views.setViewVisibility(R.id.next, if (next == null) View.GONE else View.VISIBLE)
+
+        val shown = rowsThatFit(heightDp, open.size)
         val pending = pendingId(context)
-        rows.forEachIndexed { i, (row, button, name, sub) ->
-            val habit = open.getOrNull(i)
-            if (habit == null) {
-                views.setViewVisibility(row, View.GONE)
-                return@forEachIndexed
-            }
-            views.setViewVisibility(row, View.VISIBLE)
-            views.setTextViewText(name, habit.name)
+        views.removeAllViews(R.id.rows)
+        for (habit in open.take(shown)) {
+            val row = RemoteViews(context.packageName, R.layout.widget_today_row)
+            row.setTextViewText(R.id.row_name, habit.name)
             val saving = pending == habit.id
-            views.setTextViewText(
-                sub,
-                if (saving) "Saving…" else "${if (habit.nfc) "NFC tag" else "Check-in"} · by ${hm(habit.deadline)}",
+            row.setTextViewText(
+                R.id.row_sub,
+                if (saving) "Saving…" else "${proofLabel(habit)} · by ${hm(habit.deadline)}",
             )
             if (habit.nfc) {
-                // An NFC habit needs a scan in the app; tapping the row opens it.
-                views.setImageViewResource(button, R.drawable.widget_ic_nfc)
-                views.setOnClickPendingIntent(button, openApp(context))
+                // An NFC habit needs a scan in the app; tapping the icon opens it.
+                row.setImageViewResource(R.id.row_button, R.drawable.widget_ic_nfc)
+                row.setContentDescription(R.id.row_button, "Open LazyTax to scan for ${habit.name}")
+                row.setOnClickPendingIntent(R.id.row_button, openApp(context))
             } else {
-                views.setImageViewResource(
-                    button, if (saving) R.drawable.widget_circle_saving else R.drawable.widget_circle,
+                row.setImageViewResource(
+                    R.id.row_button, if (saving) R.drawable.widget_circle_saving else R.drawable.widget_circle,
                 )
-                views.setOnClickPendingIntent(button, completeIntent(context, habit.id))
+                row.setContentDescription(R.id.row_button, if (saving) "Saving ${habit.name}" else "Complete ${habit.name}")
+                row.setOnClickPendingIntent(R.id.row_button, completeIntent(context, habit.id))
             }
+            views.addView(R.id.rows, row)
         }
+        val hidden = open.size - shown
+        views.setTextViewText(R.id.more, "+$hidden more")
+        views.setViewVisibility(R.id.more, if (hidden > 0) View.VISIBLE else View.GONE)
+
+        views.setTextViewText(
+            R.id.empty,
+            when {
+                day == null -> context.getString(R.string.widget_no_data)
+                day.total == 0 -> "No habits today"
+                else -> "Nothing left today"
+            },
+        )
         views.setViewVisibility(R.id.empty, if (open.isEmpty()) View.VISIBLE else View.GONE)
         return views
     }
@@ -275,6 +295,10 @@ class NextUpWidget : AppWidgetProvider() {
 /** 4x2 "Today" widget. */
 class TodayWidget : AppWidgetProvider() {
     override fun onUpdate(context: Context, mgr: AppWidgetManager, ids: IntArray) =
+        TodayWidgets.refreshAll(context)
+
+    /** Resized: redraw so the number of habit rows matches the new height. */
+    override fun onAppWidgetOptionsChanged(context: Context, mgr: AppWidgetManager, id: Int, options: Bundle) =
         TodayWidgets.refreshAll(context)
 }
 

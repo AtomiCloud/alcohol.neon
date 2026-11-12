@@ -4,14 +4,14 @@
     <item android:id="@android:id/background">
         <shape android:shape="ring" android:innerRadiusRatio="2.6" android:thicknessRatio="11"
             android:useLevel="false">
-            <solid android:color="#1FFFFFFF" />
+            <solid android:color="@color/widget_track" />
         </shape>
     </item>
     <item android:id="@android:id/progress">
         <rotate android:fromDegrees="270" android:toDegrees="270" android:pivotX="50%" android:pivotY="50%">
             <shape android:shape="ring" android:innerRadiusRatio="2.6" android:thicknessRatio="11"
                 android:useLevel="true">
-                <solid android:color="#34D399" />
+                <solid android:color="@color/widget_accent" />
             </shape>
         </rotate>
     </item>

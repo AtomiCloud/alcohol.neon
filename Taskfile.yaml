@@ -61,3 +61,8 @@ tasks:
     desc: Run unit tests
     cmds:
       - flutter test
+
+  test:ios-stamp:
+    desc: Test the iOS stamp's Info.plist helpers (macOS only)
+    cmds:
+      - ./scripts/ci/stamp-ios-test.sh

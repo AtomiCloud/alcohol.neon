@@ -65,6 +65,9 @@ APPEX="$APP/PlugIns/NeonWidgetExtension.appex"
   exit 1
 }
 
+# shellcheck source=scripts/ci/stamp-ios-lib.sh disable=SC1091
+source "$ROOT/scripts/ci/stamp-ios-lib.sh"
+
 pb() { /usr/libexec/PlistBuddy -c "$1" "$2"; }
 pbq() { /usr/libexec/PlistBuddy -c "$1" "$2" 2>/dev/null || true; }
 
@@ -114,7 +117,10 @@ find_profile "$WIDGET_ID" "$SCRATCH/widget.mobileprovision"
 
 # --- patch the app's Info.plist -----------------------------------------------
 INFO="$APP/Info.plist"
+OLD_ID=$(pb "Print :CFBundleIdentifier" "$INFO")
 pb "Set :CFBundleIdentifier $NEW_ID" "$INFO"
+# The app's own URL scheme (Strava/OAuth redirects) is its bundle id.
+restamp_url_schemes "$INFO" "$OLD_ID" "$NEW_ID"
 pb "Set :CFBundleName $NEW_NAME" "$INFO"
 pbq "Set :CFBundleDisplayName $NEW_NAME" "$INFO"
 pb "Set :CFBundleVersion $BUILD_NUMBER" "$INFO"
@@ -182,6 +188,8 @@ checks=(
   "CFBundleIdentifier=$NEW_ID=$INFO"
   "CFBundleVersion=$BUILD_NUMBER=$INFO"
   "NeonAppGroup=$GROUP=$INFO"
+  "CFBundleURLTypes:0:CFBundleURLName=$NEW_ID=$INFO"
+  "CFBundleURLTypes:0:CFBundleURLSchemes:0=$NEW_ID=$INFO"
   "CFBundleIdentifier=$WIDGET_ID=$WINFO"
   "NeonAppGroup=$GROUP=$WINFO"
 )
@@ -202,6 +210,10 @@ for check in "${checks[@]}"; do
     exit 1
   }
 done
+if [ "$OLD_ID" != "$NEW_ID" ]; then
+  assert_no_donor_id "$INFO" "$OLD_ID"
+  assert_no_donor_id "$WINFO" "$OLD_ID"
+fi
 codesign -d --entitlements :- "$APP" 2>/dev/null | grep -qF "$GROUP" || {
   echo "stamp-ios doctor: app signature lacks App Group $GROUP" >&2
   exit 1

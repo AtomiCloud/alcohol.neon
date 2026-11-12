@@ -14,7 +14,11 @@ jobs:
       - nscloud-macos-sequoia-arm64-6x14-with-cache
       - nscloud-cache-size-50gb
       - nscloud-cache-tag-atomi-nix-darwin-cache
-    timeout-minutes: 60
+    # A warm job (Nix store image restored from the cache volume) takes ~25 min.
+    # A cold one first pulls ~500 store paths, mostly large NARs from attic at
+    # well under 1 MB/s, which took 35+ min on 1.26.1. Namespace only commits the
+    # volume on success, so a timed-out cold job leaves the next one cold too.
+    timeout-minutes: 120
     env:
       # codemagic-cli-tools reads these by convention.
       APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}

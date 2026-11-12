@@ -20,7 +20,9 @@ jobs:
       - nscloud-macos-sequoia-arm64-6x14-with-cache
       - nscloud-cache-size-50gb
       - nscloud-cache-tag-atomi-nix-darwin-cache
-    timeout-minutes: 45
+    # Warm, this takes ~4 min; on a cold Nix cache the publish-ios shell's pulls
+    # from attic took 25+ min on 1.26.1 (see ⚡reusable-build-ios.yaml).
+    timeout-minutes: 90
     env:
       FLAVOR: ${{ inputs.flavor }}
       # codemagic-cli-tools reads these by convention.

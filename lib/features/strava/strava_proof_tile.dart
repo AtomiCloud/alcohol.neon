@@ -5,6 +5,7 @@ import '../../core/problem.dart';
 import '../../data/proof_repository.dart';
 import '../../data/strava_repository.dart';
 import '../../generated/zinc/models/plugin_manifest_res.dart';
+import '../../generated/zinc/models/proof_binding_res.dart';
 import '../../session/session_controller.dart';
 import '../subscription/subscription_view.dart';
 import '../subscription/tier.dart';
@@ -14,9 +15,23 @@ import 'strava_view.dart';
 /// Habit editor card: complete this habit from Strava. Saves on its own (not
 /// with "Save changes"). Hidden where zinc has no Strava (plugin missing or
 /// the Strava routes answer 404).
+///
+/// [StravaProofTile.draft] is for a habit not created yet: the picked sport
+/// types go to [onDraftChanged], and the editor binds them after Create.
 class StravaProofTile extends StatefulWidget {
-  final String habitId;
-  const StravaProofTile({super.key, required this.habitId});
+  final String? habitId;
+  final List<String> draft;
+  final ValueChanged<List<String>>? onDraftChanged;
+
+  const StravaProofTile({super.key, required String this.habitId})
+    : draft = const [],
+      onDraftChanged = null;
+
+  const StravaProofTile.draft({
+    super.key,
+    required this.draft,
+    required ValueChanged<List<String>> this.onDraftChanged,
+  }) : habitId = null;
 
   @override
   State<StravaProofTile> createState() => _StravaProofTileState();
@@ -58,7 +73,19 @@ class _StravaProofTileState extends State<StravaProofTile> {
     });
     final pluginsCall = _proof.plugins();
     final statusCall = _strava.status(uid);
-    final bindingCall = _proof.binding(uid, widget.habitId);
+    final id = widget.habitId;
+    final bindingCall = id == null
+        ? Future.value(
+            Ok(
+              ProofBindingRes(
+                habitId: '',
+                pluginVersion: 0,
+                pluginKey: widget.draft.isEmpty ? null : stravaPluginKey,
+                settings: encodeStravaSettings(widget.draft),
+              ),
+            ),
+          )
+        : _proof.binding(uid, id);
     final tierCall = _session.subscriptions.current(uid);
     final plugins = await pluginsCall;
     final status = await statusCall;
@@ -116,16 +143,22 @@ class _StravaProofTileState extends State<StravaProofTile> {
   Future<void> _save(List<String> sportTypes) async {
     final uid = _session.userId;
     if (uid == null) return;
+    final habitId = widget.habitId;
+    if (habitId == null) {
+      widget.onDraftChanged!(sportTypes);
+      setState(() => _bound = sportTypes);
+      return;
+    }
     setState(() {
       _saving = true;
       _saveError = null;
       _saveErrorIsTier = false;
     });
     final Result<Object?> res = sportTypes.isEmpty
-        ? await _proof.unbind(uid, widget.habitId)
+        ? await _proof.unbind(uid, habitId)
         : await _proof.bind(
             uid,
-            widget.habitId,
+            habitId,
             pluginKey: stravaPluginKey,
             settings: encodeStravaSettings(sportTypes),
           );

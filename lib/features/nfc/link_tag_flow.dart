@@ -14,7 +14,8 @@ import 'nfc_service.dart';
 ///   → PUT link (409 = someone else's tag).
 ///
 /// All outcomes land as a SnackBar; the tag itself is only ever written once.
-Future<void> runLinkTagFlow(
+/// Returns whether the tag now completes [habitId].
+Future<bool> runLinkTagFlow(
   BuildContext context, {
   required String habitId,
   required String habitName,
@@ -26,7 +27,7 @@ Future<void> runLinkTagFlow(
     messenger.showSnackBar(
       const SnackBar(content: Text('Sign in again to link a tag.')),
     );
-    return;
+    return false;
   }
 
   final nfc = NfcService();
@@ -47,7 +48,7 @@ Future<void> runLinkTagFlow(
 
   _showScanSheet(context, habitName: habitName);
   var result = await scanOnce(overwriteForeign: false);
-  if (!context.mounted) return;
+  if (!context.mounted) return false;
   _dismissScanSheet(context);
 
   // Foreign but writable → ask, then a second tap overwrites.
@@ -60,10 +61,10 @@ Future<void> runLinkTagFlow(
           'This erases the old content permanently.',
       confirmLabel: 'Overwrite',
     );
-    if (!context.mounted || !overwrite) return;
+    if (!context.mounted || !overwrite) return false;
     _showScanSheet(context, habitName: habitName);
     result = await scanOnce(overwriteForeign: true);
-    if (!context.mounted) return;
+    if (!context.mounted) return false;
     _dismissScanSheet(context);
   }
 
@@ -73,7 +74,7 @@ Future<void> runLinkTagFlow(
       scan = value;
     case Err(:final problem):
       toast(problem.detail ?? problem.title);
-      return;
+      return false;
   }
 
   final tagId = scan.tagId;
@@ -83,16 +84,16 @@ Future<void> runLinkTagFlow(
         "This tag can't be used — it's locked by another app. "
         'Use a blank NFC sticker instead.',
       );
-      return;
+      return false;
     case NfcTagKind.blank:
     case NfcTagKind.foreignWritable:
       // Only reachable from the read-only paths — provision covers these.
       toast('Could not prepare the tag. Try again.');
-      return;
+      return false;
     case NfcTagKind.lazytax:
       if (tagId == null) {
         toast('Could not read the tag id. Try scanning again.');
-        return;
+        return false;
       }
   }
 
@@ -101,12 +102,12 @@ Future<void> runLinkTagFlow(
   // aborts: linking blind could silently re-point an existing mapping.)
   if (!scan.provisioned) {
     final resolved = await session.nfcTags.resolve(uid, tagId);
-    if (!context.mounted) return;
+    if (!context.mounted) return false;
     switch (resolved) {
       case Ok(:final value):
         if (value.tag.habitId == habitId) {
           toast('This tag already completes "$habitName".');
-          return;
+          return true;
         }
         final relink = await _confirm(
           context,
@@ -116,26 +117,28 @@ Future<void> runLinkTagFlow(
               'Re-link it to "$habitName" instead?',
           confirmLabel: 'Re-link',
         );
-        if (!context.mounted || !relink) return;
+        if (!context.mounted || !relink) return false;
       case Err(:final problem) when problem.status != 404:
         toast(problem.detail ?? problem.title);
-        return;
+        return false;
       case Err():
         break; // 404 — unclaimed, proceed
     }
   }
 
   final linked = await session.nfcTags.link(uid, tagId, habitId);
-  if (!context.mounted) return;
+  if (!context.mounted) return false;
   switch (linked) {
     case Ok():
       toast('✅ Tag linked to "$habitName" — tap it any day to complete.');
+      return true;
     case Err(:final problem):
       toast(
         problem.status == 409
             ? 'This tag belongs to another account. Use a different sticker.'
             : (problem.detail ?? problem.title),
       );
+      return false;
   }
 }
 

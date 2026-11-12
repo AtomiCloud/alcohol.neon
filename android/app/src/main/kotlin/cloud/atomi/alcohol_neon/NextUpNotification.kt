@@ -30,6 +30,9 @@ object NextUpNotification {
     // Written by home_widget's saveWidgetData (WidgetService.cacheAuth).
     private const val AUTH = "HomeWidgetPreferences"
 
+    /** Shown when Complete didn't reach zinc, on the notification and on the widgets. */
+    const val SAVE_FAILED = "Couldn't save. Try again."
+
     enum class Phase { OPEN, SAVING, DONE, FAILED }
 
     fun register(context: Context, messenger: BinaryMessenger) {
@@ -117,7 +120,7 @@ object NextUpNotification {
             Phase.OPEN -> stake ?: "$done of $total done today"
             Phase.SAVING -> "Saving…"
             Phase.DONE -> "Done · $done of $total today"
-            Phase.FAILED -> "Couldn't save. Try again."
+            Phase.FAILED -> SAVE_FAILED
         }
         val builder = Notification.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)

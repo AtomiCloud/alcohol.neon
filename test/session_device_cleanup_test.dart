@@ -83,6 +83,7 @@ void main() {
       await h.session.syncDevice(h.session.generation, () async {});
       storage['pending_id'] = 'v1';
       storage['pending_at'] = 123.0;
+      storage['failed_id'] = 'v2';
       expect(storage['zinc_uid'], 'user-1');
       expect(storage['today_schedule'], isNotNull);
       expect(notifications, contains('zonedSchedule'));
@@ -95,6 +96,7 @@ void main() {
         'zinc_uid',
         'pending_id',
         'pending_at',
+        'failed_id',
       ]) {
         expect(storage[key], isNull, reason: key);
       }

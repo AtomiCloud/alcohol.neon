@@ -1,6 +1,7 @@
 package cloud.atomi.alcohol_neon
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -47,6 +48,27 @@ class TodayWidgetsTest {
     fun `before the launcher reports a size it shows up to three`() {
         assertEquals(3, TodayWidgets.rowsThatFit(0, 5))
         assertEquals(2, TodayWidgets.rowsThatFit(0, 2))
+    }
+
+    private val read = TodayWidgets.Habit("v-read", "Read", deadline = 0L, nfc = false)
+    private val gym = TodayWidgets.Habit("v-gym", "Gym", deadline = 0L, nfc = true)
+
+    @Test
+    fun `a habit whose Complete failed says so, like the notification`() {
+        assertEquals("Couldn't save. Try again.", TodayWidgets.habitStatus(read, pendingId = null, failedId = "v-read"))
+    }
+
+    @Test
+    fun `the failure shows only on the habit that failed`() {
+        val other = TodayWidgets.habitStatus(gym, pendingId = null, failedId = "v-read")
+        assertTrue(other, other.startsWith("NFC tag · by "))
+        val plain = TodayWidgets.habitStatus(read, pendingId = null, failedId = null)
+        assertTrue(plain, plain.startsWith("Check-in · by "))
+    }
+
+    @Test
+    fun `a retry in flight shows Saving, not the old failure`() {
+        assertEquals("Saving…", TodayWidgets.habitStatus(read, pendingId = "v-read", failedId = "v-read"))
     }
 
     @Test

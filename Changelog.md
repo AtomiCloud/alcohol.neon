@@ -1,3 +1,11 @@
+## [1.19.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.18.0...v1.19.0) (2026-11-12)
+
+
+### ✨ Features ✨
+
+* give support@lazytax.club on the Strava consent screen ([aef29ab](https://github.com/AtomiCloud/alcohol.neon/commit/aef29ab90cc49acc28df4e16e9e36be69f5fc821))
+* open friend invite links in the app and share them ([689ff41](https://github.com/AtomiCloud/alcohol.neon/commit/689ff41351aea78596cb9d220bc5ff84863257bc))
+
 ## [1.18.0](https://github.com/AtomiCloud/alcohol.neon/compare/v1.17.0...v1.18.0) (2026-11-12)
 
 

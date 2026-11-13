@@ -97,6 +97,25 @@ void main() {
       h.dispose();
     });
 
+    testWidgets('a zinc request that never answers ends on the error '
+        'screen, not the loader', (tester) async {
+      // Ernest's "loads forever": a stalled connection kept bootstrap in
+      // `bootstrapping` (the launch loader) with no way out.
+      final h = SessionHarness(
+        respond: (r) async => r.url.path.endsWith('/User/Me/All')
+            ? Completer<http.Response>().future
+            : null,
+      );
+      var finished = false;
+      h.start().then((_) => finished = true);
+      await tester.pump(const Duration(seconds: 25));
+
+      expect(finished, isTrue);
+      expect(h.session.phase, SessionPhase.error);
+      expect(h.session.error?.type, 'neon:network');
+      h.dispose();
+    });
+
     test('reads and the overview start together, not one by one', () async {
       final held = Completer<http.Response>();
       final h = SessionHarness(

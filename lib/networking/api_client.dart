@@ -14,6 +14,11 @@ class ApiClient {
   final Future<String?> Function() tokenProvider;
   final http.Client _client;
 
+  /// How long a request may take before it fails as a network error. Without
+  /// it a stalled connection (captive Wi-Fi, a dropped mobile link) never
+  /// completes, and a screen waiting on it shows its loader forever.
+  static const timeout = Duration(seconds: 20);
+
   ApiClient({
     required this.baseUrl,
     required this.tokenProvider,
@@ -69,11 +74,9 @@ class ApiClient {
 
     http.Response res;
     try {
-      res = await _client.delete(
-        baseUrl.resolve(path),
-        headers: headers,
-        body: encoded,
-      );
+      res = await _client
+          .delete(baseUrl.resolve(path), headers: headers, body: encoded)
+          .timeout(timeout);
     } catch (e) {
       return Err(Problem.network(e));
     }
@@ -130,14 +133,14 @@ class ApiClient {
 
     http.Response res;
     try {
-      res = switch (method) {
-        'GET' => await _client.get(uri, headers: headers),
-        'POST' => await _client.post(uri, headers: headers, body: encoded),
-        'PUT' => await _client.put(uri, headers: headers, body: encoded),
-        'PATCH' => await _client.patch(uri, headers: headers, body: encoded),
-        'DELETE' => await _client.delete(uri, headers: headers, body: encoded),
+      res = await switch (method) {
+        'GET' => _client.get(uri, headers: headers),
+        'POST' => _client.post(uri, headers: headers, body: encoded),
+        'PUT' => _client.put(uri, headers: headers, body: encoded),
+        'PATCH' => _client.patch(uri, headers: headers, body: encoded),
+        'DELETE' => _client.delete(uri, headers: headers, body: encoded),
         _ => throw ArgumentError('Unsupported method: $method'),
-      };
+      }.timeout(timeout);
     } catch (e) {
       return Err(Problem.network(e));
     }

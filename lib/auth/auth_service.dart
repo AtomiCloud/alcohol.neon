@@ -31,6 +31,10 @@ class AuthService extends ChangeNotifier {
   AuthStatus get status => _status;
   Problem? get lastError => _lastError;
 
+  /// How long [zincAccessToken] waits for the SDK's token refresh before
+  /// treating it as a transient failure.
+  static const tokenTimeout = Duration(seconds: 20);
+
   /// [client] lets tests inject a fake SDK client; production uses the real one.
   AuthService(this.config, {LogtoClient? client}) {
     _client =
@@ -170,7 +174,11 @@ class AuthService extends ChangeNotifier {
     if (config.zincResource.isEmpty) return null;
     try {
       if (!await _client.isAuthenticated) return null;
-      final token = await _client.getAccessToken(resource: config.zincResource);
+      // The SDK's refresh has no timeout of its own; a stalled one would
+      // hold every zinc request (and the launch loader) forever.
+      final token = await _client
+          .getAccessToken(resource: config.zincResource)
+          .timeout(tokenTimeout);
       return token?.token;
     } catch (e) {
       if (_isDeadSessionError(e)) {

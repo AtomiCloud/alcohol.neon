@@ -1,3 +1,10 @@
+## [1.27.2](https://github.com/ProtoDurian/alcohol.neon/compare/v1.27.1...v1.27.2) (2026-11-13)
+
+
+### 🐛 Bug Fixes 🐛
+
+* Android habit reminders never fired ([cf3e1ad](https://github.com/ProtoDurian/alcohol.neon/commit/cf3e1ad7f86bd9c5262bbfd5a8cb7b3e6eb7e00f))
+
 ## [1.27.1](https://github.com/ProtoDurian/alcohol.neon/compare/v1.27.0...v1.27.1) (2026-11-13)
 
 

@@ -199,7 +199,7 @@ void main() {
     expect(find.byIcon(Icons.volunteer_activism), findsNothing);
     expect(
       find.text(
-        'No money at stake, so no charity needed. Add a stake any time.',
+        'Nothing happens yet when you miss a day. Add money, friends or both.',
       ),
       findsOneWidget,
     );

@@ -30,6 +30,7 @@ Future<bool> showGlassConfirm(
   required String title,
   required String message,
   required String confirmLabel,
+  String cancelLabel = 'Cancel',
   bool destructive = true,
 }) async {
   final bool? ok;
@@ -49,7 +50,7 @@ Future<bool> showGlassConfirm(
         cancelButton: CupertinoActionSheetAction(
           isDefaultAction: true,
           onPressed: () => Navigator.pop(ctx, false),
-          child: const Text('Cancel'),
+          child: Text(cancelLabel),
         ),
       ),
     );
@@ -64,7 +65,7 @@ Future<bool> showGlassConfirm(
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel'),
+              child: Text(cancelLabel),
             ),
             TextButton(
               style: TextButton.styleFrom(

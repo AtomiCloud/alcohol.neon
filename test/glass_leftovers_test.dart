@@ -5,7 +5,6 @@ import 'package:alcohol_neon/core/navigation.dart';
 import 'package:alcohol_neon/core/problem.dart';
 import 'package:alcohol_neon/features/auth/sign_in_view.dart';
 import 'package:alcohol_neon/features/dev/dev_config_view.dart';
-import 'package:alcohol_neon/features/friends/friend_stake_tile.dart';
 import 'package:alcohol_neon/features/nfc/link_tag_flow.dart';
 import 'package:alcohol_neon/features/nfc/nfc_deep_links.dart';
 import 'package:alcohol_neon/features/nfc/tag_inspector_view.dart';
@@ -244,7 +243,7 @@ void main() {
   });
 
   group('editor tiles', () {
-    testWidgets('Strava and friend tiles are glass rows whose Retry reloads', (
+    testWidgets('the Strava tile is a glass row whose Retry reloads', (
       tester,
     ) async {
       var fail = false;
@@ -257,29 +256,19 @@ void main() {
         tester,
         h,
         const Scaffold(
-          body: Column(
-            children: [
-              StravaProofTile(habitId: 'h1'),
-              FriendStakeTile(habitId: 'h1'),
-            ],
-          ),
+          body: Column(children: [StravaProofTile(habitId: 'h1')]),
         ),
       );
 
       expect(find.byType(ListTile), findsNothing);
       expect(find.widgetWithText(GlassRow, 'Complete with Strava'), findsOne);
-      expect(
-        find.widgetWithText(GlassRow, 'Tell my friends if I miss'),
-        findsOne,
-      );
-      final retries = find.widgetWithText(GlassTextButton, 'Retry');
-      expect(retries, findsNWidgets(2));
+      final retry = find.widgetWithText(GlassTextButton, 'Retry');
+      expect(retry, findsOne);
 
       final before = h.requests.length;
-      await tester.tap(retries.first);
-      await tester.tap(retries.last);
+      await tester.tap(retry);
       await settle(tester);
-      expect(h.requests.length, greaterThan(before + 1));
+      expect(h.requests.length, greaterThan(before));
     });
   });
 

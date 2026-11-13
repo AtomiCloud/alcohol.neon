@@ -13,15 +13,15 @@ import 'payment_consent_collector.dart';
 /// Orchestrates the end-to-end payment-consent collection (plan M6):
 ///
 /// 1. Short-circuit if the session already has consent.
-/// 2. Provision the Airwallex customer (`PUT /Payment/{userId}/customers`) to get
+/// 2. Explain the card in a glass sheet and wait for explicit Continue.
+/// 3. Provision the Airwallex customer (`PUT /Payment/{userId}/customers`) to get
 ///    a `customerId` + `clientSecret` (falling back to `GET .../client-secret`).
-/// 3. Explain the card in a glass sheet (argon's `ConsentConfirmModal`).
 /// 4. Present the native card sheet via the [PaymentConsentCollector].
 /// 5. On a successful sheet, **poll** `GET /Payment/{userId}/consent` on argon's
 ///    exact schedule (5×1000ms, then `min(interval*2, 30000)`, total cap 120000ms,
 ///    tolerating transient GET failures, success when `hasPaymentConsent`) behind a
 ///    "don't leave this screen" overlay.
-/// 6. On confirmed consent, refresh the session cache.
+/// 6. The confirming GET also updates the session cache, without a second read.
 ///
 /// Returns a [Result] — `Ok(())` when consent is in place, `Err(Problem)` with the
 /// reason otherwise (cancelled, timed out, or a service failure). Never throws.
@@ -31,11 +31,14 @@ class ConsentService {
   /// Factory for the collector, so tests / a future web flow can inject one.
   /// Defaults to the native Airwallex collector configured from [AppConfig].
   final PaymentConsentCollector Function() collectorFactory;
+  final DateTime Function() _now;
 
   ConsentService(
     this.session, {
     PaymentConsentCollector Function()? collectorFactory,
-  }) : collectorFactory =
+    DateTime Function()? now,
+  }) : _now = now ?? DateTime.now,
+       collectorFactory =
            collectorFactory ??
            (() => AirwallexConsentCollector(
              environment: AppConfig.current.airwallexEnv,
@@ -47,10 +50,11 @@ class ConsentService {
   static const _initialInterval = Duration(milliseconds: 1000);
   static const _maxInterval = Duration(milliseconds: 30000);
 
-  /// Cancelled by the user from the confirm dialog.
-  static final _cancelled = Problem.local(
-    'Payment setup cancelled',
-    type: 'neon:payment',
+  /// A quiet exit from the explainer or native card sheet, not a provider error.
+  static const cancelled = Problem(
+    title: 'Payment setup cancelled',
+    status: 0,
+    type: 'neon:payment-cancelled',
     detail: 'You can set up a payment method later from Settings.',
   );
 
@@ -64,12 +68,23 @@ class ConsentService {
 
     final userId = session.userId;
     if (userId == null) return const Err(Problem.unauthenticated);
+    final generation = session.generation;
 
-    // 1. Provision customer (idempotent) → customerId + clientSecret.
+    if (!context.mounted) return const Err(Problem.unauthenticated);
+    final confirmed = await _showConfirmDialog(context);
+    if (confirmed != true) return const Err(cancelled);
+    if (!context.mounted || generation != session.generation) {
+      return const Err(Problem.unauthenticated);
+    }
+
+    // No customer or secret is requested until explicit Continue.
     String? customerId;
     String? clientSecret;
 
     final customerRes = await session.payments.ensureCustomer(userId);
+    if (!context.mounted || generation != session.generation) {
+      return const Err(Problem.unauthenticated);
+    }
     switch (customerRes) {
       case Ok(:final value):
         customerId = value.customerId;
@@ -82,6 +97,9 @@ class ConsentService {
     // didn't return one (both fields are nullable in the generated DTO).
     if (clientSecret == null || clientSecret.isEmpty) {
       final secretRes = await session.payments.clientSecret(userId);
+      if (!context.mounted || generation != session.generation) {
+        return const Err(Problem.unauthenticated);
+      }
       switch (secretRes) {
         case Ok(:final value):
           clientSecret = value.clientSecret;
@@ -91,13 +109,6 @@ class ConsentService {
       }
     }
 
-    if (!context.mounted) return const Err(Problem.unauthenticated);
-
-    // 2. Pre-launch confirm (mirrors argon's ConsentConfirmModal copy).
-    final confirmed = await _showConfirmDialog(context);
-    if (confirmed != true) return Err(_cancelled);
-    if (!context.mounted) return const Err(Problem.unauthenticated);
-
     // 3. Present the native card sheet.
     final collector = collectorFactory();
     final collect = await collector.collect(
@@ -105,7 +116,7 @@ class ConsentService {
       clientSecret: clientSecret,
     );
 
-    if (collect.isCancelled) return Err(_cancelled);
+    if (collect.isCancelled) return const Err(cancelled);
     if (collect.isFailed) {
       return Err(
         collect.problem ??
@@ -114,10 +125,12 @@ class ConsentService {
     }
     // success or inProgress → poll the server for the consent record.
 
-    if (!context.mounted) return const Err(Problem.unauthenticated);
+    if (!context.mounted || generation != session.generation) {
+      return const Err(Problem.unauthenticated);
+    }
 
     // 4. Poll behind a blocking overlay.
-    return _pollWithOverlay(context, userId);
+    return _pollWithOverlay(context, generation);
   }
 
   /// What adding a card means, in a glass sheet: when it's charged, who
@@ -128,43 +141,45 @@ class ConsentService {
   /// Shows a non-dismissible overlay, runs [_poll], then tears the overlay down.
   Future<Result<void>> _pollWithOverlay(
     BuildContext context,
-    String userId,
+    int generation,
   ) async {
     final navigator = Navigator.of(context, rootNavigator: true);
 
     // Push a blocking overlay route — back-button disabled, no dismiss.
-    unawaited(navigator.push(_PollOverlayRoute()));
+    final overlay = _PollOverlayRoute();
+    unawaited(navigator.push(overlay));
 
-    final result = await _poll(userId);
+    final result = await _poll(generation);
 
     // Tear down the overlay if it's still up.
-    if (navigator.canPop()) navigator.pop();
-
-    if (result case Ok()) {
-      // Refresh the session cache so gates + the settings card update.
-      await session.refreshConsent();
-    }
+    if (overlay.isActive) navigator.removeRoute(overlay);
     return result;
   }
 
   /// Polls `GET /Payment/{userId}/consent` on argon's schedule until consent is
   /// confirmed or the total duration cap elapses. Transient GET failures are
   /// swallowed (we keep polling) — only the timeout is surfaced as an error.
-  Future<Result<void>> _poll(String userId) async {
-    final start = DateTime.now();
+  Future<Result<void>> _poll(int generation) async {
+    final start = _now();
     var attempts = 0;
     var interval = _initialInterval;
 
     while (true) {
+      if (generation != session.generation) {
+        return const Err(Problem.unauthenticated);
+      }
       attempts++;
 
-      final res = await session.payments.consent(userId);
+      final res = await session.refreshConsent();
+      if (generation != session.generation) {
+        return const Err(Problem.unauthenticated);
+      }
       if (res case Ok(:final value) when value.hasPaymentConsent) {
         return const Ok(null);
       }
       // Any non-success (or consent not yet present) → keep polling within cap.
 
-      final elapsed = DateTime.now().difference(start);
+      final elapsed = _now().difference(start);
       if (elapsed >= _maxDuration) {
         return Err(
           Problem.local(
@@ -263,69 +278,71 @@ class ConsentExplainer extends StatelessWidget {
     return SafeArea(
       top: false,
       minimum: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: t.track,
-                  shape: BoxShape.circle,
-                ),
-                child: const SizedBox.square(
-                  dimension: 48,
-                  child: Icon(Icons.credit_card_rounded, size: 24),
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Align(
+                alignment: Alignment.centerLeft,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: t.track,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const SizedBox.square(
+                    dimension: 48,
+                    child: Icon(Icons.credit_card_rounded, size: 24),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Add a card to stake',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
+              const SizedBox(height: 12),
+              Text(
+                'Add a card to stake',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'A money stake needs a card on file. You add it with our '
-              'payment partner Airwallex.',
-              style: theme.textTheme.bodyMedium?.copyWith(color: t.muted),
-            ),
-            point(
-              Icons.payments_outlined,
-              'Charged only when you miss',
-              'Your stake goes to your charity for each missed day. Nothing '
-                  'is charged now.',
-              color: t.accent,
-            ),
-            point(
-              Icons.shield_outlined,
-              'Kept by Airwallex',
-              'Airwallex holds your card details securely. LazyTax never '
-                  'sees them.',
-            ),
-            point(
-              Icons.delete_outline_rounded,
-              'Remove it any time',
-              'In Settings. Staked habits stop charging until you add a '
-                  'card again.',
-            ),
-            const SizedBox(height: 24),
-            GlassButton(
-              label: 'Continue',
-              onPressed: () => Navigator.pop(context, true),
-            ),
-            const SizedBox(height: 4),
-            GlassTextButton(
-              label: 'Not now',
-              muted: true,
-              onPressed: () => Navigator.pop(context, false),
-            ),
-          ],
+              const SizedBox(height: 6),
+              Text(
+                'A money stake needs a card on file. You add it with our '
+                'payment partner Airwallex.',
+                style: theme.textTheme.bodyMedium?.copyWith(color: t.muted),
+              ),
+              point(
+                Icons.payments_outlined,
+                'Charged only when you miss',
+                'Your stake goes to your charity for each missed day. Nothing '
+                    'is charged now.',
+                color: t.accent,
+              ),
+              point(
+                Icons.shield_outlined,
+                'Kept by Airwallex',
+                'Airwallex holds your card details securely. LazyTax never '
+                    'sees them.',
+              ),
+              point(
+                Icons.delete_outline_rounded,
+                'Remove it any time',
+                'In Settings. Staked habits stop charging until you add a '
+                    'card again.',
+              ),
+              const SizedBox(height: 24),
+              GlassButton(
+                label: 'Continue',
+                onPressed: () => Navigator.pop(context, true),
+              ),
+              const SizedBox(height: 4),
+              GlassTextButton(
+                label: 'Not now',
+                muted: true,
+                onPressed: () => Navigator.pop(context, false),
+              ),
+            ],
+          ),
         ),
       ),
     );

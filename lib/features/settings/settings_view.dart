@@ -53,6 +53,7 @@ class _SettingsViewState extends State<SettingsView> {
   bool _loading = true;
   bool _saving = false;
   bool _consentBusy = false;
+  bool _consentLoading = false;
   bool _timezoneDiscoveryFailed = false;
   Problem? _loadError;
 
@@ -90,15 +91,23 @@ class _SettingsViewState extends State<SettingsView> {
         return;
     }
 
-    // Consent is informational only; a failure here shouldn't block the screen.
-    final userId = session.userId;
-    if (userId != null) {
-      final consentRes = await session.payments.consent(userId);
-      if (!mounted) return;
-      if (consentRes case Ok(:final value)) _consent = value;
-    }
-
     setState(() => _loading = false);
+    await _refreshConsent();
+  }
+
+  /// A status failure is unknown, not an empty or freshly verified card. The
+  /// same GET updates the session so the habit gate cannot use older consent.
+  Future<void> _refreshConsent() async {
+    setState(() => _consentLoading = true);
+    final result = await context.read<SessionController>().refreshConsent();
+    if (!mounted) return;
+    setState(() {
+      _consentLoading = false;
+      _consent = switch (result) {
+        Ok(:final value) => value,
+        Err() => null,
+      };
+    });
   }
 
   Future<void> _loadTimezones() async {
@@ -263,6 +272,7 @@ class _SettingsViewState extends State<SettingsView> {
 
   /// Runs the full consent collection flow (confirm → native sheet → poll).
   Future<void> _setUpConsent() async {
+    if (_consentBusy || _consentLoading) return;
     final session = context.read<SessionController>();
     setState(() {
       _consentBusy = true;
@@ -273,20 +283,24 @@ class _SettingsViewState extends State<SettingsView> {
     switch (res) {
       case Ok():
         setState(() {
-          _consent = session.consent ?? _consent;
+          _consent = session.consent;
           _consentBusy = false;
         });
-        _toast('Card added');
+        if (_consent?.hasPaymentConsent == true) _toast('Card added');
       case Err(:final problem):
         setState(() {
+          _consent = session.consent;
           _consentBusy = false;
-          _error = problem;
+          _error = problem.type == ConsentService.cancelled.type
+              ? null
+              : problem;
         });
     }
   }
 
   /// Revokes consent, then re-reads it to confirm.
   Future<void> _removeConsent() async {
+    if (_consentBusy || _consentLoading) return;
     final session = context.read<SessionController>();
     final userId = session.userId;
     if (userId == null) return;
@@ -314,13 +328,10 @@ class _SettingsViewState extends State<SettingsView> {
       });
       return;
     }
-    await session.refreshConsent();
+    await _refreshConsent();
     if (!mounted) return;
-    setState(() {
-      _consent = session.consent ?? _consent;
-      _consentBusy = false;
-    });
-    _toast('Card removed');
+    setState(() => _consentBusy = false);
+    if (_consent?.hasPaymentConsent == false) _toast('Card removed');
   }
 
   @override
@@ -350,6 +361,7 @@ class _SettingsViewState extends State<SettingsView> {
     final charityId = cfg?.principal.defaultCharityId;
     final hasCharity = charityId?.isNotEmpty ?? false;
     final has = _consent?.hasPaymentConsent ?? false;
+    final incomplete = _consent?.status != null || _consent?.consentId != null;
     final busy = _saving || _consentBusy;
     final tz = _timezone;
     return [
@@ -409,24 +421,37 @@ class _SettingsViewState extends State<SettingsView> {
       GlassSection(
         title: 'Payment',
         children: [
-          if (_consentBusy)
+          if (_consentLoading)
+            const GlassRow(
+              leading: SizedBox.square(
+                dimension: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              title: 'Checking card status…',
+              titleMaxLines: null,
+            )
+          else if (_consentBusy)
             const GlassRow(
               leading: SizedBox.square(
                 dimension: 18,
                 child: CircularProgressIndicator(strokeWidth: 2),
               ),
               title: 'Updating your card…',
+              titleMaxLines: null,
             )
-          else if (_consent == null)
+          else if (_consent == null) ...[
             const GlassRow(
               leading: Icon(Icons.credit_card_off_outlined),
               title: 'Card status unavailable',
-              subtitle: 'Could not load your payment details.',
-            )
-          else if (has) ...[
+              titleMaxLines: null,
+              subtitle: 'Could not check your card. Please try again.',
+            ),
+            GlassRow(title: 'Retry', accent: true, onTap: _refreshConsent),
+          ] else if (has) ...[
             GlassRow(
               leading: Icon(Icons.verified_user_outlined, color: t.accent),
               title: 'Card on file',
+              titleMaxLines: null,
               subtitle:
                   'Held by Airwallex. Charged only when you miss a staked day.',
             ),
@@ -437,17 +462,23 @@ class _SettingsViewState extends State<SettingsView> {
               chevron: false,
               onTap: busy ? null : _removeConsent,
             ),
-          ] else
+          ] else ...[
             GlassRow(
               leading: const Icon(Icons.credit_card_rounded),
-              title: 'No card on file',
-              subtitle: 'Needed before you stake money.',
-              trailing: GlassButton(
-                label: 'Add card',
-                compact: true,
+              title: incomplete ? 'Card setup incomplete' : 'No card on file',
+              titleMaxLines: null,
+              subtitle: incomplete
+                  ? 'Finish setup to use money stakes.'
+                  : 'Needed only if you choose a money stake.',
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+              child: GlassButton(
+                label: incomplete ? 'Finish setup' : 'Add card',
                 onPressed: busy ? null : _setUpConsent,
               ),
             ),
+          ],
         ],
       ),
       GlassSection(

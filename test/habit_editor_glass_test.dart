@@ -405,6 +405,32 @@ void main() {
         await finish(tester, h);
       });
 
+      testWidgets('${platform.name}: New habit Money waits for Continue and '
+          'Not now leaves the draft without provisioning', (tester) async {
+        final h = harness(const []);
+        await h.start();
+        await pumpApp(tester, h, const HabitEditorView(), platform: platform);
+        await tester.enterText(find.byType(TextField).first, 'Evening walk');
+        await addStake(tester, 'Money');
+        await tester.tap(find.text('\$5'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Set stake'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Create habit'));
+        await settle(tester);
+        expect(find.text('Add a card to stake'), findsOneWidget);
+        expect(calls(h, 'PUT', '/Payment/user-1/customers'), isEmpty);
+        expect(calls(h, 'GET', '/Payment/user-1/client-secret'), isEmpty);
+        await tester.tap(find.text('Not now'));
+        await tester.pumpAndSettle();
+        expect(find.text('Payment setup cancelled'), findsNothing);
+        expect(find.text('Evening walk'), findsOneWidget);
+        expect(find.text('USD 5.00'), findsOneWidget);
+        expect(find.text('Create habit'), findsOneWidget);
+        expect(calls(h, 'POST', '/Habit/user-1'), isEmpty);
+        await finish(tester, h);
+      });
+
       testWidgets('${platform.name}: a new habit saves with money and '
           'friends', (tester) async {
         final base = harness([true]);

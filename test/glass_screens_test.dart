@@ -5,6 +5,9 @@ import 'package:alcohol_neon/core/date_format.dart';
 import 'package:alcohol_neon/core/problem.dart';
 import 'package:alcohol_neon/data/subscription_repository.dart';
 import 'package:alcohol_neon/features/charity/charity_picker.dart';
+import 'package:alcohol_neon/features/dashboard/dashboard_controller.dart';
+import 'package:alcohol_neon/features/dashboard/dashboard_view.dart';
+import 'package:alcohol_neon/features/dashboard/today_layout.dart';
 import 'package:alcohol_neon/features/payment/consent_service.dart';
 import 'package:alcohol_neon/features/payment/payment_consent_collector.dart';
 import 'package:alcohol_neon/features/settings/timezone_picker.dart';
@@ -16,6 +19,7 @@ import 'package:alcohol_neon/features/vacation/vacation_list_view.dart';
 import 'package:alcohol_neon/generated/zinc/models/charity_principal_res.dart';
 import 'package:alcohol_neon/networking/api_client.dart';
 import 'package:alcohol_neon/services/storefront_service.dart';
+import 'package:alcohol_neon/services/widget_service.dart';
 import 'package:alcohol_neon/session/session_controller.dart';
 import 'package:alcohol_neon/theme/app_theme.dart';
 import 'package:alcohol_neon/widgets/glass_list.dart';
@@ -582,6 +586,51 @@ void main() {
           await tearDownHarness(tester, h);
         },
       );
+    }
+  });
+
+  group('Today with more than 20 habits', () {
+    // zinc sends 20 habits unless asked for more.
+    test('the plan and the widget payload count all 25', () async {
+      final h = SessionHarness(habits: manyHabits(25));
+      await h.start();
+      final c = DashboardController(h.session);
+      await c.load();
+      expect(c.plan.scheduled, 25);
+      expect(widgetSchedule(c.plan, DateTime.now())['total'], 25);
+      c.dispose();
+      h.dispose();
+    });
+
+    for (final platform in platforms) {
+      for (final layout in TodayLayout.values) {
+        testWidgets('${platform.name}, ${layout.name}: Today shows the 21st '
+            'habit after scrolling', (tester) async {
+          TodayLayoutSetting.instance.value = layout;
+          addTearDown(
+            () => TodayLayoutSetting.instance.value = TodayLayout.nextUp,
+          );
+          final h = SessionHarness(habits: manyHabits(25));
+          await h.start();
+          await pumpPushed(
+            tester,
+            (_) => const DashboardView(),
+            platform: platform,
+            harness: h,
+          );
+
+          await tester.scrollUntilVisible(
+            find.text('Habit 21'),
+            300,
+            scrollable: find.byType(Scrollable).first,
+          );
+          expect(find.text('Habit 21'), findsOneWidget);
+          if (layout == TodayLayout.nextUp) {
+            expect(find.text('0/25'), findsOneWidget);
+          }
+          await tearDownHarness(tester, h);
+        });
+      }
     }
   });
 }

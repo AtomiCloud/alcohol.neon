@@ -84,6 +84,42 @@ void main() {
   });
   tearDown(() => messenger.setMockMethodCallHandler(timezoneChannel, null));
 
+  testWidgets('a stake × is its own button for VoiceOver and TalkBack', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    final h = SessionHarness();
+    await h.start();
+    await pumpApp(
+      tester,
+      h,
+      const HabitEditorView(),
+      platform: TargetPlatform.iOS,
+    );
+    await tester.tap(find.text('Add a stake'));
+    await settle(tester);
+    await tester.tap(find.text('Money'));
+    await settle(tester);
+    await tester.tap(find.text('\$1'));
+    await settle(tester);
+    await tester.tap(find.text('Set stake'));
+    await settle(tester);
+    expect(find.text('Money'), findsOneWidget);
+
+    final x = tester.getSemantics(find.byIcon(Icons.close_rounded));
+    expect(x.label, 'Remove money stake');
+    expect(x.flagsCollection.isButton, isTrue);
+    // A screen reader's double-tap on the × removes the stake; it must not
+    // run the row's action, which opens the amount keypad.
+    tester.semantics.tap(find.semantics.byLabel('Remove money stake'));
+    await settle(tester);
+    expect(find.text('Set your stake'), findsNothing);
+    expect(find.text('Money'), findsNothing);
+
+    await finish(tester, h);
+    semantics.dispose();
+  });
+
   for (final platform in platforms) {
     final ios = platform == TargetPlatform.iOS;
 

@@ -11,7 +11,11 @@ import '../nfc/nfc_deep_links.dart';
 /// Shown once the user is authenticated. Runs the session bootstrap, then shows
 /// Today (or the bootstrap error).
 class AuthedGate extends StatefulWidget {
-  const AuthedGate({super.key});
+  final Widget loadingScreen;
+  const AuthedGate({
+    super.key,
+    this.loadingScreen = const GlassLoadingScreen(),
+  });
 
   @override
   State<AuthedGate> createState() => _AuthedGateState();
@@ -33,7 +37,7 @@ class _AuthedGateState extends State<AuthedGate> {
     switch (session.phase) {
       case SessionPhase.idle:
       case SessionPhase.bootstrapping:
-        return const GlassLoadingScreen();
+        return widget.loadingScreen;
       case SessionPhase.ready:
         // NfcTapListener consumes a pending /t/{tagId} link (NFC tap) once the
         // session is usable, pushing the tap-to-complete screen.

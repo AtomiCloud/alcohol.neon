@@ -303,6 +303,18 @@ class SessionController extends ChangeNotifier {
         switch (created) {
           case Ok(:final value):
             _config = value;
+          // Another device made it first (zinc >= alcohol.zinc#98): use theirs.
+          // Older zinc answers 500 here, which stays an error.
+          case Err(:final problem) when problem.status == 409:
+            final again = await configs.mine();
+            if (generation != _generation) return;
+            switch (again) {
+              case Ok(:final value):
+                _config = value.principal;
+                await syncDeviceTimezone();
+              case Err(:final problem):
+                return _fail(problem);
+            }
           case Err(:final problem):
             return _fail(problem);
         }

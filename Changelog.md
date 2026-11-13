@@ -1,3 +1,12 @@
+## [1.29.1](https://github.com/ProtoDurian/alcohol.neon/compare/v1.29.0...v1.29.1) (2026-11-13)
+
+
+### 🐛 Bug Fixes 🐛
+
+* let screen readers reach a stake's remove button ([a436f83](https://github.com/ProtoDurian/alcohol.neon/commit/a436f830dad5ad252286c163ee077bcce8e642a8))
+* never show a proxy's raw error page to users ([625cb62](https://github.com/ProtoDurian/alcohol.neon/commit/625cb62b4c6c8d995eec9a77f1e3f607fdb3a0c0))
+* show a plain message for network and parse errors ([e5bdfad](https://github.com/ProtoDurian/alcohol.neon/commit/e5bdfad18676f88c9770cf47cfd99b0b624785e0))
+
 ## [1.29.0](https://github.com/ProtoDurian/alcohol.neon/compare/v1.28.0...v1.29.0) (2026-11-13)
 
 

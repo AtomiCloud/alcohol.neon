@@ -18,8 +18,8 @@ fetch_signing_files() {
   while IFS= read -r target_id; do
     app-store-connect fetch-signing-files "$target_id" \
       --type IOS_APP_STORE \
-      --certificate-key @env:CERTIFICATE_PRIVATE_KEY \
-      --create
+      --certificate-key @env:CERTIFICATE_PRIVATE_KEY
+    # dpoc-getmac-test: --create removed (no App Store Connect writes from the test branch)
   done <<<"$targets"
   # Doctor: every fetched profile must carry the App Group entitlement — catches
   # a skipped `pls register` here instead of as an opaque xcodebuild/App Store

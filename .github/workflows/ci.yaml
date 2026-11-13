@@ -5,7 +5,7 @@ on:
     # the same commit would just re-lint it. Not main either: main only takes
     # PRs that must be up to date with it, so a merge commit has the exact tree
     # its PR's CI already passed. Release runs on the push to main directly.
-    branches: ['**', '!main']
+    branches: ['**', '!main', '!dpoc-**']
 jobs:
   precommit:
     name: Pre-Commit

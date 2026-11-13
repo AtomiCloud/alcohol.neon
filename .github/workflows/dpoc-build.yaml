@@ -1,0 +1,107 @@
+name: dpoc build (reusable)
+
+# Vendor spike only (branch dpoc-getmac-test). Builds the donor IPA like
+# ⚡reusable-build-ios.yaml but uploads nothing: no artifact, no TestFlight,
+# no App Store Connect writes (fetch-signing-files runs without --create).
+
+on:
+  workflow_call:
+    inputs:
+      runner:
+        type: string
+        required: true
+      namespace:
+        type: string
+        default: 'false'
+      tag:
+        type: string
+        default: run
+
+jobs:
+  build:
+    name: Build IPA (${{ inputs.tag }})
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    timeout-minutes: 75
+    env:
+      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.APP_STORE_CONNECT_KEY_IDENTIFIER }}
+      APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+      CERTIFICATE_PRIVATE_KEY: ${{ secrets.CERTIFICATE_PRIVATE_KEY }}
+    steps:
+      - name: dpoc probe (specs + markers from earlier runs)
+        shell: bash
+        run: |
+          set -x
+          date -u +%FT%TZ
+          hostname; whoami; echo "RUNNER_NAME=$RUNNER_NAME RUNNER_TEMP=$RUNNER_TEMP TMPDIR=${TMPDIR:-}"
+          sw_vers || true
+          uname -a
+          sysctl -n machdep.cpu.brand_string hw.ncpu hw.perflevel0.physicalcpu hw.perflevel1.physicalcpu hw.memsize || true
+          df -h / /System/Volumes/Data 2>/dev/null || df -h
+          ls -d /Applications/Xcode*.app || true
+          xcodebuild -version || true
+          ls -la /nix 2>&1 | head -20 || true
+          cat /etc/synthetic.conf 2>/dev/null || true
+          diskutil list 2>/dev/null | head -40 || true
+          for f in /nix/.dpoc-marker "$HOME/.dpoc-marker" /tmp/dpoc-marker "${TMPDIR:-/tmp}/dpoc-marker" /Users/Shared/dpoc-marker /private/var/tmp/dpoc-marker; do
+            if [ -e "$f" ]; then echo "MARKER FOUND $f: $(cat "$f")"; else echo "MARKER ABSENT $f"; fi
+          done
+          ls -la "$HOME" | head -40
+          du -sh "$HOME/.pub-cache" "$HOME/.cocoapods" "$HOME/Library/Caches" 2>/dev/null || true
+          uptime
+
+      - uses: AtomiCloud/actions.setup-nix@v3
+        with:
+          namespacelabs: ${{ inputs.namespace }}
+
+      - uses: namespacelabs/nscloud-cache-action@v1
+        if: inputs.namespace == 'true'
+        with:
+          path: |
+            ~/.pub-cache
+            ~/.cocoapods
+
+      - name: Select newest Xcode
+        run: |
+          set -euo pipefail
+          XCODE=$(printf '%s\n' /Applications/Xcode*.app | sort -V | tail -1)
+          echo "Selected $XCODE"
+          echo "DEVELOPER_DIR_OVERRIDE=$XCODE/Contents/Developer" >> "$GITHUB_ENV"
+
+      - name: dpoc nix develop only (store fetch)
+        shell: bash
+        run: |
+          set -euo pipefail
+          nix --version
+          n0=$(ls /nix/store | wc -l)
+          t0=$(date +%s)
+          nix develop .#cd-ios -c true
+          t1=$(date +%s)
+          echo "DPOC nix-develop-seconds=$((t1 - t0)) store-entries-before=$n0 after=$(ls /nix/store | wc -l)"
+          du -sh /nix/store 2>/dev/null || true
+          t0=$(date +%s); nix develop .#cd-ios -c true; t1=$(date +%s)
+          echo "DPOC nix-develop-again-seconds=$((t1 - t0))"
+
+      - name: Build donor IPA
+        run: nix develop .#cd-ios -c ./scripts/ci/cd-ios.sh
+
+      - name: dpoc result
+        if: always()
+        shell: bash
+        run: |
+          ls -la build/ios/ipa/ 2>/dev/null || echo "no ipa"
+          df -h / 2>/dev/null || true
+          uptime
+
+      - name: dpoc write markers
+        if: always()
+        shell: bash
+        run: |
+          m="run=${GITHUB_RUN_ID} attempt=${GITHUB_RUN_ATTEMPT} job=${{ inputs.tag }} host=$(hostname) at=$(date -u +%FT%TZ)"
+          sudo sh -c "echo '$m' > /nix/.dpoc-marker" || true
+          echo "$m" > "$HOME/.dpoc-marker" || true
+          echo "$m" > /tmp/dpoc-marker || true
+          echo "$m" > "${TMPDIR:-/tmp}/dpoc-marker" || true
+          echo "$m" > /Users/Shared/dpoc-marker || true
+          sudo sh -c "echo '$m' > /private/var/tmp/dpoc-marker" || true
+          echo "wrote: $m"

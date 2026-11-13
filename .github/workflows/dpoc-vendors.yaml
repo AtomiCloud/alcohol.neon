@@ -1,0 +1,38 @@
+name: dpoc vendors
+
+# Vendor spike (GetMac vs Namespace macOS). Only on the test branch. The commit
+# message picks the jobs: [getmac] one GetMac job, [pair] two GetMac jobs at
+# once, [ns] one Namespace macOS job (same steps).
+on:
+  push:
+    branches: [dpoc-getmac-test]
+
+jobs:
+  getmac:
+    if: contains(github.event.head_commit.message, '[getmac]')
+    uses: ./.github/workflows/dpoc-build.yaml
+    with:
+      runner: '"getmac"'
+      tag: getmac
+    secrets: inherit
+
+  pair:
+    if: contains(github.event.head_commit.message, '[pair]')
+    strategy:
+      fail-fast: false
+      matrix:
+        n: [a, b]
+    uses: ./.github/workflows/dpoc-build.yaml
+    with:
+      runner: '"getmac"'
+      tag: pair-${{ matrix.n }}
+    secrets: inherit
+
+  ns:
+    if: contains(github.event.head_commit.message, '[ns]')
+    uses: ./.github/workflows/dpoc-build.yaml
+    with:
+      runner: '["nscloud-macos-sequoia-arm64-6x14-with-cache","nscloud-cache-size-50gb","nscloud-cache-tag-atomi-nix-darwin-cache"]'
+      namespace: 'true'
+      tag: ns
+    secrets: inherit

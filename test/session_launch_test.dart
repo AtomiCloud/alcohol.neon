@@ -271,23 +271,98 @@ void main() {
         h.dispose();
       });
 
-      test('a failed create lands on the error screen, not Today', () async {
-        final h = SessionHarness(
+      // 500 is what zinc before alcohol.zinc#98 answers for a duplicate.
+      for (final status in [400, 500]) {
+        test('a failed create ($status) lands on the error screen, not '
+            'Today', () async {
+          final h = SessionHarness(
+            respond: (r) async {
+              if (isConfigWrite(r, 'POST')) {
+                return jsonResponse({
+                  'title': 'Conflict',
+                  'status': status,
+                }, status);
+              }
+              if (r.url.path.endsWith('/Configuration/me')) {
+                return jsonResponse({'title': 'Not found', 'status': 404}, 404);
+              }
+              return null;
+            },
+          );
+          await h.start();
+          expect(h.session.phase, SessionPhase.error);
+          expect(h.session.error?.status, status);
+          h.dispose();
+        });
+      }
+
+      /// zinc for a configuration another device created in between: the
+      /// first read is 404, the create is 409, then reads answer [reread].
+      SessionHarness raced(http.Response Function() reread) {
+        var reads = 0;
+        return SessionHarness(
           respond: (r) async {
             if (isConfigWrite(r, 'POST')) {
-              return jsonResponse({'title': 'Bad Request', 'status': 400}, 400);
+              return jsonResponse({
+                'title': 'EntityConflict',
+                'status': 409,
+              }, 409);
+            }
+            if (isConfigWrite(r, 'PUT')) {
+              return jsonResponse({
+                'id': 'cfg-other',
+                ...jsonDecode(r.body) as Map<String, Object?>,
+              });
             }
             if (r.url.path.endsWith('/Configuration/me')) {
-              return jsonResponse({'title': 'Not found', 'status': 404}, 404);
+              return reads++ == 0
+                  ? jsonResponse({'title': 'Not found', 'status': 404}, 404)
+                  : reread();
             }
             return null;
           },
         );
+      }
+
+      test('a 409 from create (another device made it first) reads it '
+          'again and opens Today', () async {
+        final h = raced(
+          () => jsonResponse({
+            'principal': {
+              'id': 'cfg-other',
+              'timezone': 'Asia/Singapore',
+              'defaultCharityId': 'ch1',
+            },
+            'charity': {'id': 'ch1', 'name': 'Red Cross'},
+          }),
+        );
         await h.start();
-        expect(h.session.phase, SessionPhase.error);
-        expect(h.session.error?.status, 400);
+        expect(h.session.phase, SessionPhase.ready);
+        expect(h.session.config?.id, 'cfg-other');
+        expect(h.session.config?.defaultCharityId, 'ch1');
+        expect(
+          h.requests.where((r) => isConfigWrite(r, 'POST')),
+          hasLength(1),
+          reason: 'no second create',
+        );
+        // It then follows the phone, as on any launch.
+        expect(h.session.config?.timezone, 'Asia/Tokyo');
+        expect(h.cache.savedConfig?.id, 'cfg-other');
         h.dispose();
       });
+
+      test(
+        'a 409, then a failed second read, shows that read\'s error',
+        () async {
+          final h = raced(
+            () => jsonResponse({'title': 'Try later', 'status': 503}, 503),
+          );
+          await h.start();
+          expect(h.session.phase, SessionPhase.error);
+          expect(h.session.error?.status, 503);
+          h.dispose();
+        },
+      );
 
       test('no default charity still follows the phone timezone', () async {
         Map<String, Object?>? put;

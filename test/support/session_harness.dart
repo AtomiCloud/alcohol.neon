@@ -36,33 +36,60 @@ const habitVersion = {
   'timezone': 'America/New_York',
 };
 
+/// One habit card as zinc's overview sends it, scheduled every day.
+Map<String, Object?> overviewHabit(
+  String id,
+  String name, {
+  String status = 'not_applicable',
+  String versionId = 'v1',
+}) => {
+  'id': id,
+  'name': name,
+  'enabled': true,
+  'timezone': 'America/New_York',
+  'notificationTime': '22:00:00',
+  'days': List.filled(7, true),
+  'stake': {'amount': 0, 'currency': 'USD'},
+  'charity': {'name': 'Red Cross'},
+  'version': {'id': versionId, 'version': 1, 'isActive': true},
+  'timeLeftToEodMinutes': 120,
+  'status': {
+    'currentStreak': 4,
+    'maxStreak': 9,
+    'isCompleteToday': status == 'succeeded',
+    'today': '09-11-2026',
+    'todayStatus': status,
+    'week': <String, Object?>{},
+  },
+};
+
+/// [count] open habits "Habit 01"…, ids h1… — numbered so Today's name order
+/// is their list order.
+List<Map<String, Object?>> manyHabits(int count) => [
+  for (var i = 1; i <= count; i++)
+    overviewHabit('h$i', 'Habit ${'$i'.padLeft(2, '0')}', versionId: 'v$i'),
+];
+
 Map<String, Object?> overviewBody([String status = 'not_applicable']) => {
   'usedSkip': 0,
   'totalSkip': 3,
   'totalDebt': '0.00',
-  'habits': [
-    {
-      'id': 'h1',
-      'name': 'Read a chapter',
-      'enabled': true,
-      'timezone': 'America/New_York',
-      'notificationTime': '22:00:00',
-      'days': List.filled(7, true),
-      'stake': {'amount': 0, 'currency': 'USD'},
-      'charity': {'name': 'Red Cross'},
-      'version': {'id': 'v1', 'version': 1, 'isActive': true},
-      'timeLeftToEodMinutes': 120,
-      'status': {
-        'currentStreak': 4,
-        'maxStreak': 9,
-        'isCompleteToday': status == 'succeeded',
-        'today': '09-11-2026',
-        'todayStatus': status,
-        'week': <String, Object?>{},
-      },
-    },
-  ],
+  'habits': [overviewHabit('h1', 'Read a chapter', status: status)],
 };
+
+/// zinc's overview paging: `Limit` habits (20 when none is sent) from `Skip`.
+http.Response pagedOverview(
+  http.Request request,
+  List<Map<String, Object?>> habits,
+) {
+  final q = request.url.queryParameters;
+  final skip = int.parse(q['Skip'] ?? '0');
+  final limit = int.parse(q['Limit'] ?? '20');
+  return jsonResponse({
+    ...overviewBody(),
+    'habits': habits.skip(skip).take(limit).toList(),
+  });
+}
 
 class HarnessAuth extends ChangeNotifier implements AuthService {
   HarnessAuth(this.client);
@@ -127,7 +154,7 @@ class MemorySessionCache extends SessionCache {
 
 /// Real session/repositories with HTTP replaced at their public boundary.
 class SessionHarness {
-  SessionHarness({this.respond, bool followPhone = true})
+  SessionHarness({this.respond, this.habits, bool followPhone = true})
     : timezonePreference = MemoryTimezonePreference(followPhone) {
     client = MockClient((request) async {
       requests.add(request);
@@ -152,7 +179,12 @@ class SessionHarness {
       if (path.endsWith('/consent')) {
         return jsonResponse({'hasPaymentConsent': false});
       }
-      if (path.endsWith('/overview')) return jsonResponse(overviewBody());
+      if (path.endsWith('/overview')) {
+        return pagedOverview(
+          request,
+          habits ?? [overviewHabit('h1', 'Read a chapter')],
+        );
+      }
       if (path.contains('/Protection/')) {
         return jsonResponse({'balance': 2, 'cap': 5});
       }
@@ -182,6 +214,9 @@ class SessionHarness {
   }
 
   final Future<http.Response?> Function(http.Request)? respond;
+
+  /// The user's habits on zinc's overview; one "Read a chapter" when null.
+  final List<Map<String, Object?>>? habits;
   final MemoryTimezonePreference timezonePreference;
   final MemorySessionCache cache = MemorySessionCache();
   final requests = <http.Request>[];

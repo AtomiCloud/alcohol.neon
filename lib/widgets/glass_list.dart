@@ -92,6 +92,9 @@ class GlassFooter extends StatelessWidget {
 class GlassRow extends StatelessWidget {
   final Widget? leading;
   final String title;
+
+  /// Null lets status copy wrap at large accessibility text sizes.
+  final int? titleMaxLines;
   final String? subtitle;
   final String? value;
   final Widget? trailing;
@@ -110,6 +113,7 @@ class GlassRow extends StatelessWidget {
     super.key,
     this.leading,
     required this.title,
+    this.titleMaxLines = 1,
     this.subtitle,
     this.value,
     this.trailing,
@@ -141,8 +145,8 @@ class GlassRow extends StatelessWidget {
         Text(
           title,
           style: theme.textTheme.bodyLarge?.copyWith(color: color),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
+          maxLines: titleMaxLines,
+          overflow: titleMaxLines == null ? null : TextOverflow.ellipsis,
         ),
         if (subtitle != null) ...[
           const SizedBox(height: 2),

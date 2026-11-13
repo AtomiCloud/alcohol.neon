@@ -299,6 +299,7 @@ class _HabitEditorViewState extends State<HabitEditorView> {
   }
 
   Future<void> _save() async {
+    if (_saving) return;
     final problem = _validate();
     if (problem != null) {
       setState(() => _error = Problem.local(problem));
@@ -334,7 +335,9 @@ class _HabitEditorViewState extends State<HabitEditorView> {
       if (consent case Err(:final problem)) {
         setState(() {
           _saving = false;
-          _error = problem;
+          _error = problem.type == ConsentService.cancelled.type
+              ? null
+              : problem;
         });
         return;
       }

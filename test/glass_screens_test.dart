@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:ui' show Tristate;
 
 import 'package:alcohol_neon/auth/auth_service.dart';
 import 'package:alcohol_neon/core/date_format.dart';
@@ -10,6 +12,7 @@ import 'package:alcohol_neon/features/dashboard/dashboard_view.dart';
 import 'package:alcohol_neon/features/dashboard/today_layout.dart';
 import 'package:alcohol_neon/features/payment/consent_service.dart';
 import 'package:alcohol_neon/features/payment/payment_consent_collector.dart';
+import 'package:alcohol_neon/features/settings/settings_view.dart';
 import 'package:alcohol_neon/features/settings/timezone_picker.dart';
 import 'package:alcohol_neon/features/subscription/subscription_controller.dart';
 import 'package:alcohol_neon/features/subscription/subscription_view.dart';
@@ -27,6 +30,7 @@ import 'package:alcohol_neon/widgets/glass_modal.dart';
 import 'package:alcohol_neon/widgets/glass_page.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -532,12 +536,390 @@ void main() {
   });
 
   group('Payment consent', () {
+    setUp(() {
+      messenger.setMockMethodCallHandler(
+        timezoneChannel,
+        (call) async => call.method == 'getLocalTimezone'
+            ? 'Asia/Singapore'
+            : ['Asia/Singapore'],
+      );
+    });
+
+    Future<void> settings(WidgetTester tester, SessionHarness h) => pumpPushed(
+      tester,
+      (_) => const SettingsView(),
+      platform: TargetPlatform.android,
+      harness: h,
+    );
+
+    for (final failure in ['404', '401', '500', 'decode', 'network']) {
+      testWidgets(
+        'ConsentStatusFailure_ShowsRetryNotEmptyOrVerified: $failure',
+        (tester) async {
+          var failing = true;
+          final h = SessionHarness(
+            respond: (r) async {
+              if (!r.url.path.endsWith('/consent') || !failing) return null;
+              if (failure == 'network') throw http.ClientException('offline');
+              if (failure == 'decode') {
+                return jsonResponse({'unexpected': true});
+              }
+              final status = int.parse(failure);
+              return jsonResponse({
+                'title': 'Unavailable',
+                'status': status,
+              }, status);
+            },
+          );
+          await h.start();
+          await settings(tester, h);
+          expect(find.text('Card status unavailable'), findsOneWidget);
+          expect(find.text('No card on file'), findsNothing);
+          expect(find.text('Card on file'), findsNothing);
+          expect(find.text('Retry'), findsOneWidget);
+          expect(find.text('Follow phone'), findsOneWidget);
+          failing = false;
+          await tester.ensureVisible(find.text('Retry'));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('Retry'));
+          await tester.pumpAndSettle();
+          expect(find.text('No card on file'), findsOneWidget);
+          expect(find.text('Add card'), findsOneWidget);
+          expect(_calls(h, 'PUT', '/Payment/user-1/customers'), isEmpty);
+          expect(_calls(h, 'GET', '/Payment/user-1/client-secret'), isEmpty);
+          await tearDownHarness(tester, h);
+        },
+      );
+    }
+
+    testWidgets('ConsentStatus_IncompleteShowsFinishSetup', (tester) async {
+      final h = SessionHarness(
+        respond: (r) async => r.url.path.endsWith('/consent')
+            ? jsonResponse({
+                'hasPaymentConsent': false,
+                'consentId': 'incomplete',
+                'status': 'PENDING',
+              })
+            : null,
+      );
+      await h.start();
+      await settings(tester, h);
+      expect(find.text('Card setup incomplete'), findsOneWidget);
+      expect(find.text('Finish setup to use money stakes.'), findsOneWidget);
+      await tester.ensureVisible(find.text('Finish setup'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Finish setup'));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.text('Add a card to stake'), findsOneWidget);
+      await tester.tap(find.text('Not now'));
+      await tester.pumpAndSettle();
+      await tearDownHarness(tester, h);
+    });
+
+    testWidgets(
+      'large-text card status and explainer actions stay accessible',
+      (tester) async {
+        tester.platformDispatcher.textScaleFactorTestValue = 2;
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+        final semantics = tester.ensureSemantics();
+        final h = SessionHarness(
+          respond: (r) async => r.url.path.endsWith('/consent')
+              ? jsonResponse({'hasPaymentConsent': false, 'status': 'PENDING'})
+              : null,
+        );
+        await h.start();
+        await settings(tester, h);
+        await tester.scrollUntilVisible(
+          find.text('Finish setup'),
+          200,
+          scrollable: find.byType(Scrollable).first,
+        );
+        await tester.pumpAndSettle();
+        final title = tester.renderObject<RenderParagraph>(
+          find.text('Card setup incomplete'),
+        );
+        expect(title.didExceedMaxLines, isFalse);
+        final button = tester.getSemantics(
+          find.widgetWithText(GlassButton, 'Finish setup'),
+        );
+        expect(button.flagsCollection.isButton, isTrue);
+        expect(button.flagsCollection.isEnabled, Tristate.isTrue);
+        await tester.tap(find.text('Finish setup'));
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 1));
+        expect(tester.takeException(), isNull);
+        await tester.ensureVisible(find.text('Continue'));
+        await tester.pump();
+        final continueButton = tester.getSemantics(
+          find.widgetWithText(GlassButton, 'Continue'),
+        );
+        expect(continueButton.flagsCollection.isButton, isTrue);
+        expect(continueButton.flagsCollection.isEnabled, Tristate.isTrue);
+        await tester.ensureVisible(find.text('Not now'));
+        await tester.pump();
+        await tester.tap(find.text('Not now'));
+        await tester.pumpAndSettle();
+        expect(find.text('Card setup incomplete'), findsOneWidget);
+        expect(_calls(h, 'PUT', '/Payment/user-1/customers'), isEmpty);
+        await tearDownHarness(tester, h);
+        semantics.dispose();
+      },
+    );
+
+    testWidgets('SettingsFalseStatus_ReplacesStaleVerifiedSessionBeforeSetup', (
+      tester,
+    ) async {
+      var verified = true;
+      final h = SessionHarness(
+        respond: (r) async => r.url.path.endsWith('/consent')
+            ? jsonResponse({'hasPaymentConsent': verified})
+            : null,
+      );
+      await h.start();
+      expect(h.session.hasPaymentConsent, isTrue);
+      verified = false;
+      await settings(tester, h);
+      await tester.ensureVisible(find.text('Add card'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Add card'));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.text('Add a card to stake'), findsOneWidget);
+      expect(find.text('Card added'), findsNothing);
+      expect(h.session.hasPaymentConsent, isFalse);
+      await tester.tap(find.text('Not now'));
+      await tester.pumpAndSettle();
+      expect(find.text('Payment setup cancelled'), findsNothing);
+      expect(find.text('Add card'), findsOneWidget);
+      expect(_calls(h, 'PUT', '/Payment/user-1/customers'), isEmpty);
+      await tearDownHarness(tester, h);
+    });
+
+    testWidgets('RemoveThenRefreshFailure_ShowsUnknownNotVerified', (
+      tester,
+    ) async {
+      var removed = false;
+      final h = SessionHarness(
+        respond: (r) async {
+          if (!r.url.path.endsWith('/consent')) return null;
+          if (r.method == 'DELETE') {
+            removed = true;
+            return http.Response('', 204);
+          }
+          return removed
+              ? jsonResponse({'title': 'Offline', 'status': 503}, 503)
+              : jsonResponse({'hasPaymentConsent': true});
+        },
+      );
+      await h.start();
+      await settings(tester, h);
+      await tester.ensureVisible(find.text('Remove card'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Remove card'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(TextButton, 'Remove card'));
+      await tester.pumpAndSettle();
+      expect(find.text('Card status unavailable'), findsOneWidget);
+      expect(find.text('Card on file'), findsNothing);
+      expect(find.text('Card removed'), findsNothing);
+      expect(find.text('Retry'), findsOneWidget);
+      expect(h.session.hasPaymentConsent, isFalse);
+      await tearDownHarness(tester, h);
+    });
+
+    testWidgets(
+      'status loading keeps other Settings usable and has no action',
+      (tester) async {
+        final pending = Completer<http.Response>();
+        var loading = false;
+        final h = SessionHarness(
+          respond: (r) async => loading && r.url.path.endsWith('/consent')
+              ? pending.future
+              : null,
+        );
+        await h.start();
+        loading = true;
+        // pumpAndSettle cannot settle the loading indicator.
+        await tester.pumpWidget(
+          ChangeNotifierProvider<SessionController>.value(
+            value: h.session,
+            child: MaterialApp(
+              theme: AppTheme.light,
+              home: const SettingsView(),
+            ),
+          ),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 1));
+        expect(find.text('Checking card status…'), findsOneWidget);
+        expect(find.text('Follow phone'), findsOneWidget);
+        expect(find.text('Add card'), findsNothing);
+        expect(find.text('Remove card'), findsNothing);
+        pending.complete(jsonResponse({'hasPaymentConsent': false}));
+        await tester.pumpAndSettle();
+        expect(find.text('No card on file'), findsOneWidget);
+        await tearDownHarness(tester, h);
+      },
+    );
+
+    for (final outcome in ['success', 'cancelled', 'failed']) {
+      testWidgets('Settings native $outcome: only confirmed GET saves a card', (
+        tester,
+      ) async {
+        const channel = MethodChannel(
+          'airwallex_payment_flutter',
+          JSONMethodCodec(),
+        );
+        final sheet = Completer<Map<String, String>>();
+        var forms = 0;
+        var polling = false;
+        var reads = 0;
+        messenger.setMockMethodCallHandler(channel, (call) async {
+          if (call.method != 'presentCardPaymentFlow') return null;
+          forms++;
+          final result = await sheet.future;
+          if (outcome == 'failed') {
+            throw PlatformException(
+              code: 'failed',
+              message: 'Please try again.',
+            );
+          }
+          return result;
+        });
+        addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+        final h = SessionHarness(
+          respond: (r) async {
+            if (r.url.path.endsWith('/customers')) {
+              return jsonResponse({'customerId': 'customer'});
+            }
+            if (r.url.path.endsWith('/client-secret')) {
+              return jsonResponse({
+                'customerId': 'customer',
+                'clientSecret': 'fake-secret',
+              });
+            }
+            if (r.url.path.endsWith('/consent') && polling) {
+              reads++;
+              if (reads == 2) return jsonResponse({'status': 503}, 503);
+              // A redundant read after the verifying response would erase it.
+              return jsonResponse({
+                'hasPaymentConsent': reads == 3,
+                'consentId': reads == 3 ? 'verified' : null,
+              });
+            }
+            return null;
+          },
+        );
+        await h.start();
+        await settings(tester, h);
+        await tester.ensureVisible(find.text('Add card'));
+        await tester.pumpAndSettle();
+        final addCard = tester.getCenter(find.text('Add card'));
+        await tester.tapAt(addCard);
+        await tester.tapAt(addCard);
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 1));
+        expect(find.byType(ConsentExplainer), findsOneWidget);
+        expect(_calls(h, 'PUT', '/Payment/user-1/customers'), isEmpty);
+        await tester.tap(find.text('Continue'));
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 1));
+        expect(forms, 1);
+        expect(find.text('Card added'), findsNothing);
+        expect(h.session.hasPaymentConsent, isFalse);
+        polling = true;
+        sheet.complete({'status': outcome});
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200));
+        if (outcome == 'success') {
+          expect(find.text('Confirming your card…'), findsOneWidget);
+          expect(find.text('Card added'), findsNothing);
+          await tester.pump(const Duration(seconds: 1));
+          await tester.pump(const Duration(seconds: 1));
+        }
+        await tester.pumpAndSettle();
+        if (outcome == 'success') {
+          expect(find.text('Card on file'), findsOneWidget);
+          expect(find.text('Card added'), findsOneWidget);
+          expect(h.session.consent?.consentId, 'verified');
+        } else {
+          expect(find.text('No card on file'), findsOneWidget);
+          expect(find.text('Add card'), findsOneWidget);
+          expect(find.text('Card added'), findsNothing);
+          expect(find.text('Payment setup cancelled'), findsNothing);
+          expect(
+            find.text('Please try again.'),
+            outcome == 'failed' ? findsOneWidget : findsNothing,
+          );
+        }
+        expect(_calls(h, 'PUT', '/Payment/user-1/customers'), hasLength(1));
+        expect(
+          h.requests.where((r) => r.url.path.contains('/intent')),
+          isEmpty,
+        );
+        expect(
+          h.requests.where((r) => r.url.query.contains('subscription')),
+          isEmpty,
+        );
+        await tearDownHarness(tester, h);
+      });
+    }
+
     Future<http.Response?> customer(http.Request r) async {
       if (r.url.path.endsWith('/Payment/user-1/customers')) {
         return jsonResponse({'customerId': 'c1', 'clientSecret': 's1'});
       }
       return null;
     }
+
+    testWidgets(
+      'confirmation times out at two minutes without claiming success',
+      (tester) async {
+        final h = SessionHarness(respond: customer);
+        await h.start();
+        final service = ConsentService(
+          h.session,
+          now: tester.binding.clock.now,
+          collectorFactory: () =>
+              _Collector(result: ConsentCollectResult.success()),
+        );
+        Result<void>? result;
+        await pumpPushed(
+          tester,
+          (_) => Builder(
+            builder: (context) => Scaffold(
+              body: TextButton(
+                onPressed: () async =>
+                    result = await service.ensureConsent(context),
+                child: const Text('Stake'),
+              ),
+            ),
+          ),
+          platform: TargetPlatform.android,
+          harness: h,
+        );
+        await tester.tap(find.text('Stake'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Continue'));
+        await tester.pump();
+        for (var i = 0; i < 119; i++) {
+          await tester.pump(const Duration(seconds: 1));
+        }
+        expect(result, isNull);
+        expect(find.text('Confirming your card…'), findsOneWidget);
+        await tester.pump(const Duration(seconds: 1));
+        await tester.pumpAndSettle();
+        expect(result, isA<Err<void>>());
+        expect(
+          (result as Err<void>).problem.title,
+          'Payment setup is taking longer than expected',
+        );
+        expect(h.session.hasPaymentConsent, isFalse);
+        expect(find.text('Confirming your card…'), findsNothing);
+        await tearDownHarness(tester, h);
+      },
+    );
 
     for (final continueOn in [false, true]) {
       testWidgets(
@@ -574,6 +956,9 @@ void main() {
           expect(find.text('Add a card to stake'), findsOneWidget);
           expect(find.text('Charged only when you miss'), findsOneWidget);
           expect(find.text('Kept by Airwallex'), findsOneWidget);
+          // Looking at or declining the explanation must not create anything.
+          expect(_calls(h, 'PUT', '/Payment/user-1/customers'), isEmpty);
+          expect(_calls(h, 'GET', '/Payment/user-1/client-secret'), isEmpty);
           await tester.tap(
             continueOn
                 ? find.widgetWithText(GlassButton, 'Continue')
@@ -582,6 +967,10 @@ void main() {
           await tester.pumpAndSettle();
 
           expect(collector.calls, continueOn ? 1 : 0);
+          expect(
+            _calls(h, 'PUT', '/Payment/user-1/customers'),
+            hasLength(continueOn ? 1 : 0),
+          );
           expect(result, isA<Err<void>>());
           await tearDownHarness(tester, h);
         },
@@ -643,6 +1032,8 @@ class _Storefront implements StorefrontService {
 
 /// Airwallex's card form, which the user closes.
 class _Collector implements PaymentConsentCollector {
+  _Collector({this.result});
+  final ConsentCollectResult? result;
   int calls = 0;
   @override
   Future<ConsentCollectResult> collect({
@@ -650,6 +1041,6 @@ class _Collector implements PaymentConsentCollector {
     required String? clientSecret,
   }) async {
     calls++;
-    return ConsentCollectResult.cancelled();
+    return result ?? ConsentCollectResult.cancelled();
   }
 }

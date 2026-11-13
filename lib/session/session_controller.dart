@@ -325,8 +325,8 @@ class SessionController extends ChangeNotifier {
   /// Re-reads `GET /Payment/{userId}/consent` and refreshes the cached consent so
   /// dependent screens (habit editor gate, settings consent card) reflect a newly
   /// set-up or revoked payment method. Returns the result so the caller can surface
-  /// a failure; on success it notifies listeners. Leaves the cache intact when the
-  /// refresh fails. Truth is always this GET, never the Logto claim.
+  /// a failure. A failed refresh clears old verification: unknown must not pass
+  /// the money-stake gate. Truth is always this GET, never the Logto claim.
   Future<Result<PaymentConsentRes>> refreshConsent() async {
     final uid = _userId;
     final generation = _generation;
@@ -339,6 +339,8 @@ class SessionController extends ChangeNotifier {
         notifyListeners();
         return Ok(value);
       case Err(:final problem):
+        _consent = null;
+        notifyListeners();
         return Err(problem);
     }
   }

@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 /// RFC 7807 Problem Details — the single error currency across the app (mirrors
 /// alcohol.argon's `Problem` and the shape zinc returns). House rule: never throw
 /// across boundaries — convert to `Result<T>` and carry a `Problem` on failure.
@@ -32,17 +34,26 @@ class Problem implements Exception {
     String type = 'about:blank',
   }) => Problem(type: type, title: title, status: status, detail: detail);
 
-  static Problem network(Object error) => Problem.local(
-    'Network error',
-    detail: error.toString(),
-    type: 'neon:network',
-  );
+  /// The request never got an answer (offline, DNS, timeout). The detail is
+  /// shown on screen, so it says what to do; the exception goes to the log.
+  static Problem network(Object error) {
+    debugPrint('Network error: $error');
+    return Problem.local(
+      'Network error',
+      detail: 'Check your connection and try again.',
+      type: 'neon:network',
+    );
+  }
 
-  static Problem decoding(Object error) => Problem.local(
-    'Unexpected response',
-    detail: error.toString(),
-    type: 'neon:decoding',
-  );
+  /// The server answered with something the app can't read.
+  static Problem decoding(Object error) {
+    debugPrint('Unexpected response: $error');
+    return Problem.local(
+      'Unexpected response',
+      detail: 'Something went wrong on our side. Try again in a moment.',
+      type: 'neon:decoding',
+    );
+  }
 
   static const unauthenticated = Problem(
     type: 'neon:unauthenticated',

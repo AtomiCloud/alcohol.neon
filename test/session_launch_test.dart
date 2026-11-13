@@ -116,6 +116,46 @@ void main() {
       h.dispose();
     });
 
+    test(
+      'offline, the error screen says what to do, not the exception',
+      () async {
+        final h = SessionHarness(
+          respond: (r) async => r.url.path.endsWith('/User/Me/All')
+              ? throw const SocketException(
+                  "Failed host lookup: 'api.zinc.example'",
+                )
+              : null,
+        );
+        await h.start();
+        expect(h.session.phase, SessionPhase.error);
+        expect(h.session.error?.title, 'Network error');
+        expect(
+          h.session.error?.displayMessage,
+          'Check your connection and try again.',
+        );
+        h.dispose();
+      },
+    );
+
+    test(
+      'an unreadable answer shows a plain message, not the parse error',
+      () async {
+        final h = SessionHarness(
+          respond: (r) async => r.url.path.endsWith('/User/Me/All')
+              ? http.Response('{"principal": ', 200)
+              : null,
+        );
+        await h.start();
+        expect(h.session.phase, SessionPhase.error);
+        expect(h.session.error?.title, 'Unexpected response');
+        expect(
+          h.session.error?.displayMessage,
+          'Something went wrong on our side. Try again in a moment.',
+        );
+        h.dispose();
+      },
+    );
+
     test('reads and the overview start together, not one by one', () async {
       final held = Completer<http.Response>();
       final h = SessionHarness(

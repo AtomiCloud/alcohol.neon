@@ -105,8 +105,79 @@ class DashboardController extends ChangeNotifier {
 
   /// Today's habits grouped for the Today layouts, with each open habit's
   /// deadline taken from when the overview was loaded.
-  TodayPlan get plan =>
-      buildTodayPlan(habits, todayStatus: todayStatus, loadedAt: _loadedAt);
+  TodayPlan get plan => buildTodayPlan(
+    habits,
+    todayStatus: todayStatus,
+    loadedAt: _loadedAt,
+    order: _shownOrder,
+  );
+
+  /// Rows can be dragged into a new order only on a zinc that keeps one
+  /// (`sortOrder` on every habit); older zinc has no order route.
+  bool get canReorder =>
+      habits.isNotEmpty &&
+      habits.every((h) => h.id != null && h.sortOrder != null);
+
+  // A reorder the server hasn't confirmed yet, as the full list of habit ids.
+  // Kept until a load that started after the save lands.
+  List<String>? _shownOrder;
+  List<String>? _waitingOrder; // the newest drop while a PUT is in flight
+  bool _savingOrder = false;
+  int _orderSavedBeforeLoad = 0;
+
+  /// Moves a section's habits into the order [sectionIds] (that section's
+  /// habit ids, in their new order). The section's habits trade the places
+  /// they already hold in the full order and no other habit moves; the full
+  /// order is saved, one PUT at a time, and shown before it is saved.
+  void reorder(List<String> sectionIds) {
+    if (!_current || userId == null || !canReorder) return;
+    final base =
+        _shownOrder ??
+        [
+          for (final h in [...habits]..sort(userOrder(habits))) h.id!,
+        ];
+    final moving = sectionIds.toSet();
+    final slots = sectionIds.iterator;
+    final full = [
+      for (final id in base)
+        if (moving.contains(id) && slots.moveNext()) slots.current else id,
+    ];
+    if (listEquals(full, base)) return;
+    _shownOrder = full;
+    notifyListeners();
+    if (_savingOrder) {
+      _waitingOrder = full;
+    } else {
+      unawaited(_saveOrder(full));
+    }
+  }
+
+  Future<void> _saveOrder(List<String> order) async {
+    _savingOrder = true;
+    final res = await _habits.reorder(userId!, order);
+    if (!_current) return;
+    _savingOrder = false;
+    switch (res) {
+      case Ok():
+        final waiting = _waitingOrder;
+        _waitingOrder = null;
+        if (waiting != null) return _saveOrder(waiting);
+        _orderSavedBeforeLoad = _loadRequest;
+        await load(quiet: true); // saves the cache, syncs widgets and reminders
+      case Err(:final problem):
+        _shownOrder = null;
+        _waitingOrder = null;
+        _actionError = Problem.local(
+          "Couldn't save the new order. Try again.",
+          status: problem.status,
+          type: problem.type,
+        );
+        notifyListeners();
+        // A 400 means our list was stale (say, a habit deleted elsewhere).
+        if (problem.status == 400) await load(quiet: true);
+    }
+  }
+
   String? get totalDebt => _overview?.totalDebt;
 
   int get skipsLeft {
@@ -149,6 +220,12 @@ class DashboardController extends ChangeNotifier {
     switch (res) {
       case Ok(:final value):
         _overview = value;
+        // A load from after the last save carries the saved order.
+        if (!_savingOrder &&
+            _waitingOrder == null &&
+            request > _orderSavedBeforeLoad) {
+          _shownOrder = null;
+        }
         fromCache = false;
         _loadedAt = DateTime.now();
         unawaited(_session.cache.saveOverview(uid, value));

@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:flutter/cupertino.dart' show CupertinoSliverRefreshControl;
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart' show CustomSemanticsAction;
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
@@ -362,12 +363,18 @@ class _TodayState extends State<_Today> {
         CupertinoSliverRefreshControl(
           onRefresh: () => Future.wait([c.load(), buffers.load()]),
         ),
+        // One scroll view for every section, so dragging a row to an edge
+        // scrolls Today.
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 120),
-          sliver: SliverList.list(
-            children: [
+          sliver: SliverMainAxisGroup(
+            slivers: [
               for (var i = 0; i < sections.length; i++)
-                Appear(index: i, child: sections[i]),
+                sections[i] is _Section
+                    ? Appear(index: i, sliver: true, child: sections[i])
+                    : SliverToBoxAdapter(
+                        child: Appear(index: i, child: sections[i]),
+                      ),
             ],
           ),
         ),
@@ -407,7 +414,10 @@ class _TodayState extends State<_Today> {
       if (plan.todo.length > 1)
         _Section(
           title: 'Later today',
-          items: plan.todo.skip(1).toList(),
+          items: [
+            for (final i in plan.todo)
+              if (i != next) i,
+          ],
           c: c,
           now: now,
         ),
@@ -432,6 +442,8 @@ class _TodayState extends State<_Today> {
         _Section(
           title: 'Today',
           items: [...plan.todo, ...plan.done],
+          // Done stays below open: rows move only within their own group.
+          split: plan.todo.length,
           c: c,
           now: now,
         ),
@@ -828,58 +840,227 @@ class _ProgressCard extends StatelessWidget {
   }
 }
 
-/// A titled glass group of habit rows.
-class _Section extends StatelessWidget {
+/// A titled glass group of habit rows, as a sliver of Today's scroll view.
+/// Long-press a row and drag it to reorder the group (when zinc keeps an
+/// order); a drop saves the new order.
+class _Section extends StatefulWidget {
   final String title;
   final List<TodayItem> items;
   final DashboardController c;
   final DateTime now;
+
+  /// Where a second group starts (the Progress list's done rows). Rows move
+  /// only within their own group.
+  final int? split;
   const _Section({
     required this.title,
     required this.items,
     required this.c,
     required this.now,
+    this.split,
   });
+
+  @override
+  State<_Section> createState() => _SectionState();
+}
+
+class _SectionState extends State<_Section> {
+  static const _radius = BorderRadius.all(Radius.circular(22));
+
+  // The rows as they were when a drag started: a load landing mid-drag must
+  // not move rows under the finger (or end the drag). It applies on drop.
+  List<TodayItem>? _frozen;
+  List<TodayItem> get _items => _frozen ?? widget.items;
+
+  // For the tick as the lifted row passes another row.
+  final _rowKeys = <String, GlobalKey>{};
+  List<double> _centers = const [];
+  int _dragIndex = 0, _slot = 0;
+  double _downY = 0;
+
+  String _id(TodayItem i) => i.habit.id ?? i.habit.name ?? '';
+
+  /// The rows the row at [index] may move among, as [start, end).
+  (int, int) _group(int index) {
+    final split = widget.split;
+    if (split == null) return (0, _items.length);
+    return index < split ? (0, split) : (split, _items.length);
+  }
+
+  bool _canMove(int index) {
+    if (!widget.c.canReorder) return false;
+    final (start, end) = _group(index);
+    return end - start > 1;
+  }
+
+  void _move(int from, int to) {
+    final (start, end) = _group(from);
+    // A drop past the group's edge lands at the nearest allowed place.
+    final target = to.clamp(start, end - 1);
+    final ids = [for (final i in _items.sublist(start, end)) _id(i)];
+    ids.insert(target - start, ids.removeAt(from - start));
+    setState(() => _frozen = null);
+    // Only this group's habits trade places; the rest keep theirs.
+    if (target != from) widget.c.reorder(ids);
+  }
+
+  void _onStart(int index) {
+    HapticFeedback.mediumImpact();
+    _dragIndex = _slot = index;
+    // Rebuilt so the row under a lifted first row drops its divider.
+    setState(() => _frozen = widget.items);
+    _centers = [
+      for (final i in _items)
+        switch (_rowKeys[_id(i)]?.currentContext?.findRenderObject()) {
+          final RenderBox box when box.hasSize =>
+            box.localToGlobal(box.size.center(Offset.zero)).dy,
+          _ => double.nan,
+        },
+    ];
+  }
+
+  void _onPointerMove(PointerMoveEvent e) {
+    if (_frozen == null || _dragIndex >= _centers.length) return;
+    final y = _centers[_dragIndex] + e.position.dy - _downY;
+    var slot = 0;
+    for (var i = 0; i < _centers.length; i++) {
+      if (i != _dragIndex && _centers[i] < y) slot++;
+    }
+    if (slot != _slot) {
+      _slot = slot;
+      HapticFeedback.selectionClick();
+    }
+  }
+
+  Widget _row(int index, {bool lifted = false}) {
+    final item = _items[index];
+    final id = _id(item);
+    final first = index == 0, last = index == _items.length - 1;
+    // While the first row is lifted, the next one leads the group.
+    final divider =
+        !first && !(_frozen != null && _dragIndex == 0 && index == 1);
+    Widget row = _HabitRow(item: item, c: widget.c, now: widget.now);
+    if (lifted) return row;
+    final movable = _canMove(index);
+    final (start, end) = _group(index);
+    row = Semantics(
+      customSemanticsActions: movable
+          ? {
+              if (index > start)
+                const CustomSemanticsAction(label: 'Move up'): () =>
+                    _move(index, index - 1),
+              if (index < end - 1)
+                const CustomSemanticsAction(label: 'Move down'): () =>
+                    _move(index, index + 1),
+            }
+          : null,
+      child: row,
+    );
+    return Listener(
+      key: ValueKey(id),
+      onPointerDown: (e) => _downY = e.position.dy,
+      onPointerMove: _onPointerMove,
+      // A drag the system cancels drops no row, so nothing calls onReorder.
+      onPointerCancel: (_) {
+        if (_frozen != null) setState(() => _frozen = null);
+      },
+      child: ReorderableDelayedDragStartListener(
+        index: index,
+        enabled: movable,
+        child: ClipRRect(
+          borderRadius: BorderRadius.vertical(
+            top: first ? _radius.topLeft : Radius.zero,
+            bottom: last ? _radius.bottomLeft : Radius.zero,
+          ),
+          child: Column(
+            key: _rowKeys.putIfAbsent(id, GlobalKey.new),
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (divider)
+                Padding(
+                  padding: const EdgeInsets.only(left: 58),
+                  child: Divider(
+                    height: 0.5,
+                    color: GlassTokens.of(context).separator,
+                  ),
+                ),
+              row,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The lifted row: its own glass raised off the group, with a soft shadow
+  /// and a slight scale-up (none under Reduce Motion), and no dividers.
+  Widget _lifted(Widget _, int index, Animation<double> a) {
+    final still = MediaQuery.of(context).disableAnimations;
+    return AnimatedBuilder(
+      animation: a,
+      builder: (context, child) {
+        final t = Curves.easeOut.transform(a.value);
+        return Transform.scale(
+          scale: still ? 1 : 1 + 0.03 * t,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: _radius,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.18 * t),
+                  blurRadius: 24 * t,
+                  offset: Offset(0, 8 * t),
+                ),
+              ],
+            ),
+            child: child,
+          ),
+        );
+      },
+      child: Material(
+        type: MaterialType.transparency,
+        child: Glass(
+          blur: true,
+          strong: true,
+          child: _row(index, lifted: true),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final t = GlassTokens.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
-          child: Text(
-            title,
-            style: theme.textTheme.labelLarge?.copyWith(
-              color: t.muted,
-              fontWeight: FontWeight.w600,
+    final items = _items;
+    _rowKeys.removeWhere((id, _) => !items.any((i) => _id(i) == id));
+    return SliverMainAxisGroup(
+      slivers: [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
+            child: Text(
+              widget.title,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: t.muted,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ),
-        Glass(
-          child: AnimatedSize(
-            duration: GlassMotion.of(context, GlassMotion.slow),
-            curve: GlassMotion.curve,
-            alignment: Alignment.topCenter,
-            child: Column(
-              children: [
-                for (var i = 0; i < items.length; i++) ...[
-                  if (i > 0)
-                    Padding(
-                      padding: const EdgeInsets.only(left: 58),
-                      child: Divider(height: 0.5, color: t.separator),
-                    ),
-                  _HabitRow(
-                    key: ValueKey(items[i].habit.id ?? items[i].habit.name),
-                    item: items[i],
-                    c: c,
-                    now: now,
-                  ),
-                ],
-              ],
-            ),
+        DecoratedSliver(
+          decoration: BoxDecoration(
+            color: t.fill,
+            borderRadius: _radius,
+            border: Border.all(color: t.edge, width: 0.5),
+          ),
+          sliver: SliverReorderableList(
+            itemCount: items.length,
+            itemBuilder: (_, i) => _row(i),
+            proxyDecorator: _lifted,
+            onReorderStart: _onStart,
+            onReorderEnd: (_) => HapticFeedback.lightImpact(),
+            onReorderItem: _move,
           ),
         ),
       ],
@@ -893,12 +1074,7 @@ class _HabitRow extends StatelessWidget {
   final TodayItem item;
   final DashboardController c;
   final DateTime now;
-  const _HabitRow({
-    super.key,
-    required this.item,
-    required this.c,
-    required this.now,
-  });
+  const _HabitRow({required this.item, required this.c, required this.now});
 
   @override
   Widget build(BuildContext context) {

@@ -26,6 +26,15 @@ else
   echo "    WARN: fetch failed — falling back to committed $SPEC_FILE"
 fi
 
+# zinc marks HabitOverviewHabitRes.sortOrder required, but zinc from before
+# alcohol.zinc#97 (still on some landscapes) doesn't send it, and every neon
+# release ships to all three. Keep it optional so those overviews still decode;
+# Today turns reorder off when it's missing.
+echo "==> Making HabitOverviewHabitRes.sortOrder optional"
+jq '.components.schemas.HabitOverviewHabitRes.required |= map(select(. != "sortOrder"))' \
+  "$SPEC_FILE" >"$SPEC_FILE.tmp"
+mv "$SPEC_FILE.tmp" "$SPEC_FILE"
+
 echo "==> Generating DTOs (swagger_parser)"
 rm -rf "$OUT"
 flutter pub run swagger_parser

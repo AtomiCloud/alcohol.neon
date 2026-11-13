@@ -59,6 +59,24 @@ void main() {
     expect(await cache.load('u1'), isNull);
   });
 
+  test('an overview saved by the previous version (no sortOrder) still '
+      'loads, so Today opens at once', () async {
+    final habit = (overviewBody()['habits'] as List).single as Map;
+    expect(habit.containsKey('sortOrder'), isFalse);
+    await File('${dir.path}/session_cache.json').writeAsString(
+      jsonEncode({
+        'userId': 'u1',
+        'config': config.toJson(),
+        'overview': overviewBody(),
+        'savedAt': DateTime.now().toIso8601String(),
+      }),
+    );
+    final s = await cache.load('u1');
+    expect(s, isNotNull);
+    expect(s!.overview.habits!.single.name, 'Read a chapter');
+    expect(s.overview.habits!.single.sortOrder, isNull);
+  });
+
   group('bootstrap', () {
     Future<void> turns() async {
       for (var i = 0; i < 20; i++) {

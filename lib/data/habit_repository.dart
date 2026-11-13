@@ -3,6 +3,8 @@ import '../generated/zinc/models/create_habit_req.dart';
 import '../generated/zinc/models/habit_overview_habit_res.dart';
 import '../generated/zinc/models/habit_overview_response.dart';
 import '../generated/zinc/models/habit_version_res.dart';
+import '../generated/zinc/models/reorder_habits_req.dart';
+import '../generated/zinc/models/reorder_habits_res.dart';
 import '../generated/zinc/models/update_habit_req.dart';
 import '../networking/api_client.dart';
 
@@ -102,6 +104,20 @@ class HabitRepository {
       '$_base/$userId/$id',
       req.toJson(),
       (j) => HabitVersionRes.fromJson(j as Map<String, Object?>),
+    );
+  }
+
+  /// Saves the user's habit order (`PUT /Habit/{userId}/order`): the listed
+  /// habits first, then any left out in their current order. Returns the full
+  /// order zinc saved.
+  Future<Result<ReorderHabitsRes>> reorder(
+    String userId,
+    List<String> habitIds,
+  ) {
+    return _api.put(
+      '$_base/$userId/order',
+      ReorderHabitsReq(habitIds: habitIds).toJson(),
+      (j) => ReorderHabitsRes.fromJson(j as Map<String, Object?>),
     );
   }
 

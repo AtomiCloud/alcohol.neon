@@ -62,8 +62,9 @@ class WidgetService {
     }
   }
 
-  /// Write today's plan for the widget: the open habits in the order Today shows
-  /// them (soonest deadline first), then the ones settled today. Each open item
+  /// Write today's plan for the widget: the open habits soonest deadline first
+  /// (the user's order breaking ties), then the ones settled today in the
+  /// user's order. Each open item
   /// carries its deadline (UTC) and proof, so the widget can count down and drop
   /// a habit once its check has closed.
   Future<void> sync(TodayPlan plan) async {
@@ -135,7 +136,7 @@ Map<String, Object?> widgetSchedule(TodayPlan plan, DateTime now) => {
   'done': plan.done.length,
   'total': plan.scheduled,
   'items': [
-    for (final i in plan.todo)
+    for (final i in plan.soonest)
       {
         'id': i.habit.version.id,
         'name': i.habit.name ?? 'Habit',

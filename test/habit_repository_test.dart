@@ -86,7 +86,8 @@ void main() {
             },
             "timeLeftToEodMinutes": 120,
             "version": { "id": "v1", "version": 2, "isActive": true },
-            "totalDebt": "5.00"
+            "totalDebt": "5.00",
+            "sortOrder": 3
           }
         ]
       }
@@ -111,7 +112,67 @@ void main() {
     expect(habit.timeLeftToEodMinutes, 120);
     expect(habit.version.version, 2);
     expect(habit.version.isActive, isTrue);
+    expect(habit.sortOrder, 3);
   });
+
+  test('an overview habit without sortOrder (older zinc) decodes', () {
+    final res = HabitOverviewResponse.fromJson({
+      'usedSkip': 0,
+      'totalSkip': 3,
+      'habits': [
+        {
+          'id': 'h1',
+          'enabled': true,
+          'stake': {'amount': 0},
+          'status': {
+            'currentStreak': 0,
+            'maxStreak': 0,
+            'isCompleteToday': false,
+            'week': <String, Object?>{},
+          },
+          'timeLeftToEodMinutes': 60,
+          'version': {'id': 'v1', 'version': 1, 'isActive': true},
+        },
+      ],
+    });
+    expect(res.habits!.single.sortOrder, isNull);
+  });
+
+  test(
+    'reorder PUTs the ids to the order route and reads the saved order',
+    () async {
+      late http.Request sent;
+      final repo = HabitRepository(
+        ApiClient(
+          baseUrl: Uri.parse('https://zinc.test'),
+          tokenProvider: () async => 'token',
+          client: MockClient((r) async {
+            sent = r;
+            return http.Response(
+              jsonEncode({
+                'habitIds': ['b', 'a', 'c'],
+              }),
+              200,
+              headers: {'content-type': 'application/json'},
+            );
+          }),
+        ),
+      );
+      final res = await repo.reorder('user-1', ['b', 'a']);
+      expect(sent.method, 'PUT');
+      expect(sent.url.path, '/api/v1.0/Habit/user-1/order');
+      expect(jsonDecode(sent.body), {
+        'habitIds': ['b', 'a'],
+      });
+      expect(
+        switch (res) {
+          Ok(:final value) => value.habitIds,
+          Err() => null,
+        },
+        ['b', 'a', 'c'],
+      );
+    },
+  );
 
   test('HabitOverviewResponse decodes with no habits', () {
     final json =

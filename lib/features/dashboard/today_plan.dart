@@ -24,17 +24,21 @@ class TodayItem {
   const TodayItem(this.habit, this.state, this.deadline);
 }
 
-/// Today's habits grouped the way both Today layouts show them: open habits
-/// soonest deadline first, then the ones settled today, then the rest.
+/// Today's habits grouped the way both Today layouts show them: the open
+/// habits, the ones settled today, then the rest, each in the user's order.
 class TodayPlan {
   final List<TodayItem> todo;
   final List<TodayItem> done;
   final List<TodayItem> later;
 
-  const TodayPlan(this.todo, this.done, this.later);
+  /// The open habits soonest deadline first, the user's order breaking ties.
+  /// Next up, the widgets and the Live Activity follow this.
+  final List<TodayItem> soonest;
+
+  const TodayPlan(this.todo, this.done, this.later, this.soonest);
 
   /// The habit to do now: the open one whose check ends soonest.
-  TodayItem? get next => todo.isEmpty ? null : todo.first;
+  TodayItem? get next => soonest.isEmpty ? null : soonest.first;
 
   /// Habits that count toward today's ring: open plus settled today.
   int get scheduled => todo.length + done.length;
@@ -65,11 +69,33 @@ TodayState todayStateOf(HabitOverviewHabitRes habit, String? todayStatus) {
   return scheduled ? TodayState.todo : TodayState.rest;
 }
 
+/// Compares habits in the user's order: an unsaved reorder ([order], habit
+/// ids) first, then zinc's `sortOrder`, or the overview's own order from a
+/// zinc that doesn't send one. Ties go to the habit id.
+Comparator<HabitOverviewHabitRes> userOrder(
+  List<HabitOverviewHabitRes> habits, {
+  List<String>? order,
+}) {
+  final moved = {for (final (i, id) in (order ?? const []).indexed) id: i};
+  final rank = {
+    for (final (i, h) in habits.indexed)
+      h: moved[h.id] ?? moved.length + (h.sortOrder ?? i),
+  };
+  return (a, b) {
+    final byRank = rank[a]!.compareTo(rank[b]!);
+    return byRank != 0 ? byRank : (a.id ?? '').compareTo(b.id ?? '');
+  };
+}
+
 TodayPlan buildTodayPlan(
   List<HabitOverviewHabitRes> habits, {
   required String? Function(HabitOverviewHabitRes) todayStatus,
   required DateTime loadedAt,
+  List<String>? order,
 }) {
+  final compare = userOrder(habits, order: order);
+  int byOrder(TodayItem a, TodayItem b) => compare(a.habit, b.habit);
+
   final todo = <TodayItem>[], done = <TodayItem>[], later = <TodayItem>[];
   for (final h in habits) {
     final state = todayStateOf(h, todayStatus(h));
@@ -91,13 +117,15 @@ TodayPlan buildTodayPlan(
         later.add(TodayItem(h, state, null));
     }
   }
-  todo.sort((a, b) {
-    final byDeadline = a.deadline!.compareTo(b.deadline!);
-    return byDeadline != 0
-        ? byDeadline
-        : (a.habit.name ?? '').compareTo(b.habit.name ?? '');
-  });
-  return TodayPlan(todo, done, later);
+  for (final list in [todo, done, later]) {
+    list.sort(byOrder);
+  }
+  final soonest = [...todo]
+    ..sort((a, b) {
+      final byDeadline = a.deadline!.compareTo(b.deadline!);
+      return byDeadline != 0 ? byDeadline : byOrder(a, b);
+    });
+  return TodayPlan(todo, done, later, soonest);
 }
 
 /// The proof label Today shows next to a habit: `Strava` for Strava-bound

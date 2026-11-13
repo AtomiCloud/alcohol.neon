@@ -1,3 +1,15 @@
+## [1.30.0](https://github.com/ProtoDurian/alcohol.neon/compare/v1.29.1...v1.30.0) (2026-11-13)
+
+
+### ✨ Features ✨
+
+* drag to reorder habits on Today ([57bb167](https://github.com/ProtoDurian/alcohol.neon/commit/57bb167d2fab719f3af99b1a8ed9986fe38c0005))
+
+
+### 🐛 Bug Fixes 🐛
+
+* load every habit on Today, not only the first 20 ([639a0a4](https://github.com/ProtoDurian/alcohol.neon/commit/639a0a49d6913de4767c08df76492bd758fd9e20))
+
 ## [1.29.1](https://github.com/ProtoDurian/alcohol.neon/compare/v1.29.0...v1.29.1) (2026-11-13)
 
 

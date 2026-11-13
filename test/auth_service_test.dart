@@ -29,6 +29,7 @@ class _FakeLogtoClient extends LogtoClient {
   Object? signInError;
   Object? isAuthenticatedError;
   Object? getAccessTokenError;
+  Completer<AccessToken?>? accessTokenGate;
   Completer<void>? signInGate;
   bool signOutCalled = false;
   bool _authed = false;
@@ -45,7 +46,7 @@ class _FakeLogtoClient extends LogtoClient {
   }) async {
     final error = getAccessTokenError;
     if (error != null) throw error;
-    return null;
+    return accessTokenGate?.future;
   }
 
   @override
@@ -272,6 +273,41 @@ void main() {
 
       expect(token, isNull);
       expect(auth.status, AuthStatus.authenticated);
+      expect(client.signOutCalled, isFalse);
+    },
+  );
+
+  testWidgets(
+    'a token refresh that never answers gives up instead of hanging',
+    (tester) async {
+      // A stalled refresh used to hold every zinc request, and so the launch
+      // loader, forever ("loads forever" on a bad connection).
+      final resourceConfig = AppConfig(
+        landscape: Landscape.lapras,
+        zincBaseUrl: Uri.parse('https://zinc.example.com'),
+        logtoEndpoint: 'https://logto.example.com',
+        logtoAppId: 'test-app-id',
+        zincResource: 'https://api.zinc.example',
+        airwallexEnv: Environment.demo,
+        nfcTagBaseUrl: Uri.parse('https://t.lazytax.club/t/'),
+      );
+      final client = makeClient()
+        ..seedStoredSession()
+        ..accessTokenGate = Completer<AccessToken?>();
+      final auth = AuthService(resourceConfig, client: client);
+      await tester.pump();
+
+      String? token = 'pending';
+      var done = false;
+      auth.zincAccessToken().then((t) {
+        token = t;
+        done = true;
+      });
+      await tester.pump(const Duration(seconds: 25));
+
+      expect(done, isTrue, reason: 'the refresh must time out');
+      expect(token, isNull);
+      expect(auth.status, AuthStatus.authenticated, reason: 'retryable');
       expect(client.signOutCalled, isFalse);
     },
   );

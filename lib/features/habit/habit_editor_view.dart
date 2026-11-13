@@ -972,8 +972,12 @@ class _RemoveButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Semantics(
+    // Its own node, so VoiceOver and TalkBack reach the × apart from the
+    // row it sits in; otherwise its label and tap merge into the row's.
+    container: true,
     button: true,
     label: label,
+    onTap: onTap,
     excludeSemantics: true,
     child: Pressable(
       onTap: onTap,

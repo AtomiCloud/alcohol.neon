@@ -1,3 +1,10 @@
+## [1.27.1](https://github.com/ProtoDurian/alcohol.neon/compare/v1.27.0...v1.27.1) (2026-11-13)
+
+
+### 🐛 Bug Fixes 🐛
+
+* time out stalled requests so launch never loads forever ([1775485](https://github.com/ProtoDurian/alcohol.neon/commit/17754851233a2afbdc585e100e0f62334ffc3aa2))
+
 ## [1.27.0](https://github.com/ProtoDurian/alcohol.neon/compare/v1.26.1...v1.27.0) (2026-11-12)
 
 

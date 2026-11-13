@@ -81,19 +81,7 @@ class ApiClient {
       return Err(Problem.network(e));
     }
     if (res.statusCode < 200 || res.statusCode >= 300) {
-      try {
-        return Err(
-          Problem.fromJson(jsonDecode(res.body) as Map<String, dynamic>),
-        );
-      } catch (_) {
-        return Err(
-          Problem.local(
-            'Request failed',
-            status: res.statusCode,
-            detail: res.body.isEmpty ? null : res.body,
-          ),
-        );
-      }
+      return Err(_problemFrom(res));
     }
     return const Ok(null);
   }
@@ -167,25 +155,30 @@ class ApiClient {
   /// the server's RFC 7807 body), 2xx → decode, decode failure → `Err`.
   Result<T> _handle<T>(http.Response res, T Function(dynamic json) decode) {
     if (res.statusCode < 200 || res.statusCode >= 300) {
-      try {
-        return Err(
-          Problem.fromJson(jsonDecode(res.body) as Map<String, dynamic>),
-        );
-      } catch (_) {
-        return Err(
-          Problem.local(
-            'Request failed',
-            status: res.statusCode,
-            detail: res.body.isEmpty ? null : res.body,
-          ),
-        );
-      }
+      return Err(_problemFrom(res));
     }
     try {
       final json = res.body.isEmpty ? null : jsonDecode(res.body);
       return Ok(decode(json));
     } catch (e) {
       return Err(Problem.decoding(e));
+    }
+  }
+
+  /// A non-2xx response as a [Problem]: zinc's RFC 7807 body when it sent one.
+  /// Anything else (a proxy's HTML error page, plain text) never reaches the
+  /// user verbatim; it becomes a plain sentence with the status code.
+  static Problem _problemFrom(http.Response res) {
+    try {
+      return Problem.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+    } catch (_) {
+      return Problem.local(
+        'Request failed',
+        status: res.statusCode,
+        detail:
+            'The server sent an unexpected response (HTTP ${res.statusCode}). '
+            'Try again in a moment.',
+      );
     }
   }
 }

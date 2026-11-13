@@ -1,7 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+
 import '../../widgets/app_loader.dart';
+
 import 'package:provider/provider.dart';
 
 import '../../auth/auth_service.dart';
@@ -10,6 +12,7 @@ import '../../core/problem.dart';
 import '../../generated/zinc/models/user_principal_res.dart';
 import '../../session/session_controller.dart';
 import '../../theme/app_theme.dart';
+import '../../theme/appearance_setting.dart';
 import '../../theme/glass.dart';
 import '../../widgets/glass_list.dart';
 import '../../widgets/glass_modal.dart';
@@ -23,7 +26,7 @@ import '../strava/strava_view.dart';
 import '../subscription/subscription_view.dart';
 import '../vacation/vacation_list_view.dart';
 
-/// Profile: who you are, the Today layout choice, and the places Profile
+/// Profile: who you are, the Today layout and Appearance choices, and the places Profile
 /// opens, grouped by what they do. Name and email come from the id-token
 /// claims; verified and active come from `GET /User/Me/All`. Seven taps on the
 /// name open the developer menu (which also has "Send test notification").
@@ -265,6 +268,7 @@ class _ProfileViewState extends State<ProfileView> {
         ),
       ),
       const _LayoutChoice(),
+      const _AppearanceChoice(),
       GlassSection(
         title: 'Checking off',
         dividerIndent: 60,
@@ -383,72 +387,124 @@ class _LayoutChoice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final t = GlassTokens.of(context);
     return ValueListenableBuilder<TodayLayout>(
       valueListenable: TodayLayoutSetting.instance,
-      builder: (_, layout, _) {
-        Widget option(TodayLayout value, String label) {
-          final on = layout == value;
-          return Expanded(
-            child: Semantics(
-              selected: on,
-              button: true,
-              child: Pressable(
-                onTap: () => TodayLayoutSetting.instance.set(value),
-                child: AnimatedContainer(
-                  duration: GlassMotion.of(context, GlassMotion.fast),
-                  curve: GlassMotion.curve,
-                  height: 36,
-                  alignment: Alignment.center,
-                  decoration: ShapeDecoration(
-                    shape: const StadiumBorder(),
-                    color: on ? t.accent : Colors.transparent,
-                  ),
-                  child: Text(
-                    label,
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      color: on ? t.onAccent : theme.colorScheme.onSurface,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          );
-        }
+      builder: (_, layout, _) => _SegmentedChoice<TodayLayout>(
+        title: 'Today layout',
+        selected: layout,
+        options: const {
+          TodayLayout.nextUp: 'Next up',
+          TodayLayout.progressList: 'Progress list',
+        },
+        onSelected: TodayLayoutSetting.instance.set,
+        footer: layout == TodayLayout.nextUp
+            ? 'Today leads with the next habit to do.'
+            : 'Today leads with the whole day’s progress.',
+      ),
+    );
+  }
+}
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
+/// System, Light or Dark for the app, applied at once and saved on this
+/// device. The OS draws widgets, Live Activities and the launch screen, so
+/// those keep following the phone; the footer says so.
+class _AppearanceChoice extends StatelessWidget {
+  const _AppearanceChoice();
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: AppearanceSetting.instance,
+      builder: (_, mode, _) => _SegmentedChoice<ThemeMode>(
+        title: 'Appearance',
+        selected: mode,
+        options: const {
+          ThemeMode.system: 'System',
+          ThemeMode.light: 'Light',
+          ThemeMode.dark: 'Dark',
+        },
+        onSelected: AppearanceSetting.instance.set,
+        footer:
+            '${mode == ThemeMode.system ? 'Follows your phone’s setting. ' : ''}'
+            'Widgets, Live Activities and the launch screen always follow '
+            'your phone.',
+      ),
+    );
+  }
+}
+
+/// A titled glass pill of options, one selected, with a footer line.
+class _SegmentedChoice<T> extends StatelessWidget {
+  const _SegmentedChoice({
+    required this.title,
+    required this.selected,
+    required this.options,
+    required this.onSelected,
+    required this.footer,
+  });
+
+  final String title;
+  final T selected;
+  final Map<T, String> options;
+  final ValueChanged<T> onSelected;
+  final String footer;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final t = GlassTokens.of(context);
+    Widget option(T value, String label) {
+      final on = selected == value;
+      return Expanded(
+        child: Semantics(
+          selected: on,
+          button: true,
+          child: Pressable(
+            onTap: () => onSelected(value),
+            child: AnimatedContainer(
+              duration: GlassMotion.of(context, GlassMotion.fast),
+              curve: GlassMotion.curve,
+              height: 36,
+              alignment: Alignment.center,
+              decoration: ShapeDecoration(
+                shape: const StadiumBorder(),
+                color: on ? t.accent : Colors.transparent,
+              ),
               child: Text(
-                'Today layout',
+                label,
                 style: theme.textTheme.labelLarge?.copyWith(
-                  color: t.muted,
+                  color: on ? t.onAccent : theme.colorScheme.onSurface,
                   fontWeight: FontWeight.w600,
                 ),
               ),
             ),
-            Glass(
-              radius: const BorderRadius.all(Radius.circular(22)),
-              padding: const EdgeInsets.all(4),
-              child: Row(
-                children: [
-                  option(TodayLayout.nextUp, 'Next up'),
-                  option(TodayLayout.progressList, 'Progress list'),
-                ],
-              ),
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
+          child: Text(
+            title,
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: t.muted,
+              fontWeight: FontWeight.w600,
             ),
-            GlassFooter(
-              layout == TodayLayout.nextUp
-                  ? 'Today leads with the next habit to do.'
-                  : 'Today leads with the whole day’s progress.',
-            ),
-          ],
-        );
-      },
+          ),
+        ),
+        Glass(
+          radius: const BorderRadius.all(Radius.circular(22)),
+          padding: const EdgeInsets.all(4),
+          child: Row(
+            children: [for (final e in options.entries) option(e.key, e.value)],
+          ),
+        ),
+        GlassFooter(footer),
+      ],
     );
   }
 }

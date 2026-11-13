@@ -1,3 +1,10 @@
+## [1.28.0](https://github.com/ProtoDurian/alcohol.neon/compare/v1.27.2...v1.28.0) (2026-11-13)
+
+
+### ✨ Features ✨
+
+* choose stakes by type, with Tell my friends on New habit ([9cada4a](https://github.com/ProtoDurian/alcohol.neon/commit/9cada4a59a5e9b9c4bda899c3b69da9c4349f6e3))
+
 ## [1.27.2](https://github.com/ProtoDurian/alcohol.neon/compare/v1.27.1...v1.27.2) (2026-11-13)
 
 

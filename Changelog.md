@@ -1,3 +1,10 @@
+## [1.29.0](https://github.com/ProtoDurian/alcohol.neon/compare/v1.28.0...v1.29.0) (2026-11-13)
+
+
+### ✨ Features ✨
+
+* add Appearance setting (System, Light, Dark) ([70cc91a](https://github.com/ProtoDurian/alcohol.neon/commit/70cc91ac0d41f0b06fa1bb855ee18564bbc0ae07))
+
 ## [1.28.0](https://github.com/ProtoDurian/alcohol.neon/compare/v1.27.2...v1.28.0) (2026-11-13)
 
 

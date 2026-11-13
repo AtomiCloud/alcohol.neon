@@ -12,6 +12,8 @@ import 'package:alcohol_neon/features/root/root_view.dart';
 import 'package:alcohol_neon/features/nfc/nfc_deep_links.dart';
 import 'package:alcohol_neon/main.dart';
 import 'package:alcohol_neon/theme/appearance_setting.dart';
+import 'package:alcohol_neon/theme/app_theme.dart';
+import 'package:alcohol_neon/theme/glass.dart';
 import 'package:alcohol_neon/widgets/app_loader.dart';
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
@@ -104,6 +106,20 @@ void main() {
       await tester.pump();
     }
 
+    Future<Uint8List> launchPixels(WidgetTester tester) => tester
+        .runAsync(() async {
+          final boundary = tester.renderObject<RenderRepaintBoundary>(
+            find.byKey(const ValueKey('launch-frame')),
+          );
+          final image = await boundary.toImage();
+          final bytes = (await image.toByteData(
+            format: ui.ImageByteFormat.rawRgba,
+          ))!.buffer.asUint8List();
+          image.dispose();
+          return bytes;
+        })
+        .then((value) => value!);
+
     for (final phone in Brightness.values) {
       testWidgets('ColdLaunchLoading_FirstFrameShowsBrandLogo ${phone.name}', (
         tester,
@@ -154,6 +170,119 @@ void main() {
           );
         },
       );
+
+      testWidgets(
+        'LaunchThemeMismatch_BackdropIsContinuousAt180ms ${phone.name}',
+        (tester) async {
+          final h = SessionHarness()..auth.status = AuthStatus.loading;
+          final saved = phone == Brightness.dark
+              ? ThemeMode.light
+              : ThemeMode.dark;
+          await pumpLaunch(tester, h, phone: phone, saved: saved);
+          // AmbientBackdrop is static. These asymmetric points exclude all
+          // mascot pixels, so Lottie motion cannot hide a backdrop step.
+          final width = tester
+              .getSize(find.byKey(const ValueKey('launch-frame')))
+              .width
+              .round();
+          List<int> sample(Uint8List frame) => [
+            for (final point in const [
+              Offset(10, 10),
+              Offset(730, 80),
+              Offset(650, 420),
+              Offset(120, 560),
+            ])
+              ...frame.sublist(
+                (point.dy.toInt() * width + point.dx.toInt()) * 4,
+                (point.dy.toInt() * width + point.dx.toInt()) * 4 + 3,
+              ),
+          ];
+          final frames = <int, List<int>>{
+            0: sample(await launchPixels(tester)),
+          };
+          var previous = 0;
+          for (final ms in [90, 179, 180, 181, 400]) {
+            await tester.pump(Duration(milliseconds: ms - previous));
+            previous = ms;
+            frames[ms] = sample(await launchPixels(tester));
+          }
+          // Resolve an independent full-opacity reference, not a value read
+          // from the launch animation or its opacity widgets.
+          await tester.pumpWidget(
+            RepaintBoundary(
+              key: const ValueKey('launch-frame'),
+              child: Directionality(
+                textDirection: TextDirection.ltr,
+                child: Theme(
+                  data: saved == ThemeMode.dark
+                      ? AppTheme.dark
+                      : AppTheme.light,
+                  child: const AmbientBackdrop(child: SizedBox.expand()),
+                ),
+              ),
+            ),
+          );
+          final target = sample(await launchPixels(tester));
+          for (final ms in [180, 181, 400]) {
+            expect(
+              frames[ms],
+              target,
+              reason: '$ms ms must be the resolved backdrop',
+            );
+          }
+          final nativeBase = phone == Brightness.dark
+              ? [10, 10, 10]
+              : [242, 242, 247];
+          for (var i = 0; i < target.length; i++) {
+            expect(frames[0]![i], nativeBase[i % 3]);
+            expect(
+              (frames[179]![i] - target[i]).abs(),
+              lessThanOrEqualTo(2),
+              reason: '179→180ms channel $i',
+            );
+            expect(
+              frames[90]![i],
+              closeTo((nativeBase[i % 3] + target[i]) / 2, 2),
+              reason: '90ms backdrop blend channel $i',
+            );
+          }
+        },
+      );
+
+      testWidgets('ThemeResolution_DoesNotReplayLaunchLogo ${phone.name}', (
+        tester,
+      ) async {
+        final h = SessionHarness()..auth.status = AuthStatus.loading;
+        await pumpLaunch(tester, h, phone: phone);
+        await tester.pump(const Duration(milliseconds: 45));
+        AppearanceSetting.instance.value = phone == Brightness.dark
+            ? ThemeMode.light
+            : ThemeMode.dark;
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 134));
+        expect(logo(), findsOneWidget);
+        await tester.pump(const Duration(milliseconds: 1));
+        expect(
+          logo(),
+          findsNothing,
+          reason: 'theme resolution cannot restart the bridge',
+        );
+        for (final duration in [1, 64, 155]) {
+          await tester.pump(Duration(milliseconds: duration));
+          expect(logo(), findsNothing);
+          expect(find.byType(AppLoader), findsOneWidget);
+        }
+        expect(
+          Theme.of(tester.element(find.byType(AppLoader))).brightness,
+          phone == Brightness.dark ? Brightness.light : Brightness.dark,
+        );
+        // A later theme rebuild must not resurrect a completed source mark.
+        AppearanceSetting.instance.value = ThemeMode.system;
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200));
+        expect(logo(), findsNothing);
+        expect(find.byType(AppLoader), findsOneWidget);
+      });
     }
 
     testWidgets('ColdLaunchLoading_FadeThroughNeverOverlapsArtworks', (
@@ -164,17 +293,6 @@ void main() {
       final boundary = tester.renderObject<RenderRepaintBoundary>(
         find.byKey(const ValueKey('launch-frame')),
       );
-      Future<Uint8List> pixels() => tester
-          .runAsync(() async {
-            final image = await boundary.toImage();
-            final bytes = (await image.toByteData(
-              format: ui.ImageByteFormat.rawRgba,
-            ))!.buffer.asUint8List();
-            image.dispose();
-            return bytes;
-          })
-          .then((value) => value!);
-
       Future<bool> paintsPixels(Finder artwork, Uint8List frame) async {
         // Hide only this artwork at the same animation clock, then compare
         // rendered pixels. A mounted but transparent artwork must paint none.
@@ -187,7 +305,7 @@ void main() {
         opacity.opacity = 0;
         tester.binding.rootPipelineOwner.flushCompositingBits();
         tester.binding.rootPipelineOwner.flushPaint();
-        final hidden = await pixels();
+        final hidden = await launchPixels(tester);
         opacity.opacity = original;
         tester.binding.rootPipelineOwner.flushCompositingBits();
         tester.binding.rootPipelineOwner.flushPaint();
@@ -199,7 +317,7 @@ void main() {
       for (final ms in [45, 89, 90, 91, 135, 180]) {
         await tester.pump(Duration(milliseconds: ms - previousMs));
         previousMs = ms;
-        final frame = await pixels();
+        final frame = await launchPixels(tester);
         if (ms < 180) {
           expect(
             await paintsPixels(logo(), frame),

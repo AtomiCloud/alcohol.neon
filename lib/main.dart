@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import 'auth/auth_service.dart';
@@ -10,12 +11,17 @@ import 'features/nfc/nfc_deep_links.dart';
 import 'features/root/root_view.dart';
 import 'session/session_controller.dart';
 import 'theme/app_theme.dart';
+import 'theme/appearance_setting.dart';
 
 void main() async {
   LaunchTimeline.start();
   WidgetsFlutterBinding.ensureInitialized();
   // Independent local reads; run them together.
-  await Future.wait([AppConfig.load(), TodayLayoutSetting.instance.load()]);
+  await Future.wait([
+    AppConfig.load(),
+    TodayLayoutSetting.instance.load(),
+    AppearanceSetting.instance.load(),
+  ]);
   LaunchTimeline.mark('config-loaded');
   runApp(
     MultiProvider(
@@ -81,15 +87,36 @@ class _AlcoholNeonAppState extends State<AlcoholNeonApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'LazyTax',
-      debugShowCheckedModeBanner: false,
-      navigatorKey: _navigatorKey,
-      navigatorObservers: [routeObserver],
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.system,
-      home: const RootView(),
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: AppearanceSetting.instance,
+      builder: (_, themeMode, _) => MaterialApp(
+        title: 'LazyTax',
+        debugShowCheckedModeBanner: false,
+        navigatorKey: _navigatorKey,
+        navigatorObservers: [routeObserver],
+        theme: AppTheme.light,
+        darkTheme: AppTheme.dark,
+        themeMode: themeMode,
+        // Status bar icons follow the app's theme, not the phone's, so a
+        // Light choice on a dark phone doesn't get white icons on white.
+        builder: (context, child) {
+          final dark = Theme.of(context).brightness == Brightness.dark;
+          return AnnotatedRegion<SystemUiOverlayStyle>(
+            value: SystemUiOverlayStyle(
+              statusBarColor: Colors.transparent,
+              statusBarIconBrightness: dark
+                  ? Brightness.light
+                  : Brightness.dark,
+              statusBarBrightness: dark ? Brightness.dark : Brightness.light,
+              systemNavigationBarIconBrightness: dark
+                  ? Brightness.light
+                  : Brightness.dark,
+            ),
+            child: child!,
+          );
+        },
+        home: const RootView(),
+      ),
     );
   }
 }

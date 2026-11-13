@@ -4,6 +4,8 @@ import '../../widgets/app_loader.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/problem.dart';
+import '../../data/friend_repository.dart';
+import '../../data/friend_stake_repository.dart';
 import '../../data/proof_repository.dart';
 import '../../generated/zinc/models/charity_principal_res.dart';
 import '../../generated/zinc/models/create_habit_req.dart';
@@ -15,7 +17,7 @@ import '../../widgets/glass_list.dart';
 import '../../widgets/glass_modal.dart';
 import '../../widgets/glass_page.dart';
 import '../charity/charity_picker.dart';
-import '../friends/friend_stake_tile.dart';
+import '../friends/friend_watcher_sheet.dart';
 import '../nfc/link_tag_flow.dart';
 import '../payment/consent_service.dart';
 import '../strava/strava_proof_tile.dart';
@@ -75,6 +77,13 @@ class _HabitEditorViewState extends State<HabitEditorView> {
   List<String> _stravaDraft = const [];
   bool _nfcDraft = false;
 
+  // The "Tell my friends" stake. zinc keys it by habit id, so New habit saves
+  // it after Create and Edit saves each change straight away.
+  List<FriendRes> _friendsDraft = const [];
+  bool _friendsAvailable = true; // false when zinc has no FriendStake route
+  Problem? _friendsError; // Edit: loading the friends failed
+  bool _friendsSaving = false;
+
   bool _enabled = true;
   bool _loading = false; // loading an existing habit (edit)
   bool _saving = false;
@@ -86,6 +95,7 @@ class _HabitEditorViewState extends State<HabitEditorView> {
     _enabled = widget.initialEnabled;
     if (widget.isEdit) {
       _loadExisting();
+      _loadFriends();
     } else {
       _prefillDefaultCharity();
     }
@@ -129,6 +139,28 @@ class _HabitEditorViewState extends State<HabitEditorView> {
         _error = problem;
     }
     setState(() => _loading = false);
+  }
+
+  Future<void> _loadFriends() async {
+    final uid = _session.userId;
+    if (uid == null) return;
+    final res = await FriendStakeRepository(
+      _session.auth.makeApiClient(),
+    ).get(uid, widget.habitId!);
+    if (!mounted) return;
+    setState(() {
+      switch (res) {
+        case Ok(:final value):
+          _friendsDraft = [
+            for (final w in value.friends)
+              FriendRes(userId: w.userId, username: w.username),
+          ];
+        case Err(:final problem) when problem.status == 404:
+          _friendsAvailable = false;
+        case Err(:final problem):
+          _friendsError = problem;
+      }
+    });
   }
 
   Future<void> _prefillDefaultCharity() async {
@@ -345,7 +377,7 @@ class _HabitEditorViewState extends State<HabitEditorView> {
         if (charityId != null) await _session.rememberFirstCharity(charityId);
         if (!mounted) return;
         if (!widget.isEdit && value is HabitVersionRes) {
-          return _setUpProof(uid, value.habitId);
+          return _setUpAfterCreate(uid, value.habitId);
         }
         Navigator.of(context).pop(true);
       case Err(:final problem):
@@ -356,13 +388,23 @@ class _HabitEditorViewState extends State<HabitEditorView> {
     }
   }
 
-  /// After Create: binds the Strava proof and links an NFC tag if they were
-  /// switched on. The habit already exists, so a failure doesn't undo it:
-  /// the editor reopens on the new habit, saying what wasn't set up, where
-  /// Strava and NFC can be tried again.
-  Future<void> _setUpProof(String uid, String habitId) async {
+  /// After Create: tells the chosen friends, binds the Strava proof and links
+  /// an NFC tag if they were switched on. The habit already exists, so a
+  /// failure doesn't undo it: the editor reopens on the new habit, saying
+  /// what wasn't set up, where each can be tried again.
+  Future<void> _setUpAfterCreate(String uid, String habitId) async {
     final name = _task.text.trim();
     final failed = <String>[];
+    if (_friendsDraft.isNotEmpty) {
+      final saved = await _saveFriends(
+        uid,
+        habitId,
+        _friendsDraft,
+        title: 'Habit created, but friends weren’t saved',
+      );
+      if (!saved) failed.add('your friends');
+      if (!mounted) return;
+    }
     if (_stravaDraft.isNotEmpty) {
       final bound = await ProofRepository(_session.auth.makeApiClient()).bind(
         uid,
@@ -387,10 +429,11 @@ class _HabitEditorViewState extends State<HabitEditorView> {
       navigator.pop(true);
       return;
     }
+    final plural = failed.length > 1 || failed.single == 'your friends';
     showGlassToast(
       context,
-      '“$name” is created, but ${failed.join(' and ')} isn’t set up. '
-      'Try again here.',
+      '“$name” is created, but ${failed.join(' and ')} '
+      '${plural ? 'aren’t' : 'isn’t'} set up. Try again here.',
       duration: const Duration(seconds: 8),
     );
     navigator.pushReplacement(
@@ -400,6 +443,108 @@ class _HabitEditorViewState extends State<HabitEditorView> {
       result: true,
     );
   }
+
+  /// Saves [friends] as the habit's friends stake. On failure it says what
+  /// happened in [title] and offers to try again; false when the user gives
+  /// up with "Not now".
+  Future<bool> _saveFriends(
+    String uid,
+    String habitId,
+    List<FriendRes> friends, {
+    required String title,
+  }) async {
+    final stakes = FriendStakeRepository(_session.auth.makeApiClient());
+    final ids = [for (final f in friends) f.userId];
+    while (true) {
+      final res = await stakes.set(uid, habitId, ids);
+      if (!mounted) return false;
+      final Problem problem;
+      switch (res) {
+        case Ok():
+          return true;
+        case Err(problem: final p):
+          problem = p;
+      }
+      final retry = await showGlassConfirm(
+        context,
+        title: title,
+        message: problem.displayMessage,
+        confirmLabel: 'Try again',
+        cancelLabel: 'Not now',
+        destructive: false,
+      );
+      if (!retry || !mounted) return false;
+    }
+  }
+
+  Future<void> _pickFriends() async {
+    final uid = _session.userId;
+    if (uid == null) return;
+    final friends = FriendRepository(_session.auth.makeApiClient());
+    final picked = await pickFriendWatchers(
+      context,
+      load: () => friends.friends(uid),
+      initial: {for (final f in _friendsDraft) f.userId},
+    );
+    if (picked != null && mounted) await _setFriends(picked);
+  }
+
+  /// New habit keeps [friends] for after Create; Edit saves them now.
+  Future<void> _setFriends(List<FriendRes> friends) async {
+    final uid = _session.userId;
+    if (!widget.isEdit || uid == null) {
+      setState(() => _friendsDraft = friends);
+      return;
+    }
+    setState(() => _friendsSaving = true);
+    final saved = await _saveFriends(
+      uid,
+      widget.habitId!,
+      friends,
+      title: 'Friends weren’t saved',
+    );
+    if (!mounted) return;
+    setState(() {
+      _friendsSaving = false;
+      if (saved) _friendsDraft = friends;
+    });
+  }
+
+  /// Stake types not on the habit yet, offered by "Add a stake".
+  List<_StakeKind> get _addableStakes => [
+    if (!_staked) _StakeKind.money,
+    if (_friendsAvailable && _friendsError == null && _friendsDraft.isEmpty)
+      _StakeKind.friends,
+  ];
+
+  /// "Add a stake": pick a type first; only then its own input opens.
+  Future<void> _addStake() async {
+    final kind = await showGlassSheet<_StakeKind>(
+      context,
+      (_) => _StakeTypeSheet(kinds: _addableStakes),
+    );
+    if (kind == null || !mounted) return;
+    switch (kind) {
+      case _StakeKind.money:
+        await _editMoney();
+      case _StakeKind.friends:
+        await _pickFriends();
+    }
+  }
+
+  Future<void> _editMoney() async {
+    final picked = await showStakeSheet(
+      context,
+      initial: _staked ? _stake.text : null,
+    );
+    if (picked != null && mounted) setState(() => _stake.text = picked);
+  }
+
+  String get _friendsDraftLabel => switch (_friendsDraft) {
+    [] => 'Off',
+    [final one] => one.username,
+    final all => '${all.length} friends',
+  };
 
   /// Asks to scan the NFC tag now; false when the user picks "Not now".
   Future<bool> _askToScan(String name) async {
@@ -489,10 +634,16 @@ class _HabitEditorViewState extends State<HabitEditorView> {
           if (_days.contains(key)) label,
       ].join(', ');
     }
-    final stake = !_staked
-        ? 'nothing at stake'
-        : '${_stakeDisplay()} to ${_charityName ?? 'a charity you choose'} '
-              'if you miss';
+    final money = _staked
+        ? '${_stakeDisplay()} to ${_charityName ?? 'a charity you choose'}'
+        : null;
+    final friends = _friendsDraft.isEmpty ? null : 'friends told';
+    final stake = switch ((money, friends)) {
+      (null, null) => 'nothing at stake',
+      (final m?, null) => '$m if you miss',
+      (null, final f?) => '$f if you miss',
+      (final m?, final f?) => '$m and $f if you miss',
+    };
     return '$days · reminder at ${_time.format(context)} · $stake';
   }
 
@@ -502,12 +653,15 @@ class _HabitEditorViewState extends State<HabitEditorView> {
     final session = context.watch<SessionController>();
     final hasDefaultCharity =
         session.config?.defaultCharityId?.isNotEmpty ?? false;
-    final charityHint = !_staked
-        ? 'No money at stake, so no charity needed. Add a stake any time.'
-        : hasDefaultCharity
-        ? null
-        : 'A charity is only needed because there’s money at stake. Your '
-              'first one is remembered for next time.';
+    final stakeFooter = [
+      if (!_staked && _friendsDraft.isEmpty)
+        'Nothing happens yet when you miss a day. Add money, friends or both.',
+      if (_staked && !hasDefaultCharity)
+        'A charity is only needed because there’s money at stake. Your '
+            'first one is remembered for next time.',
+      if (widget.isEdit && _friendsAvailable)
+        'Friends save as soon as you change them.',
+    ].join(' ');
     final title = widget.isEdit ? 'Edit habit' : 'New habit';
     if (_loading) {
       return GlassPage(
@@ -602,29 +756,65 @@ class _HabitEditorViewState extends State<HabitEditorView> {
         ),
         GlassSection(
           title: 'If you miss',
-          footer: charityHint,
+          footer: stakeFooter.isEmpty ? null : stakeFooter,
           children: [
-            GlassRow(
-              leading: Icon(Icons.attach_money_rounded, color: t.accent),
-              title: 'Stake',
-              value: _staked ? _stakeDisplay() : 'None',
-              onTap: () async {
-                final picked = await showStakeSheet(
-                  context,
-                  initial: _stake.text,
-                );
-                if (picked != null && mounted) {
-                  setState(() => _stake.text = picked);
-                }
-              },
-            ),
-            if (_staked)
+            if (_staked) ...[
+              GlassRow(
+                leading: Icon(Icons.attach_money_rounded, color: t.accent),
+                title: 'Money',
+                value: _stakeDisplay(),
+                onTap: _editMoney,
+                trailing: _RemoveButton(
+                  label: 'Remove money stake',
+                  onTap: () => setState(() => _stake.text = '0'),
+                ),
+              ),
               // Only the charity's name, on one line, so long names fit.
               GlassRow(
                 leading: const Icon(Icons.volunteer_activism),
                 title: _charityName ?? 'Choose a charity',
                 accent: _charityName == null,
                 onTap: _pickCharity,
+              ),
+            ],
+            if (_friendsError != null)
+              GlassRow(
+                leading: const Icon(Icons.campaign_outlined),
+                title: 'Tell my friends',
+                subtitle: _friendsError!.displayMessage,
+                trailing: GlassTextButton(
+                  label: 'Retry',
+                  onPressed: () {
+                    setState(() => _friendsError = null);
+                    _loadFriends();
+                  },
+                ),
+              )
+            else if (_friendsDraft.isNotEmpty)
+              GlassRow(
+                leading: Icon(Icons.campaign_outlined, color: t.accent),
+                title: 'Tell my friends',
+                value: _friendsDraftLabel,
+                onTap: _friendsSaving ? null : _pickFriends,
+                trailing: _friendsSaving
+                    ? SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: t.muted,
+                        ),
+                      )
+                    : _RemoveButton(
+                        label: 'Remove friends stake',
+                        onTap: () => _setFriends(const []),
+                      ),
+              ),
+            if (_addableStakes.isNotEmpty)
+              GlassRow(
+                leading: Icon(Icons.add_rounded, color: t.accent),
+                title: 'Add a stake',
+                accent: true,
+                onTap: _addStake,
               ),
           ],
         ),
@@ -645,9 +835,6 @@ class _HabitEditorViewState extends State<HabitEditorView> {
             ),
           ),
           const GlassFooter('Proof saves as soon as you change it.'),
-          // Friends need the habit id and save on their own.
-          const GlassHeading('Friends'),
-          FriendStakeTile(habitId: widget.habitId!),
           GlassSection(
             title: 'Status',
             children: [
@@ -692,13 +879,115 @@ class _HabitEditorViewState extends State<HabitEditorView> {
             ),
           ),
           const GlassFooter(
-            'Optional. Leave both off and you tick it off yourself. '
-            'Friends can be told once the habit exists.',
+            'Optional. Leave both off and you tick it off yourself.',
           ),
         ],
       ],
     );
   }
+}
+
+/// The kinds of stake a habit can carry; one habit can have several.
+enum _StakeKind { money, friends }
+
+/// "Add a stake": the stake types to choose from, one row each, so a new
+/// type is one more entry here.
+class _StakeTypeSheet extends StatelessWidget {
+  final List<_StakeKind> kinds;
+  const _StakeTypeSheet({required this.kinds});
+
+  static (IconData, String, String) _describe(_StakeKind kind) =>
+      switch (kind) {
+        _StakeKind.money => (
+          Icons.attach_money_rounded,
+          'Money',
+          'Pay a charity you choose for each missed day',
+        ),
+        _StakeKind.friends => (
+          Icons.campaign_outlined,
+          'Tell my friends',
+          'Friends you pick get a note in their inbox',
+        ),
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final t = GlassTokens.of(context);
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Add a stake',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'What happens when you miss a day. Add as many as you like.',
+              style: theme.textTheme.bodySmall?.copyWith(color: t.muted),
+            ),
+            const SizedBox(height: 12),
+            Glass(
+              child: Column(
+                children: [
+                  for (final (i, kind) in kinds.indexed) ...[
+                    if (i > 0)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 54),
+                        child: Divider(height: 0.5, color: t.separator),
+                      ),
+                    Builder(
+                      builder: (context) {
+                        final (icon, title, subtitle) = _describe(kind);
+                        return GlassRow(
+                          leading: Icon(icon, color: t.accent),
+                          title: title,
+                          subtitle: subtitle,
+                          onTap: () => Navigator.of(context).pop(kind),
+                        );
+                      },
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The × that takes one stake off the habit.
+class _RemoveButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+  const _RemoveButton({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label: label,
+    excludeSemantics: true,
+    child: Pressable(
+      onTap: onTap,
+      scale: 0.9,
+      child: Padding(
+        padding: const EdgeInsets.all(6),
+        child: Icon(
+          Icons.close_rounded,
+          size: 20,
+          color: GlassTokens.of(context).muted,
+        ),
+      ),
+    ),
+  );
 }
 
 /// One round day toggle in the Days row.

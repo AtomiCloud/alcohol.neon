@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:alcohol_neon/auth/auth_service.dart';
-import 'package:alcohol_neon/features/friends/friend_stake_tile.dart';
 import 'package:alcohol_neon/features/friends/friends_view.dart';
 import 'package:alcohol_neon/features/inbox/inbox_view.dart';
 import 'package:alcohol_neon/features/strava/strava_view.dart';
@@ -319,44 +318,5 @@ void main() {
         findsOneWidget,
       );
     });
-  });
-
-  testWidgets('the friend-stake sheet picks friends with check rows and '
-      'saves with the emerald button', (tester) async {
-    final h = SessionHarness(
-      respond: (r) async {
-        final path = r.url.path;
-        if (path.endsWith('/FriendStake/user-1/h1')) {
-          return r.method == 'PUT'
-              ? jsonResponse({'habitId': 'h1', ...jsonDecode(r.body) as Map})
-              : jsonResponse({'habitId': 'h1', 'friends': []});
-        }
-        if (path.endsWith('/Friend/user-1')) {
-          return jsonResponse([
-            {'userId': 'u-mei', 'username': 'mei'},
-            {'userId': 'u-sam', 'username': 'sam'},
-          ]);
-        }
-        return null;
-      },
-    );
-    await h.start();
-    await pump(
-      tester,
-      h,
-      const Scaffold(body: FriendStakeTile(habitId: 'h1')),
-      platform: TargetPlatform.android,
-    );
-    await tester.tap(find.text('Tell my friends if I miss'));
-    await tester.pumpAndSettle();
-
-    expect(find.byType(CheckboxListTile), findsNothing);
-    await tester.tap(find.text('mei'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(GlassButton, 'Save'));
-    await tester.pumpAndSettle();
-    final put = calls(h, 'PUT', '/FriendStake/user-1/h1').single;
-    expect(jsonEncode(jsonDecode(put.body)), contains('u-mei'));
-    expect(put.body, isNot(contains('u-sam')));
   });
 }

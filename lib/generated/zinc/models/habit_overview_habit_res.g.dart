@@ -31,6 +31,7 @@ HabitOverviewHabitRes _$HabitOverviewHabitResFromJson(
       : DateTime.parse(json['todayDeadlineUtc'] as String),
   proof: json['proof'] as String?,
   routineId: json['routineId'] as String?,
+  sortOrder: (json['sortOrder'] as num?)?.toInt(),
 );
 
 Map<String, dynamic> _$HabitOverviewHabitResToJson(
@@ -52,4 +53,5 @@ Map<String, dynamic> _$HabitOverviewHabitResToJson(
   'todayDeadlineUtc': instance.todayDeadlineUtc?.toIso8601String(),
   'proof': instance.proof,
   'routineId': instance.routineId,
+  'sortOrder': instance.sortOrder,
 };

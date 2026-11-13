@@ -54,6 +54,8 @@ export 'models/pledge_sync_summary_res.dart';
 export 'models/plugin_manifest_res.dart';
 export 'models/proof_binding_res.dart';
 export 'models/protection_balance_res.dart';
+export 'models/reorder_habits_req.dart';
+export 'models/reorder_habits_res.dart';
 export 'models/routine_res.dart';
 export 'models/run_disbursement_res.dart';
 export 'models/send_friend_request_req.dart';

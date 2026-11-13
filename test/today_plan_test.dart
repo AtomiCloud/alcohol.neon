@@ -10,9 +10,12 @@ HabitOverviewHabitRes habit(
   bool enabled = true,
   bool scheduledToday = true,
   String? deadlineUtc,
+  int? sortOrder,
+  String? name,
 }) => HabitOverviewHabitRes.fromJson({
   'id': id,
-  'name': id,
+  'name': name ?? id,
+  'sortOrder': ?sortOrder,
   'enabled': enabled,
   'days': List.generate(7, (i) => i == 1 ? scheduledToday : !scheduledToday),
   'stake': {'amount': 1, 'currency': 'USD'},
@@ -34,19 +37,65 @@ void main() {
   final loadedAt = DateTime(2026, 11, 9, 18);
   String? serverStatus(HabitOverviewHabitRes h) => h.status.todayStatus;
 
-  test('open habits order by deadline, then name; not by list order', () {
+  test('lists follow the saved order; Next up is still the soonest', () {
+    // Deadlines 09:00, 21:00 and 12:00 local, so deadline order differs from
+    // both the saved order and the list order.
     final plan = buildTodayPlan(
       [
-        habit('a-late', minutesLeft: 300),
-        habit('z-soon', minutesLeft: 30),
-        habit('m-tie', minutesLeft: 300),
+        habit('two', sortOrder: 2, minutesLeft: 15 * 60),
+        habit('zero', sortOrder: 0, minutesLeft: 3 * 60),
+        habit('one', sortOrder: 1, minutesLeft: 18 * 60),
+      ],
+      todayStatus: serverStatus,
+      loadedAt: DateTime(2026, 11, 9, 6),
+    );
+    expect(plan.todo.map((i) => i.habit.id), ['zero', 'one', 'two']);
+    expect(plan.next!.habit.id, 'zero');
+    expect(plan.next!.deadline, DateTime(2026, 11, 9, 9));
+    expect(plan.soonest.map((i) => i.habit.id), ['zero', 'two', 'one']);
+  });
+
+  test('the saved order, not the name, breaks a deadline tie', () {
+    final plan = buildTodayPlan(
+      [
+        habit('a', name: 'Alpha', sortOrder: 1),
+        habit('z', name: 'Zulu', sortOrder: 0),
       ],
       todayStatus: serverStatus,
       loadedAt: loadedAt,
     );
-    expect(plan.todo.map((i) => i.habit.id), ['z-soon', 'a-late', 'm-tie']);
-    expect(plan.next!.habit.id, 'z-soon');
-    expect(plan.next!.deadline, DateTime(2026, 11, 9, 18, 30));
+    expect(plan.next!.habit.name, 'Zulu');
+  });
+
+  test('done and not-today rows follow the saved order, not the list', () {
+    final plan = buildTodayPlan(
+      [
+        habit('rest-2', sortOrder: 5, scheduledToday: false),
+        habit('done-1', sortOrder: 3, status: 'succeeded'),
+        habit('rest-1', sortOrder: 1, scheduledToday: false),
+        habit('done-0', sortOrder: 0, status: 'failed'),
+        habit('done-2', sortOrder: 4, status: 'skip'),
+      ],
+      todayStatus: serverStatus,
+      loadedAt: loadedAt,
+    );
+    expect(plan.done.map((i) => i.habit.id), ['done-0', 'done-1', 'done-2']);
+    expect(plan.later.map((i) => i.habit.id), ['rest-1', 'rest-2']);
+  });
+
+  test('without sortOrder (older zinc) the lists keep the server order', () {
+    final plan = buildTodayPlan(
+      [
+        habit('m', minutesLeft: 300),
+        habit('z', minutesLeft: 30),
+        habit('a', minutesLeft: 300),
+      ],
+      todayStatus: serverStatus,
+      loadedAt: loadedAt,
+    );
+    expect(plan.todo.map((i) => i.habit.id), ['m', 'z', 'a']);
+    // The deadline tie between m and a goes to the server's order.
+    expect(plan.soonest.map((i) => i.habit.id), ['z', 'm', 'a']);
   });
 
   test('the server deadline wins over minutes left when present', () {

@@ -232,7 +232,15 @@ class _RingPainter extends CustomPainter {
 class Appear extends StatefulWidget {
   final int index;
   final Widget child;
-  const Appear({super.key, this.index = 0, required this.child});
+
+  /// [child] is a sliver: it fades in without the slide.
+  final bool sliver;
+  const Appear({
+    super.key,
+    this.index = 0,
+    this.sliver = false,
+    required this.child,
+  });
 
   @override
   State<Appear> createState() => _AppearState();
@@ -273,17 +281,19 @@ class _AppearState extends State<Appear> with SingleTickerProviderStateMixin {
   }
 
   @override
-  Widget build(BuildContext context) => FadeTransition(
-    opacity: _a,
-    child: AnimatedBuilder(
-      animation: _a,
-      builder: (_, child) => Transform.translate(
-        offset: Offset(0, 14 * (1 - _a.value)),
-        child: child,
-      ),
-      child: widget.child,
-    ),
-  );
+  Widget build(BuildContext context) => widget.sliver
+      ? SliverFadeTransition(opacity: _a, sliver: widget.child)
+      : FadeTransition(
+          opacity: _a,
+          child: AnimatedBuilder(
+            animation: _a,
+            builder: (_, child) => Transform.translate(
+              offset: Offset(0, 14 * (1 - _a.value)),
+              child: child,
+            ),
+            child: widget.child,
+          ),
+        );
 }
 
 /// Shrinks slightly while pressed, the way iOS buttons and cards respond.

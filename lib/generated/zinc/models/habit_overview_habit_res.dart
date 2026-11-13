@@ -30,6 +30,7 @@ class HabitOverviewHabitRes {
     this.todayDeadlineUtc,
     this.proof,
     this.routineId,
+    this.sortOrder,
   });
 
   factory HabitOverviewHabitRes.fromJson(Map<String, Object?> json) =>
@@ -51,6 +52,7 @@ class HabitOverviewHabitRes {
   final DateTime? todayDeadlineUtc;
   final String? proof;
   final String? routineId;
+  final int? sortOrder;
 
   Map<String, Object?> toJson() => _$HabitOverviewHabitResToJson(this);
 }
